@@ -1,30 +1,158 @@
-// Import necessary components and functions from react-router-dom.
-
 import {
-    createBrowserRouter,
-    createRoutesFromElements,
-    Route,
+  createBrowserRouter,
+  createRoutesFromElements,
+  Route,
+  Navigate,
 } from "react-router-dom";
+
 import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
-import { Single } from "./pages/Single";
-import { Demo } from "./pages/Demo";
+import { Register } from "./pages/Register";
+import { Login } from "./pages/Login";
+import { Ranking } from "./pages/Ranking";
+import { Matches } from "./pages/Matches";
+import { UploadResult } from "./pages/UploadResult";
+import { Rules } from "./pages/Rules";
+import { Profile } from "./pages/Profile";
+
+import { Admin } from "./pages/admin/Admin";
+import { AdminPlayers } from "./pages/admin/AdminPlayers";
+import { AdminMatches } from "./pages/admin/AdminMatches";
+import { AdminRules } from "./pages/admin/AdminRules";
+
+const getStoredUser = () => {
+  const storedUser = localStorage.getItem("user");
+
+  try {
+    if (storedUser && storedUser !== "undefined") {
+      return JSON.parse(storedUser);
+    }
+  } catch (error) {
+    console.error("Error leyendo user de localStorage:", error);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("profile");
+  }
+
+  return null;
+};
+
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+  const user = getStoredUser();
+
+  if (!token || !user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+const AdminRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+  const user = getStoredUser();
+
+  if (!token || !user) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!user?.is_admin) {
+    return <Navigate to="/profile" replace />;
+  }
+
+  return children;
+};
 
 export const router = createBrowserRouter(
-    createRoutesFromElements(
-    // CreateRoutesFromElements function allows you to build route elements declaratively.
-    // Create your routes here, if you want to keep the Navbar and Footer in all views, add your new routes inside the containing Route.
-    // Root, on the contrary, create a sister Route, if you have doubts, try it!
-    // Note: keep in mind that errorElement will be the default page when you don't get a route, customize that page to make your project more attractive.
-    // Note: The child paths of the Layout element replace the Outlet component with the elements contained in the "element" attribute of these child paths.
+  createRoutesFromElements(
+    <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>
+      <Route index element={<Home />} />
 
-      // Root Route: All navigation will start from here.
-      <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>} >
+      <Route path="register" element={<Register />} />
+      <Route path="login" element={<Login />} />
 
-        {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
-        <Route path= "/" element={<Home />} />
-        <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
-        <Route path="/demo" element={<Demo />} />
-      </Route>
-    )
+      <Route
+        path="ranking"
+        element={
+          <ProtectedRoute>
+            <Ranking />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="matches"
+        element={
+          <ProtectedRoute>
+            <Matches />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="rules"
+        element={
+          <ProtectedRoute>
+            <Rules />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="upload-result"
+        element={
+          <ProtectedRoute>
+            <UploadResult />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="admin"
+        element={
+          <AdminRoute>
+            <Admin />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="admin/players"
+        element={
+          <AdminRoute>
+            <AdminPlayers />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="admin/matches"
+        element={
+          <AdminRoute>
+            <AdminMatches />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="admin/rules"
+        element={
+          <AdminRoute>
+            <AdminRules />
+          </AdminRoute>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Route>
+  )
 );
