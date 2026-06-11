@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { authFetch } from "../../utils/authFetch";
 
 export const Admin = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const token = localStorage.getItem("token");
 
   const storedUser = localStorage.getItem("user");
 
@@ -46,22 +46,17 @@ export const Admin = () => {
     try {
       setClosingSeason(true);
 
-      const response = await fetch(`${backendUrl}/api/admin/seasons/close`, {
+      const data = await authFetch(`${backendUrl}/api/admin/seasons/close`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           next_season_name: nextSeasonName.trim(),
         }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudo cerrar la temporada");
-      }
+      if (!data) return;
 
       setMessage(
         `Temporada cerrada correctamente. Nueva temporada creada: ${
@@ -72,7 +67,7 @@ export const Admin = () => {
       setNextSeasonName("");
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cerrar temporada");
+      setError(error.message || "No se pudo cerrar la temporada");
     } finally {
       setClosingSeason(false);
     }
@@ -98,100 +93,6 @@ export const Admin = () => {
 
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
-
-      <div
-        style={{
-          background: "#ffffff",
-          border: "2px solid #dc2626",
-          borderRadius: "28px",
-          padding: "28px",
-          marginBottom: "28px",
-          boxShadow: "0 14px 34px rgba(6, 27, 58, 0.08)",
-        }}
-      >
-        <div style={{ marginBottom: "20px" }}>
-          <span
-            style={{
-              color: "#dc2626",
-              fontWeight: "900",
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
-              fontSize: "13px",
-            }}
-          >
-            Temporadas
-          </span>
-
-          <h2
-            style={{
-              color: "#071f45",
-              fontSize: "34px",
-              margin: "10px 0 10px",
-            }}
-          >
-            Cerrar cuatrimestre
-          </h2>
-
-          <p style={{ color: "#5d6b82", lineHeight: "1.6", margin: 0 }}>
-            Al cerrar la temporada actual se guardará el ranking final en el
-            histórico, se creará una nueva temporada y los puntos actuales
-            volverán a 0.
-          </p>
-        </div>
-
-        <form
-          onSubmit={closeSeason}
-          style={{
-            display: "grid",
-            gap: "12px",
-            background: "#f8fbff",
-            borderRadius: "20px",
-            padding: "20px",
-            border: "1px solid #dce8f6",
-          }}
-        >
-          <label
-            style={{
-              color: "#071f45",
-              fontWeight: "900",
-              fontSize: "14px",
-            }}
-          >
-            Nombre de la nueva temporada
-          </label>
-
-          <input
-            type="text"
-            value={nextSeasonName}
-            onChange={(event) => setNextSeasonName(event.target.value)}
-            placeholder="Ej: Mayo - Agosto 2026"
-            style={{
-              width: "100%",
-              border: "1px solid #dce8f6",
-              borderRadius: "14px",
-              padding: "14px 16px",
-              fontSize: "15px",
-              outline: "none",
-            }}
-          />
-
-          <button
-            type="submit"
-            disabled={closingSeason}
-            style={{
-              border: "none",
-              background: "#dc2626",
-              color: "#ffffff",
-              borderRadius: "14px",
-              padding: "15px 18px",
-              fontWeight: "900",
-              cursor: "pointer",
-            }}
-          >
-            {closingSeason ? "Cerrando..." : "Cerrar temporada"}
-          </button>
-        </form>
-      </div>
 
       <div className="admin-dashboard-grid">
         <Link to="/admin/players" className="admin-dashboard-card">
@@ -238,6 +139,36 @@ export const Admin = () => {
 
           <strong>Entrar →</strong>
         </Link>
+      </div>
+
+      <div className="admin-season-card">
+        <div className="admin-season-content">
+          <div className="admin-season-icon">🏆</div>
+
+          <div>
+            <span>Temporadas</span>
+            <h2>Cerrar cuatrimestre</h2>
+            <p>
+              Guarda el ranking actual como histórico, crea una nueva temporada
+              y reinicia los puntos para empezar el siguiente cuatrimestre.
+            </p>
+          </div>
+        </div>
+
+        <form className="admin-season-form" onSubmit={closeSeason}>
+          <label>Nombre de la nueva temporada</label>
+
+          <input
+            type="text"
+            value={nextSeasonName}
+            onChange={(event) => setNextSeasonName(event.target.value)}
+            placeholder="Ej: Mayo - Agosto 2026"
+          />
+
+          <button type="submit" disabled={closingSeason}>
+            {closingSeason ? "Cerrando..." : "Cerrar temporada"}
+          </button>
+        </form>
       </div>
 
       <div className="admin-help-card">

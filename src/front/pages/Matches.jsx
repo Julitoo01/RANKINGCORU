@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import { authFetch } from "../utils/authFetch";
 
 export const Matches = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const token = localStorage.getItem("token");
 
   const [matches, setMatches] = useState([]);
   const [seasons, setSeasons] = useState([]);
@@ -14,18 +14,11 @@ export const Matches = () => {
   const loadSeasons = async () => {
     try {
       setSeasonsLoading(true);
+      setError("");
 
-      const response = await fetch(`${backendUrl}/api/seasons`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await authFetch(`${backendUrl}/api/seasons`);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudieron cargar las temporadas");
-      }
+      if (!data) return;
 
       setSeasons(data);
 
@@ -59,17 +52,9 @@ export const Matches = () => {
         ? `${backendUrl}/api/matches?${queryString}`
         : `${backendUrl}/api/matches`;
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await authFetch(url);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudieron cargar los partidos");
-      }
+      if (!data) return;
 
       setMatches(data);
     } catch (error) {
@@ -215,7 +200,9 @@ export const Matches = () => {
               <div className="match-card-footer">
                 <span>Ganador: {getWinnerText(match.winner_team)}</span>
                 <span>Club: {match.club || "-"}</span>
-                <span>Temporada: {match.season || selectedSeason?.name || "-"}</span>
+                <span>
+                  Temporada: {match.season || selectedSeason?.name || "-"}
+                </span>
               </div>
             </article>
           ))}

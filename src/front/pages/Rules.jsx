@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import { authFetch } from "../utils/authFetch";
 
 export const Rules = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const token = localStorage.getItem("token");
 
   const [rules, setRules] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -13,17 +13,9 @@ export const Rules = () => {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${backendUrl}/api/rules`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await authFetch(`${backendUrl}/api/rules`);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudieron cargar las normas");
-      }
+      if (!data) return;
 
       setRules(data);
     } catch (error) {

@@ -1,30 +1,61 @@
 import { useEffect, useState } from "react";
+import { authFetch } from "../../utils/authFetch";
 
 export const AdminMatches = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const token = localStorage.getItem("token");
 
   const [matches, setMatches] = useState([]);
+  const [seasons, setSeasons] = useState([]);
+  const [selectedSeasonId, setSelectedSeasonId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [seasonsLoading, setSeasonsLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const loadSeasons = async () => {
+    try {
+      setSeasonsLoading(true);
+      setError("");
+
+      const data = await authFetch(`${backendUrl}/api/seasons`);
+
+      if (!data) return;
+
+      setSeasons(data);
+
+      const activeSeason = data.find((season) => season.is_active);
+
+      if (activeSeason && !selectedSeasonId) {
+        setSelectedSeasonId(String(activeSeason.id));
+      }
+    } catch (error) {
+      console.error(error);
+      setError(error.message || "Error al cargar temporadas");
+    } finally {
+      setSeasonsLoading(false);
+    }
+  };
 
   const loadMatches = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${backendUrl}/api/admin/matches`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const params = new URLSearchParams();
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudieron cargar los partidos");
+      if (selectedSeasonId) {
+        params.append("season_id", selectedSeasonId);
       }
+
+      const queryString = params.toString();
+
+      const url = queryString
+        ? `${backendUrl}/api/admin/matches?${queryString}`
+        : `${backendUrl}/api/admin/matches`;
+
+      const data = await authFetch(url);
+
+      if (!data) return;
 
       setMatches(data);
     } catch (error) {
@@ -36,8 +67,14 @@ export const AdminMatches = () => {
   };
 
   useEffect(() => {
-    loadMatches();
+    loadSeasons();
   }, []);
+
+  useEffect(() => {
+    if (!seasonsLoading) {
+      loadMatches();
+    }
+  }, [selectedSeasonId, seasonsLoading]);
 
   const formatDate = (date) => {
     if (!date) return "-";
@@ -57,30 +94,20 @@ export const AdminMatches = () => {
 
   const deleteMatch = async (matchId) => {
     const confirmDelete = window.confirm(
-      "¿Seguro que quieres eliminar este partido? El ranking se recalculará."
+      "¿Seguro que quieres eliminar este partido? El ranking se recalculará automáticamente."
     );
 
     if (!confirmDelete) return;
 
-    setMessage("");
-    setError("");
-
     try {
-      const response = await fetch(
-        `${backendUrl}/api/admin/matches/${matchId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      setMessage("");
+      setError("");
 
-      const data = await response.json();
+      const data = await authFetch(`${backendUrl}/api/admin/matches/${matchId}`, {
+        method: "DELETE",
+      });
 
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudo eliminar el partido");
-      }
+      if (!data) return;
 
       setMessage("Partido eliminado correctamente. Ranking recalculado.");
       loadMatches();
@@ -90,120 +117,83 @@ export const AdminMatches = () => {
     }
   };
 
-  const recalculateRanking = async () => {
-    const confirmRecalculate = window.confirm(
-      "¿Seguro que quieres recalcular todo el ranking?"
-    );
-
-    if (!confirmRecalculate) return;
-
-    setMessage("");
-    setError("");
-
-    try {
-      const response = await fetch(
-        `${backendUrl}/api/admin/recalculate-ranking`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudo recalcular el ranking");
-      }
-
-      setMessage("Ranking recalculado correctamente.");
-      loadMatches();
-    } catch (error) {
-      console.error(error);
-      setError(error.message || "Error al recalcular ranking");
-    }
-  };
+  const selectedSeason = seasons.find(
+    (season) => String(season.id) === String(selectedSeasonId)
+  );
 
   return (
-    <section className="admin-matches-page">
-      <div className="admin-matches-hero">
+    <section className="admin-page">
+      <div className="admin-hero">
         <div>
           <span>Panel admin</span>
-          <h1>Gestión de partidos</h1>
+          <h1>Partidos</h1>
           <p>
-            Revisa los resultados subidos, elimina partidos incorrectos y
-            recalcula el ranking cuando sea necesario.
+            Revisa los resultados registrados, elimina partidos incorrectos y
+            controla el historial por temporada.
           </p>
         </div>
 
-        <div className="admin-matches-hero-card">
+        <div className="admin-hero-card">
           <strong>{matches.length}</strong>
-          <span>Partidos registrados</span>
+          <span>Partidos</span>
         </div>
       </div>
 
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
 
-      <div className="admin-matches-actions-card">
+      <div className="matches-season-card">
         <div>
-          <h2>Acciones rápidas</h2>
+          <span>Temporada</span>
+          <h2>{selectedSeason?.name || "Temporada actual"}</h2>
           <p>
-            Usa estas acciones solo cuando hayas eliminado partidos incorrectos o
-            necesites refrescar la clasificación.
+            {selectedSeason?.is_closed
+              ? "Estás viendo partidos de una temporada cerrada."
+              : "Estás viendo los partidos de la temporada activa."}
           </p>
         </div>
 
-        <button
-          type="button"
-          className="admin-recalculate-btn"
-          onClick={recalculateRanking}
-        >
-          Recalcular ranking
-        </button>
+        <div className="matches-season-select-box">
+          <label>Ver temporada</label>
+
+          <select
+            value={selectedSeasonId}
+            onChange={(event) => setSelectedSeasonId(event.target.value)}
+          >
+            {seasons.map((season) => (
+              <option key={season.id} value={season.id}>
+                {season.name} {season.is_active ? "· Actual" : "· Histórico"}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {loading && (
-        <div className="admin-matches-state">
+      {loading ? (
+        <div className="admin-state">
           <p>Cargando partidos...</p>
         </div>
-      )}
-
-      {!loading && matches.length === 0 && (
-        <div className="admin-matches-empty">
+      ) : matches.length === 0 ? (
+        <div className="admin-empty">
           <h2>No hay partidos registrados</h2>
           <p>
-            Cuando los jugadores suban resultados, aparecerán aquí para poder
-            gestionarlos.
+            Cuando los jugadores suban resultados, aparecerán aquí para ser
+            revisados.
           </p>
         </div>
-      )}
-
-      {!loading && matches.length > 0 && (
-        <div className="admin-matches-table-card">
-          <div className="admin-matches-table-header">
-            <div>
-              <h2>Historial de partidos</h2>
-              <p>
-                Elimina cualquier resultado incorrecto para mantener limpio el
-                ranking.
-              </p>
-            </div>
-          </div>
-
+      ) : (
+        <div className="admin-table-card">
           <div className="table-wrapper">
-            <table className="ranking-table admin-matches-table">
+            <table className="admin-table">
               <thead>
                 <tr>
                   <th>Fecha</th>
-                  <th>Nivel</th>
                   <th>Equipo A</th>
                   <th>Equipo B</th>
                   <th>Resultado</th>
                   <th>Ganador</th>
+                  <th>Nivel</th>
                   <th>Club</th>
-                  <th>Subido por</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -214,46 +204,38 @@ export const AdminMatches = () => {
                     <td>{formatDate(match.played_at)}</td>
 
                     <td>
-                      <span className="admin-match-level-pill">
-                        {match.level}
-                      </span>
+                      <strong>
+                        {match.team_a?.[0]?.nickname || "-"} /{" "}
+                        {match.team_a?.[1]?.nickname || "-"}
+                      </strong>
                     </td>
 
                     <td>
-                      <div className="admin-match-team">
-                        <strong>
-                          {match.team_a?.[0]?.nickname || "-"} /{" "}
-                          {match.team_a?.[1]?.nickname || "-"}
-                        </strong>
-                      </div>
+                      <strong>
+                        {match.team_b?.[0]?.nickname || "-"} /{" "}
+                        {match.team_b?.[1]?.nickname || "-"}
+                      </strong>
                     </td>
 
-                    <td>
-                      <div className="admin-match-team">
-                        <strong>
-                          {match.team_b?.[0]?.nickname || "-"} /{" "}
-                          {match.team_b?.[1]?.nickname || "-"}
-                        </strong>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span className="admin-match-score">{match.score}</span>
-                    </td>
+                    <td>{match.score}</td>
 
                     <td>{getWinnerText(match.winner_team)}</td>
 
+                    <td>
+                      <span className="ranking-level-pill">{match.level}</span>
+                    </td>
+
                     <td>{match.club || "-"}</td>
 
-                    <td>{match.submitted_by || "-"}</td>
-
                     <td>
-                      <button
-                        className="admin-delete-match-btn"
-                        onClick={() => deleteMatch(match.id)}
-                      >
-                        Eliminar
-                      </button>
+                      <div className="admin-actions">
+                        <button
+                          className="admin-action-btn delete"
+                          onClick={() => deleteMatch(match.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

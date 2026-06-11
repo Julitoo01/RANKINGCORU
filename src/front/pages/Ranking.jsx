@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import { authFetch } from "../utils/authFetch";
 
 export const Ranking = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const token = localStorage.getItem("token");
 
   const [ranking, setRanking] = useState([]);
   const [seasons, setSeasons] = useState([]);
@@ -24,18 +24,11 @@ export const Ranking = () => {
   const loadSeasons = async () => {
     try {
       setSeasonsLoading(true);
+      setError("");
 
-      const response = await fetch(`${backendUrl}/api/seasons`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await authFetch(`${backendUrl}/api/seasons`);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudieron cargar las temporadas");
-      }
+      if (!data) return;
 
       setSeasons(data);
 
@@ -68,21 +61,14 @@ export const Ranking = () => {
       }
 
       const queryString = params.toString();
+
       const url = queryString
         ? `${backendUrl}/api/ranking?${queryString}`
         : `${backendUrl}/api/ranking`;
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await authFetch(url);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudo cargar el ranking");
-      }
+      if (!data) return;
 
       setRanking(data);
     } catch (error) {
@@ -160,6 +146,7 @@ export const Ranking = () => {
 
         <div className="ranking-season-select-box">
           <label>Ver temporada</label>
+
           <select
             value={selectedSeasonId}
             onChange={(event) => setSelectedSeasonId(event.target.value)}
@@ -200,6 +187,7 @@ export const Ranking = () => {
               ? "No hay histórico guardado para esta temporada"
               : "Todavía no hay jugadores aprobados"}
           </h2>
+
           <p>
             {isHistoricalSeason
               ? "Cuando se cierre una temporada con jugadores aprobados, se guardará aquí su clasificación final."
@@ -258,6 +246,7 @@ export const Ranking = () => {
                     ? "Clasificación histórica"
                     : "Clasificación actual"}
                 </h2>
+
                 <p>
                   {level
                     ? `Mostrando jugadores de nivel ${level}`

@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { authFetch } from "../utils/authFetch";
 
 export const Profile = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const token = localStorage.getItem("token");
-  const navigate = useNavigate();
 
   const [profileData, setProfileData] = useState(null);
   const [error, setError] = useState("");
@@ -13,25 +12,9 @@ export const Profile = () => {
     try {
       setError("");
 
-      const response = await fetch(`${backendUrl}/api/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await authFetch(`${backendUrl}/api/profile`);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.msg === "Token has expired") {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          localStorage.removeItem("profile");
-          navigate("/login");
-          return;
-        }
-
-        throw new Error(data.msg || "No se pudo cargar el perfil");
-      }
+      if (!data) return;
 
       const userData = data.user || data;
       const playerProfile = data.profile || data.user?.profile || null;

@@ -1,58 +1,37 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { authFetch } from "../utils/authFetch";
 
 export const UploadResult = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const token = localStorage.getItem("token");
 
   const [players, setPlayers] = useState([]);
-
   const [formData, setFormData] = useState({
-    level: "",
     team_a_player_1_id: "",
     team_a_player_2_id: "",
     team_b_player_1_id: "",
     team_b_player_2_id: "",
+    winner_team: "A",
     score: "",
-    winner_team: "",
+    level: "Bronce",
     club: "",
     played_at: "",
   });
 
-  const [loading, setLoading] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(true);
+  const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const levels = ["Iniciación", "Bronce", "Plata", "Oro", "Diamante"];
-
-  const selectedPlayerIds = [
-    formData.team_a_player_1_id,
-    formData.team_a_player_2_id,
-    formData.team_b_player_1_id,
-    formData.team_b_player_2_id,
-  ].filter(Boolean);
-
-  const filteredPlayers = useMemo(() => {
-    if (!formData.level) return players;
-    return players.filter((player) => player.level === formData.level);
-  }, [players, formData.level]);
 
   const loadPlayers = async () => {
     try {
       setLoadingPlayers(true);
       setError("");
 
-      const response = await fetch(`${backendUrl}/api/players`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await authFetch(`${backendUrl}/api/ranking`);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudieron cargar los jugadores");
-      }
+      if (!data) return;
 
       setPlayers(data);
     } catch (error) {
@@ -70,87 +49,89 @@ export const UploadResult = () => {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setFormData((prev) => {
-      const updatedForm = {
-        ...prev,
-        [name]: value,
-      };
-
-      if (name === "level") {
-        updatedForm.team_a_player_1_id = "";
-        updatedForm.team_a_player_2_id = "";
-        updatedForm.team_b_player_1_id = "";
-        updatedForm.team_b_player_2_id = "";
-      }
-
-      return updatedForm;
+    setFormData({
+      ...formData,
+      [name]: value,
     });
   };
 
-  const getAvailablePlayers = (currentFieldValue) => {
-    return filteredPlayers.filter((player) => {
-      const playerId = String(player.id);
-
-      if (playerId === String(currentFieldValue)) {
-        return true;
-      }
-
-      return !selectedPlayerIds.includes(playerId);
-    });
-  };
-
-  const validatePlayers = () => {
-    const ids = [
+  const validateForm = () => {
+    const selectedPlayers = [
       formData.team_a_player_1_id,
       formData.team_a_player_2_id,
       formData.team_b_player_1_id,
       formData.team_b_player_2_id,
     ];
 
-    const uniqueIds = new Set(ids);
+    if (selectedPlayers.some((playerId) => !playerId)) {
+      return "Tienes que seleccionar los 4 jugadores.";
+    }
 
-    return uniqueIds.size === ids.length;
+    const uniquePlayers = new Set(selectedPlayers);
+
+    if (uniquePlayers.size !== 4) {
+      return "No puedes repetir jugadores en el mismo partido.";
+    }
+
+    if (!formData.score.trim()) {
+      return "Tienes que escribir el resultado.";
+    }
+
+    if (!formData.level) {
+      return "Tienes que seleccionar el nivel del partido.";
+    }
+
+    return "";
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    setLoading(true);
     setMessage("");
     setError("");
 
-    if (!validatePlayers()) {
-      setError("No puedes repetir jugadores en el mismo partido.");
-      setLoading(false);
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     try {
-      const response = await fetch(`${backendUrl}/api/matches`, {
+      setSending(true);
+
+      const payload = {
+        team_a_player_1_id: Number(formData.team_a_player_1_id),
+        team_a_player_2_id: Number(formData.team_a_player_2_id),
+        team_b_player_1_id: Number(formData.team_b_player_1_id),
+        team_b_player_2_id: Number(formData.team_b_player_2_id),
+        winner_team: formData.winner_team,
+        score: formData.score.trim(),
+        level: formData.level,
+        club: formData.club.trim(),
+        played_at: formData.played_at || null,
+      };
+
+      const data = await authFetch(`${backendUrl}/api/matches`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudo subir el resultado");
-      }
+      if (!data) return;
 
       setMessage("Resultado subido correctamente. El ranking se ha actualizado.");
 
       setFormData({
-        level: "",
         team_a_player_1_id: "",
         team_a_player_2_id: "",
         team_b_player_1_id: "",
         team_b_player_2_id: "",
+        winner_team: "A",
         score: "",
-        winner_team: "",
+        level: "Bronce",
         club: "",
         played_at: "",
       });
@@ -158,12 +139,12 @@ export const UploadResult = () => {
       console.error(error);
       setError(error.message || "Error al subir resultado");
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
-  const renderPlayerOptions = (currentFieldValue) => {
-    return getAvailablePlayers(currentFieldValue).map((player) => (
+  const renderPlayerOptions = () => {
+    return players.map((player) => (
       <option key={player.id} value={player.id}>
         {player.nickname} · {player.level}
       </option>
@@ -171,135 +152,48 @@ export const UploadResult = () => {
   };
 
   return (
-    <section className="upload-page">
-      <div className="upload-hero">
+    <section className="upload-result-page">
+      <div className="upload-result-hero">
         <div>
           <span>Fuera de Pista</span>
           <h1>Subir resultado</h1>
           <p>
-            Registra el marcador del partido y actualiza automáticamente el
-            ranking individual de los cuatro jugadores.
+            Registra un partido 2 vs 2. El ranking es individual, por lo que
+            cada jugador sumará puntos según el resultado del partido.
           </p>
         </div>
 
-        <div className="upload-hero-card">
+        <div className="upload-result-hero-card">
           <strong>+3</strong>
-          <span>puntos por victoria</span>
+          <span>Victoria</span>
         </div>
       </div>
 
-      <div className="upload-layout">
-        <aside className="upload-info">
-          <h2>Antes de subir el resultado</h2>
+      {message && <div className="success-message">{message}</div>}
+      {error && <div className="error-message">{error}</div>}
 
-          <div className="upload-info-list">
-            <div>
-              <strong>1. Selecciona el nivel</strong>
-              <span>
-                Al elegir nivel, se mostrarán jugadores de esa categoría.
-              </span>
+      {loadingPlayers ? (
+        <div className="upload-result-state">
+          <p>Cargando jugadores...</p>
+        </div>
+      ) : (
+        <form className="upload-result-form-card" onSubmit={handleSubmit}>
+          <div className="upload-form-section">
+            <div className="upload-form-section-title">
+              <span>Equipo A</span>
+              <h2>Jugadores del equipo A</h2>
             </div>
-
-            <div>
-              <strong>2. Elige los cuatro jugadores</strong>
-              <span>
-                No puedes repetir el mismo jugador dentro del partido.
-              </span>
-            </div>
-
-            <div>
-              <strong>3. Indica ganador y marcador</strong>
-              <span>
-                El sistema suma puntos automáticamente al guardar el resultado.
-              </span>
-            </div>
-          </div>
-
-          <div className="upload-points-box">
-            <div>
-              <strong>+3</strong>
-              <span>Victoria</span>
-            </div>
-
-            <div>
-              <strong>+1</strong>
-              <span>Derrota</span>
-            </div>
-          </div>
-        </aside>
-
-        <form className="upload-form" onSubmit={handleSubmit}>
-          <div className="upload-form-header">
-            <h2>Datos del partido</h2>
-            <p>Completa todos los campos para guardar el resultado.</p>
-          </div>
-
-          {loadingPlayers && <div className="info-message">Cargando jugadores...</div>}
-          {message && <div className="success-message">{message}</div>}
-          {error && <div className="error-message">{error}</div>}
-
-          <div className="upload-section">
-            <h3>Información general</h3>
 
             <div className="upload-form-grid">
-              <div className="form-group">
-                <label>Nivel del partido</label>
-                <select
-                  name="level"
-                  value={formData.level}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Selecciona nivel</option>
-                  {levels.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Fecha del partido</label>
-                <input
-                  type="date"
-                  name="played_at"
-                  value={formData.played_at}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Club</label>
-                <input
-                  type="text"
-                  name="club"
-                  value={formData.club}
-                  onChange={handleChange}
-                  placeholder="Ej: Pádel Feans"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="upload-teams-grid">
-            <div className="upload-team-card team-a">
-              <h3>Equipo A</h3>
-
               <div className="form-group">
                 <label>Jugador 1</label>
                 <select
                   name="team_a_player_1_id"
                   value={formData.team_a_player_1_id}
                   onChange={handleChange}
-                  required
-                  disabled={!formData.level}
                 >
-                  <option value="">
-                    {formData.level ? "Selecciona jugador" : "Primero elige nivel"}
-                  </option>
-                  {renderPlayerOptions(formData.team_a_player_1_id)}
+                  <option value="">Seleccionar jugador</option>
+                  {renderPlayerOptions()}
                 </select>
               </div>
 
@@ -309,33 +203,30 @@ export const UploadResult = () => {
                   name="team_a_player_2_id"
                   value={formData.team_a_player_2_id}
                   onChange={handleChange}
-                  required
-                  disabled={!formData.level}
                 >
-                  <option value="">
-                    {formData.level ? "Selecciona jugador" : "Primero elige nivel"}
-                  </option>
-                  {renderPlayerOptions(formData.team_a_player_2_id)}
+                  <option value="">Seleccionar jugador</option>
+                  {renderPlayerOptions()}
                 </select>
               </div>
             </div>
+          </div>
 
-            <div className="upload-team-card team-b">
-              <h3>Equipo B</h3>
+          <div className="upload-form-section">
+            <div className="upload-form-section-title">
+              <span>Equipo B</span>
+              <h2>Jugadores del equipo B</h2>
+            </div>
 
+            <div className="upload-form-grid">
               <div className="form-group">
                 <label>Jugador 1</label>
                 <select
                   name="team_b_player_1_id"
                   value={formData.team_b_player_1_id}
                   onChange={handleChange}
-                  required
-                  disabled={!formData.level}
                 >
-                  <option value="">
-                    {formData.level ? "Selecciona jugador" : "Primero elige nivel"}
-                  </option>
-                  {renderPlayerOptions(formData.team_b_player_1_id)}
+                  <option value="">Seleccionar jugador</option>
+                  {renderPlayerOptions()}
                 </select>
               </div>
 
@@ -345,55 +236,104 @@ export const UploadResult = () => {
                   name="team_b_player_2_id"
                   value={formData.team_b_player_2_id}
                   onChange={handleChange}
-                  required
-                  disabled={!formData.level}
                 >
-                  <option value="">
-                    {formData.level ? "Selecciona jugador" : "Primero elige nivel"}
-                  </option>
-                  {renderPlayerOptions(formData.team_b_player_2_id)}
+                  <option value="">Seleccionar jugador</option>
+                  {renderPlayerOptions()}
                 </select>
               </div>
             </div>
           </div>
 
-          <div className="upload-section">
-            <h3>Resultado</h3>
+          <div className="upload-form-section">
+            <div className="upload-form-section-title">
+              <span>Resultado</span>
+              <h2>Datos del partido</h2>
+            </div>
 
             <div className="upload-form-grid">
               <div className="form-group">
-                <label>Marcador</label>
+                <label>Equipo ganador</label>
+                <select
+                  name="winner_team"
+                  value={formData.winner_team}
+                  onChange={handleChange}
+                >
+                  <option value="A">Equipo A</option>
+                  <option value="B">Equipo B</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Resultado</label>
                 <input
                   type="text"
                   name="score"
                   value={formData.score}
                   onChange={handleChange}
                   placeholder="Ej: 6-4 / 6-3"
-                  required
                 />
               </div>
 
               <div className="form-group">
-                <label>Ganador</label>
+                <label>Nivel</label>
                 <select
-                  name="winner_team"
-                  value={formData.winner_team}
+                  name="level"
+                  value={formData.level}
                   onChange={handleChange}
-                  required
                 >
-                  <option value="">Selecciona ganador</option>
-                  <option value="A">Equipo A</option>
-                  <option value="B">Equipo B</option>
+                  {levels.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label>Club</label>
+                <input
+                  type="text"
+                  name="club"
+                  value={formData.club}
+                  onChange={handleChange}
+                  placeholder="Ej: Coruña Sport Centre"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Fecha del partido</label>
+                <input
+                  type="date"
+                  name="played_at"
+                  value={formData.played_at}
+                  onChange={handleChange}
+                />
               </div>
             </div>
           </div>
 
-          <button className="upload-submit" disabled={loading || loadingPlayers}>
-            {loading ? "Subiendo..." : "Subir resultado"}
+          <div className="upload-result-points-info">
+            <div>
+              <strong>+3</strong>
+              <span>Victoria</span>
+            </div>
+
+            <div>
+              <strong>+1</strong>
+              <span>Derrota</span>
+            </div>
+
+            <div>
+              <strong>-2</strong>
+              <span>No show</span>
+            </div>
+          </div>
+
+          <button className="upload-result-submit-btn" disabled={sending}>
+            {sending ? "Subiendo resultado..." : "Subir resultado"}
           </button>
         </form>
-      </div>
+      )}
     </section>
   );
 };
