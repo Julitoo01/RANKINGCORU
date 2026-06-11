@@ -19,6 +19,8 @@ class User(db.Model):
     phone = db.Column(db.String(30), nullable=False)
     instagram = db.Column(db.String(120), nullable=True)
 
+    profile_image = db.Column(db.Text, nullable=True)
+
     is_admin = db.Column(db.Boolean, default=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -39,6 +41,7 @@ class User(db.Model):
             "email": self.email,
             "phone": self.phone,
             "instagram": self.instagram,
+            "profile_image": self.profile_image,
             "is_admin": self.is_admin,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "profile": self.profile.serialize() if self.profile else None,
@@ -69,7 +72,6 @@ class PlayerProfile(db.Model):
     def win_percentage(self):
         if self.matches_played == 0:
             return 0
-
         return round((self.wins / self.matches_played) * 100)
 
     def serialize(self):
@@ -82,6 +84,7 @@ class PlayerProfile(db.Model):
             "email": self.user.email if self.user else None,
             "phone": self.user.phone if self.user else None,
             "instagram": self.user.instagram if self.user else None,
+            "profile_image": self.user.profile_image if self.user else None,
             "level": self.level,
             "position": self.position,
             "status": self.status,
@@ -158,26 +161,18 @@ class Match(db.Model):
     club = db.Column(db.String(120), nullable=True)
     played_at = db.Column(db.DateTime, nullable=False)
 
-    # Estados posibles:
-    # pending   -> resultado subido pero pendiente de validación rival
-    # confirmed -> resultado aceptado por un rival y ya suma puntos
-    # rejected  -> resultado rechazado y no suma puntos
     status = db.Column(db.String(50), default="pending")
 
-    # Usuario que sube el resultado
     submitted_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    # Perfil del jugador que sube el resultado
     submitted_by_profile_id = db.Column(
         db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
     )
 
-    # Perfil del rival que acepta
     confirmed_by_profile_id = db.Column(
         db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
     )
 
-    # Perfil del rival que rechaza
     rejected_by_profile_id = db.Column(
         db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
     )
@@ -215,49 +210,6 @@ class Match(db.Model):
     rejected_by_profile = db.relationship(
         "PlayerProfile", foreign_keys=[rejected_by_profile_id]
     )
-
-    def get_team_a_ids(self):
-        return [self.team_a_player_1_id, self.team_a_player_2_id]
-
-    def get_team_b_ids(self):
-        return [self.team_b_player_1_id, self.team_b_player_2_id]
-
-    def get_all_player_ids(self):
-        return [
-            self.team_a_player_1_id,
-            self.team_a_player_2_id,
-            self.team_b_player_1_id,
-            self.team_b_player_2_id,
-        ]
-
-    def get_submitted_team(self):
-        if not self.submitted_by_profile_id:
-            return None
-
-        if self.submitted_by_profile_id in self.get_team_a_ids():
-            return "A"
-
-        if self.submitted_by_profile_id in self.get_team_b_ids():
-            return "B"
-
-        return None
-
-    def get_validation_team_ids(self):
-        submitted_team = self.get_submitted_team()
-
-        if submitted_team == "A":
-            return self.get_team_b_ids()
-
-        if submitted_team == "B":
-            return self.get_team_a_ids()
-
-        return []
-
-    def can_be_validated_by(self, profile_id):
-        if self.status != "pending":
-            return False
-
-        return profile_id in self.get_validation_team_ids()
 
     def serialize(self):
         return {

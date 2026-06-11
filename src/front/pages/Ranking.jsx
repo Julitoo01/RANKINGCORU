@@ -216,7 +216,9 @@ export const Ranking = () => {
 
       if (!data) return;
 
-      setMessage("Resultado subido correctamente. El ranking se ha actualizado.");
+      setMessage(
+        "Resultado enviado correctamente. Está pendiente de validación por la pareja rival."
+      );
 
       setFormData({
         team_a_player_1_id: "",
@@ -408,7 +410,7 @@ export const Ranking = () => {
                     value={formData.team_a_player_2_id}
                     onChange={handleChange}
                   >
-                    <option value="">Reves</option>
+                    <option value="">Revés</option>
                     {renderPlayerOptions()}
                   </select>
                 </div>
@@ -430,7 +432,7 @@ export const Ranking = () => {
                     value={formData.team_b_player_2_id}
                     onChange={handleChange}
                   >
-                    <option value="">Reves</option>
+                    <option value="">Revés</option>
                     {renderPlayerOptions()}
                   </select>
                 </div>
@@ -527,7 +529,14 @@ export const Ranking = () => {
                     <td>
                       <div className="ranking-player-cell">
                         <div className="ranking-avatar">
-                          {player.nickname?.charAt(0)?.toUpperCase() || "J"}
+                          {player.profile_image ? (
+                            <img
+                              src={player.profile_image}
+                              alt={player.nickname || "Jugador"}
+                            />
+                          ) : (
+                            player.nickname?.charAt(0)?.toUpperCase() || "J"
+                          )}
                         </div>
 
                         <strong>{player.nickname}</strong>

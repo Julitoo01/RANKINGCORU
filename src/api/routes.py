@@ -206,7 +206,7 @@ def handle_hello():
 
 @api.route("/register", methods=["POST"])
 def register():
-    data = request.get_json()
+    data = request.get_json() or {}
 
     required_fields = [
         "name",
@@ -275,7 +275,7 @@ def register():
 
 @api.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
+    data = request.get_json() or {}
 
     if not data.get("email") or not data.get("password"):
         return jsonify({"msg": "Email y contraseña son obligatorios"}), 400
@@ -309,6 +309,41 @@ def get_profile():
         return jsonify({"msg": "Usuario no encontrado"}), 404
 
     return jsonify(user.serialize()), 200
+
+
+@api.route("/profile/photo", methods=["PUT"])
+@jwt_required()
+def update_profile_photo():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    data = request.get_json() or {}
+    profile_image = data.get("profile_image")
+
+    if not profile_image:
+        return jsonify({"msg": "No se ha enviado ninguna imagen"}), 400
+
+    if not profile_image.startswith("data:image/"):
+        return jsonify({"msg": "Formato de imagen no válido"}), 400
+
+    if len(profile_image) > 1500000:
+        return jsonify(
+            {"msg": "La imagen es demasiado grande. Usa una imagen más ligera."}
+        ), 400
+
+    user.profile_image = profile_image
+
+    db.session.commit()
+
+    return jsonify(
+        {
+            "msg": "Foto de perfil actualizada correctamente",
+            "user": user.serialize(),
+        }
+    ), 200
 
 
 @api.route("/seasons", methods=["GET"])
@@ -643,7 +678,7 @@ def update_rules():
     if not is_admin_user(current_user_id):
         return jsonify({"msg": "No autorizado"}), 403
 
-    data = request.get_json()
+    data = request.get_json() or {}
 
     if not data.get("title") or not data.get("content"):
         return jsonify({"msg": "Título y contenido son obligatorios"}), 400
@@ -715,7 +750,7 @@ def admin_update_player(profile_id):
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
 
-    data = request.get_json()
+    data = request.get_json() or {}
 
     if "status" in data:
         if data["status"] not in ["pending", "approved", "rejected"]:

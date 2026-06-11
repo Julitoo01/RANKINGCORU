@@ -39,6 +39,61 @@ export const Profile = () => {
     loadProfile();
   }, []);
 
+  const handleProfileImageChange = async (event) => {
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("El archivo tiene que ser una imagen.");
+      return;
+    }
+
+    if (file.size > 1000000) {
+      setError("La imagen es demasiado grande. Usa una foto de menos de 1MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onloadend = async () => {
+      try {
+        setError("");
+
+        const data = await authFetch(`${backendUrl}/api/profile/photo`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            profile_image: reader.result,
+          }),
+        });
+
+        if (!data) return;
+
+        const updatedUser = data.user;
+        const updatedProfile = updatedUser.profile || profileData.profile;
+
+        setProfileData({
+          user: updatedUser,
+          profile: updatedProfile,
+        });
+
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+
+        if (updatedProfile) {
+          localStorage.setItem("profile", JSON.stringify(updatedProfile));
+        }
+      } catch (error) {
+        console.error(error);
+        setError(error.message || "Error al subir la foto de perfil");
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
   const getStatusText = (status) => {
     if (status === "approved") return "Aprobado";
     if (status === "pending") return "Pendiente";
@@ -90,8 +145,26 @@ export const Profile = () => {
     <section className="profile-page">
       <div className="profile-hero">
         <div className="profile-main-info">
-          <div className="profile-avatar-large">
-            {user?.nickname?.charAt(0)?.toUpperCase() || "J"}
+          <div>
+            <div className="profile-avatar-large">
+              {user?.profile_image ? (
+                <img
+                  src={user.profile_image}
+                  alt={user?.nickname || "Foto de perfil"}
+                />
+              ) : (
+                user?.nickname?.charAt(0)?.toUpperCase() || "J"
+              )}
+            </div>
+
+            <label className="profile-photo-upload-btn">
+              Cambiar foto
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleProfileImageChange}
+              />
+            </label>
           </div>
 
           <div>
@@ -149,12 +222,6 @@ export const Profile = () => {
             <Link to="/ranking" className="profile-action-btn secondary">
               Ver ranking
             </Link>
-
-            {profile?.status === "approved" && (
-              <Link to="/upload-result" className="profile-action-btn primary">
-                Subir resultado
-              </Link>
-            )}
           </div>
         </aside>
 
