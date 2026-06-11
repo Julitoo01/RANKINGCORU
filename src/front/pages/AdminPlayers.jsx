@@ -7,6 +7,20 @@ export const AdminPlayers = () => {
   const [players, setPlayers] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
+
+  const [editingPlayerId, setEditingPlayerId] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    last_name: "",
+    nickname: "",
+    email: "",
+    phone: "",
+    instagram: "",
+    level: "",
+    position: "",
+    status: "",
+  });
+
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -21,6 +35,14 @@ export const AdminPlayers = () => {
   ];
 
   const positions = ["Derecha", "Revés", "Ambas", "No lo sé"];
+
+  const statuses = ["pending", "approved", "rejected"];
+
+  const statusLabels = {
+    pending: "Pendiente",
+    approved: "Aprobado",
+    rejected: "Rechazado",
+  };
 
   const loadPlayers = async () => {
     try {
@@ -73,64 +95,6 @@ export const AdminPlayers = () => {
     return status;
   };
 
-  const approvePlayer = async (profileId) => {
-    setMessage("");
-    setError("");
-
-    try {
-      const response = await fetch(
-        `${backendUrl}/api/admin/players/${profileId}/approve`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudo aprobar el jugador");
-      }
-
-      setMessage("Jugador aprobado correctamente.");
-      loadPlayers();
-    } catch (error) {
-      console.error(error);
-      setError(error.message || "Error al aprobar jugador");
-    }
-  };
-
-  const rejectPlayer = async (profileId) => {
-    setMessage("");
-    setError("");
-
-    try {
-      const response = await fetch(
-        `${backendUrl}/api/admin/players/${profileId}/reject`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudo rechazar el jugador");
-      }
-
-      setMessage("Jugador rechazado correctamente.");
-      loadPlayers();
-    } catch (error) {
-      console.error(error);
-      setError(error.message || "Error al rechazar jugador");
-    }
-  };
-
   const updatePlayer = async (profileId, payload) => {
     setMessage("");
     setError("");
@@ -155,11 +119,104 @@ export const AdminPlayers = () => {
       }
 
       setMessage("Jugador actualizado correctamente.");
+      setEditingPlayerId(null);
       loadPlayers();
     } catch (error) {
       console.error(error);
       setError(error.message || "Error al actualizar jugador");
     }
+  };
+
+  const deletePlayer = async (profileId, nickname) => {
+    const confirmDelete = window.confirm(
+      `¿Seguro que quieres eliminar a ${nickname}? También se eliminarán sus partidos asociados.`
+    );
+
+    if (!confirmDelete) return;
+
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${backendUrl}/api/admin/players/${profileId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.msg || "No se pudo eliminar el jugador");
+      }
+
+      setMessage("Jugador eliminado correctamente.");
+      loadPlayers();
+    } catch (error) {
+      console.error(error);
+      setError(error.message || "Error al eliminar jugador");
+    }
+  };
+
+  const startEditing = (player) => {
+    setEditingPlayerId(player.id);
+
+    setEditForm({
+      name: player.name || "",
+      last_name: player.last_name || "",
+      nickname: player.nickname || "",
+      email: player.email || "",
+      phone: player.phone || "",
+      instagram: player.instagram || "",
+      level: player.level || "Bronce",
+      position: player.position || "Derecha",
+      status: player.status || "pending",
+    });
+
+    setMessage("");
+    setError("");
+  };
+
+  const cancelEditing = () => {
+    setEditingPlayerId(null);
+    setEditForm({
+      name: "",
+      last_name: "",
+      nickname: "",
+      email: "",
+      phone: "",
+      instagram: "",
+      level: "",
+      position: "",
+      status: "",
+    });
+  };
+
+  const handleEditChange = (event) => {
+    const { name, value } = event.target;
+
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const saveEditing = (profileId) => {
+    updatePlayer(profileId, {
+      name: editForm.name,
+      last_name: editForm.last_name,
+      nickname: editForm.nickname,
+      email: editForm.email,
+      phone: editForm.phone,
+      instagram: editForm.instagram,
+      level: editForm.level,
+      position: editForm.position,
+      status: editForm.status,
+    });
   };
 
   return (
@@ -169,8 +226,8 @@ export const AdminPlayers = () => {
           <span>Panel admin</span>
           <h1>Gestión de jugadores</h1>
           <p>
-            Aprueba usuarios, cambia niveles, revisa estados y controla qué
-            jugadores aparecen en el ranking.
+            Aprueba usuarios, edita datos personales, cambia niveles y controla
+            qué jugadores aparecen en el ranking.
           </p>
         </div>
 
@@ -253,7 +310,8 @@ export const AdminPlayers = () => {
             <div>
               <h2>Listado de jugadores</h2>
               <p>
-                Cambia nivel, posición o estado directamente desde la tabla.
+                Pulsa editar para modificar datos personales, nivel, posición o
+                estado.
               </p>
             </div>
           </div>
@@ -263,6 +321,7 @@ export const AdminPlayers = () => {
               <thead>
                 <tr>
                   <th>Jugador</th>
+                  <th>Datos</th>
                   <th>Nivel</th>
                   <th>Posición</th>
                   <th>Estado</th>
@@ -276,105 +335,241 @@ export const AdminPlayers = () => {
               </thead>
 
               <tbody>
-                {players.map((player) => (
-                  <tr key={player.id}>
-                    <td>
-                      <div className="admin-player-cell">
-                        <div className="admin-player-avatar">
-                          {player.nickname?.charAt(0)?.toUpperCase() || "J"}
+                {players.map((player) => {
+                  const isEditing = editingPlayerId === player.id;
+
+                  return (
+                    <tr key={player.id}>
+                      <td>
+                        <div className="admin-player-cell">
+                          <div className="admin-player-avatar">
+                            {player.nickname?.charAt(0)?.toUpperCase() || "J"}
+                          </div>
+
+                          <div>
+                            {isEditing ? (
+                              <div className="admin-edit-mini-grid">
+                                <input
+                                  name="nickname"
+                                  value={editForm.nickname}
+                                  onChange={handleEditChange}
+                                  placeholder="Nickname"
+                                />
+
+                                <input
+                                  name="name"
+                                  value={editForm.name}
+                                  onChange={handleEditChange}
+                                  placeholder="Nombre"
+                                />
+
+                                <input
+                                  name="last_name"
+                                  value={editForm.last_name}
+                                  onChange={handleEditChange}
+                                  placeholder="Apellidos"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <strong>{player.nickname}</strong>
+                                <span>
+                                  {player.name} {player.last_name}
+                                </span>
+                                <span>ID perfil: {player.id}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
+                      </td>
 
-                        <div>
-                          <strong>{player.nickname}</strong>
-                          <span>ID perfil: {player.id}</span>
+                      <td>
+                        {isEditing ? (
+                          <div className="admin-edit-mini-grid">
+                            <input
+                              name="email"
+                              value={editForm.email}
+                              onChange={handleEditChange}
+                              placeholder="Email"
+                            />
+
+                            <input
+                              name="phone"
+                              value={editForm.phone}
+                              onChange={handleEditChange}
+                              placeholder="Teléfono"
+                            />
+
+                            <input
+                              name="instagram"
+                              value={editForm.instagram}
+                              onChange={handleEditChange}
+                              placeholder="Instagram"
+                            />
+                          </div>
+                        ) : (
+                          <div className="admin-player-data">
+                            <span>{player.email || "-"}</span>
+                            <span>{player.phone || "-"}</span>
+                            <span>{player.instagram || "-"}</span>
+                          </div>
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditing ? (
+                          <select
+                            className="admin-edit-select"
+                            name="level"
+                            value={editForm.level}
+                            onChange={handleEditChange}
+                          >
+                            {levels.map((level) => (
+                              <option key={level} value={level}>
+                                {level}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          player.level
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditing ? (
+                          <select
+                            className="admin-edit-select"
+                            name="position"
+                            value={editForm.position}
+                            onChange={handleEditChange}
+                          >
+                            {positions.map((position) => (
+                              <option key={position} value={position}>
+                                {position}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          player.position
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditing ? (
+                          <select
+                            className="admin-edit-select"
+                            name="status"
+                            value={editForm.status}
+                            onChange={handleEditChange}
+                          >
+                            {statuses.map((status) => (
+                              <option key={status} value={status}>
+                                {statusLabels[status]}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span
+                            className={`status-badge status-${player.status}`}
+                          >
+                            {getStatusText(player.status)}
+                          </span>
+                        )}
+                      </td>
+
+                      <td>{player.matches_played}</td>
+                      <td>{player.wins}</td>
+                      <td>{player.losses}</td>
+
+                      <td>
+                        <strong className="admin-player-points">
+                          {player.points}
+                        </strong>
+                      </td>
+
+                      <td>{player.win_percentage}%</td>
+
+                      <td>
+                        <div className="admin-player-actions">
+                          {isEditing ? (
+                            <>
+                              <button
+                                className="admin-action-btn approve"
+                                onClick={() => saveEditing(player.id)}
+                              >
+                                Guardar
+                              </button>
+
+                              <button
+                                className="admin-action-btn neutral"
+                                onClick={cancelEditing}
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="admin-action-btn neutral"
+                                onClick={() => startEditing(player)}
+                              >
+                                Editar
+                              </button>
+
+                              {player.status !== "approved" && (
+                                <button
+                                  className="admin-action-btn approve"
+                                  onClick={() =>
+                                    updatePlayer(player.id, {
+                                      status: "approved",
+                                    })
+                                  }
+                                >
+                                  Aprobar
+                                </button>
+                              )}
+
+                              {player.status !== "rejected" && (
+                                <button
+                                  className="admin-action-btn reject"
+                                  onClick={() =>
+                                    updatePlayer(player.id, {
+                                      status: "rejected",
+                                    })
+                                  }
+                                >
+                                  Rechazar
+                                </button>
+                              )}
+
+                              {player.status !== "pending" && (
+                                <button
+                                  className="admin-action-btn neutral"
+                                  onClick={() =>
+                                    updatePlayer(player.id, {
+                                      status: "pending",
+                                    })
+                                  }
+                                >
+                                  Pendiente
+                                </button>
+                              )}
+
+                              <button
+                                className="admin-action-btn delete"
+                                onClick={() =>
+                                  deletePlayer(player.id, player.nickname)
+                                }
+                              >
+                                Eliminar
+                              </button>
+                            </>
+                          )}
                         </div>
-                      </div>
-                    </td>
-
-                    <td>
-                      <select
-                        value={player.level}
-                        onChange={(event) =>
-                          updatePlayer(player.id, { level: event.target.value })
-                        }
-                      >
-                        {levels.map((level) => (
-                          <option key={level} value={level}>
-                            {level}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-
-                    <td>
-                      <select
-                        value={player.position}
-                        onChange={(event) =>
-                          updatePlayer(player.id, {
-                            position: event.target.value,
-                          })
-                        }
-                      >
-                        {positions.map((position) => (
-                          <option key={position} value={position}>
-                            {position}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-
-                    <td>
-                      <span className={`status-badge status-${player.status}`}>
-                        {getStatusText(player.status)}
-                      </span>
-                    </td>
-
-                    <td>{player.matches_played}</td>
-                    <td>{player.wins}</td>
-                    <td>{player.losses}</td>
-
-                    <td>
-                      <strong className="admin-player-points">
-                        {player.points}
-                      </strong>
-                    </td>
-
-                    <td>{player.win_percentage}%</td>
-
-                    <td>
-                      <div className="admin-player-actions">
-                        {player.status !== "approved" && (
-                          <button
-                            className="admin-action-btn approve"
-                            onClick={() => approvePlayer(player.id)}
-                          >
-                            Aprobar
-                          </button>
-                        )}
-
-                        {player.status !== "rejected" && (
-                          <button
-                            className="admin-action-btn reject"
-                            onClick={() => rejectPlayer(player.id)}
-                          >
-                            Rechazar
-                          </button>
-                        )}
-
-                        {player.status !== "pending" && (
-                          <button
-                            className="admin-action-btn neutral"
-                            onClick={() =>
-                              updatePlayer(player.id, { status: "pending" })
-                            }
-                          >
-                            Pendiente
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

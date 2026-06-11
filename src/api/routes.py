@@ -2,8 +2,17 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from sqlalchemy import or_
 
-from api.models import db, User, PlayerProfile, Match, Rules
+from api.models import (
+    db,
+    User,
+    PlayerProfile,
+    Match,
+    Rules,
+    Season,
+    SeasonRankingSnapshot,
+)
 
 api = Blueprint("api", __name__)
 
@@ -13,7 +22,43 @@ def is_admin_user(user_id):
     return user and user.is_admin
 
 
-def recalculate_ranking_internal():
+def get_or_create_active_season():
+    active_season = Season.query.filter_by(is_active=True, is_closed=False).first()
+
+    if active_season:
+        return active_season
+
+    season = Season(
+        name="Temporada actual",
+        start_date=datetime.utcnow(),
+        is_active=True,
+        is_closed=False,
+    )
+
+    db.session.add(season)
+    db.session.commit()
+
+    return season
+
+
+def assign_old_matches_to_active_season():
+    active_season = get_or_create_active_season()
+
+    old_matches = Match.query.filter(Match.season_id.is_(None)).all()
+
+    for match in old_matches:
+        match.season_id = active_season.id
+
+    db.session.commit()
+
+    return active_season
+
+
+def recalculate_ranking_internal(season_id=None):
+    if not season_id:
+        active_season = assign_old_matches_to_active_season()
+        season_id = active_season.id
+
     profiles = PlayerProfile.query.all()
 
     for profile in profiles:
@@ -22,7 +67,7 @@ def recalculate_ranking_internal():
         profile.losses = 0
         profile.points = 0
 
-    matches = Match.query.all()
+    matches = Match.query.filter_by(season_id=season_id).all()
 
     for match in matches:
         team_a_profiles = [
@@ -53,6 +98,60 @@ def recalculate_ranking_internal():
                 player.matches_played += 1
                 player.losses += 1
                 player.points += 1
+
+    db.session.commit()
+
+
+def reset_current_ranking_stats():
+    profiles = PlayerProfile.query.all()
+
+    for profile in profiles:
+        profile.matches_played = 0
+        profile.wins = 0
+        profile.losses = 0
+        profile.points = 0
+
+    db.session.commit()
+
+
+def create_season_snapshots(season):
+    old_snapshots = SeasonRankingSnapshot.query.filter_by(
+        season_id=season.id
+    ).all()
+
+    for snapshot in old_snapshots:
+        db.session.delete(snapshot)
+
+    db.session.flush()
+
+    players = (
+        PlayerProfile.query.filter_by(status="approved")
+        .order_by(
+            PlayerProfile.points.desc(),
+            PlayerProfile.wins.desc(),
+            PlayerProfile.matches_played.desc(),
+        )
+        .all()
+    )
+
+    for index, player in enumerate(players, start=1):
+        snapshot = SeasonRankingSnapshot(
+            season_id=season.id,
+            profile_id=player.id,
+            final_position=index,
+            nickname=player.user.nickname if player.user else "Jugador",
+            name=player.user.name if player.user else "",
+            last_name=player.user.last_name if player.user else "",
+            level=player.level,
+            player_position=player.position,
+            matches_played=player.matches_played,
+            wins=player.wins,
+            losses=player.losses,
+            points=player.points,
+            win_percentage=player.win_percentage(),
+        )
+
+        db.session.add(snapshot)
 
     db.session.commit()
 
@@ -169,9 +268,47 @@ def get_profile():
     return jsonify(user.serialize()), 200
 
 
+@api.route("/seasons", methods=["GET"])
+@jwt_required()
+def get_seasons():
+    assign_old_matches_to_active_season()
+
+    seasons = Season.query.order_by(Season.created_at.desc()).all()
+
+    return jsonify([season.serialize() for season in seasons]), 200
+
+
 @api.route("/ranking", methods=["GET"])
+@jwt_required()
 def get_ranking():
+    assign_old_matches_to_active_season()
+
     level = request.args.get("level")
+    season_id = request.args.get("season_id")
+
+    if season_id:
+        season = Season.query.get(season_id)
+
+        if not season:
+            return jsonify({"msg": "Temporada no encontrada"}), 404
+
+        if season.is_closed:
+            query = SeasonRankingSnapshot.query.filter_by(season_id=season.id)
+
+            if level and level != "Todos":
+                query = query.filter(SeasonRankingSnapshot.level == level)
+
+            snapshots = query.order_by(
+                SeasonRankingSnapshot.final_position.asc()
+            ).all()
+
+            return jsonify([snapshot.serialize() for snapshot in snapshots]), 200
+
+        recalculate_ranking_internal(season.id)
+
+    else:
+        active_season = get_or_create_active_season()
+        recalculate_ranking_internal(active_season.id)
 
     query = PlayerProfile.query.join(User)
 
@@ -180,7 +317,11 @@ def get_ranking():
 
     players = (
         query.filter(PlayerProfile.status == "approved")
-        .order_by(PlayerProfile.points.desc(), PlayerProfile.wins.desc())
+        .order_by(
+            PlayerProfile.points.desc(),
+            PlayerProfile.wins.desc(),
+            PlayerProfile.matches_played.desc(),
+        )
         .all()
     )
 
@@ -200,14 +341,30 @@ def get_players():
 
 
 @api.route("/matches", methods=["GET"])
+@jwt_required()
 def get_matches():
-    matches = Match.query.order_by(Match.created_at.desc()).all()
+    assign_old_matches_to_active_season()
+
+    season_id = request.args.get("season_id")
+
+    query = Match.query
+
+    if season_id:
+        query = query.filter_by(season_id=season_id)
+    else:
+        active_season = get_or_create_active_season()
+        query = query.filter_by(season_id=active_season.id)
+
+    matches = query.order_by(Match.created_at.desc()).all()
+
     return jsonify([match.serialize() for match in matches]), 200
 
 
 @api.route("/matches", methods=["POST"])
 @jwt_required()
 def create_match():
+    active_season = assign_old_matches_to_active_season()
+
     current_user_id = get_jwt_identity()
     data = request.get_json()
 
@@ -238,6 +395,7 @@ def create_match():
 
     for player_id in player_ids:
         profile = PlayerProfile.query.get(player_id)
+
         if not profile:
             return jsonify({"msg": "Uno de los jugadores no existe"}), 404
 
@@ -255,6 +413,7 @@ def create_match():
         return jsonify({"msg": "Fecha no válida"}), 400
 
     match = Match(
+        season_id=active_season.id,
         level=data.get("level"),
         team_a_player_1_id=player_ids[0],
         team_a_player_2_id=player_ids[1],
@@ -271,7 +430,7 @@ def create_match():
     db.session.add(match)
     db.session.commit()
 
-    recalculate_ranking_internal()
+    recalculate_ranking_internal(active_season.id)
 
     return jsonify(
         {
@@ -282,6 +441,7 @@ def create_match():
 
 
 @api.route("/rules", methods=["GET"])
+@jwt_required()
 def get_rules():
     rules = Rules.query.first()
 
@@ -371,6 +531,11 @@ def admin_update_player(profile_id):
     if not profile:
         return jsonify({"msg": "Jugador no encontrado"}), 404
 
+    user = User.query.get(profile.user_id)
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
     data = request.get_json()
 
     if "status" in data:
@@ -380,10 +545,66 @@ def admin_update_player(profile_id):
         profile.status = data["status"]
 
     if "level" in data:
+        if not data["level"]:
+            return jsonify({"msg": "El nivel no puede estar vacío"}), 400
+
         profile.level = data["level"]
 
     if "position" in data:
+        if not data["position"]:
+            return jsonify({"msg": "La posición no puede estar vacía"}), 400
+
         profile.position = data["position"]
+
+    if "name" in data:
+        if not data["name"].strip():
+            return jsonify({"msg": "El nombre no puede estar vacío"}), 400
+
+        user.name = data["name"].strip()
+
+    if "last_name" in data:
+        if not data["last_name"].strip():
+            return jsonify({"msg": "Los apellidos no pueden estar vacíos"}), 400
+
+        user.last_name = data["last_name"].strip()
+
+    if "nickname" in data:
+        nickname = data["nickname"].strip()
+
+        if not nickname:
+            return jsonify({"msg": "El nickname no puede estar vacío"}), 400
+
+        existing_nickname = User.query.filter(
+            User.nickname == nickname,
+            User.id != user.id,
+        ).first()
+
+        if existing_nickname:
+            return jsonify({"msg": "Ya existe otro usuario con este nickname"}), 400
+
+        user.nickname = nickname
+
+    if "email" in data:
+        email = data["email"].lower().strip()
+
+        if not email:
+            return jsonify({"msg": "El email no puede estar vacío"}), 400
+
+        existing_email = User.query.filter(
+            User.email == email,
+            User.id != user.id,
+        ).first()
+
+        if existing_email:
+            return jsonify({"msg": "Ya existe otro usuario con este email"}), 400
+
+        user.email = email
+
+    if "phone" in data:
+        user.phone = data["phone"].strip()
+
+    if "instagram" in data:
+        user.instagram = data["instagram"].strip()
 
     db.session.commit()
 
@@ -414,7 +635,7 @@ def admin_delete_player(profile_id):
         return jsonify({"msg": "No puedes eliminar un administrador"}), 400
 
     related_matches = Match.query.filter(
-        db.or_(
+        or_(
             Match.team_a_player_1_id == profile.id,
             Match.team_a_player_2_id == profile.id,
             Match.team_b_player_1_id == profile.id,
@@ -432,7 +653,8 @@ def admin_delete_player(profile_id):
 
     db.session.commit()
 
-    recalculate_ranking_internal()
+    active_season = get_or_create_active_season()
+    recalculate_ranking_internal(active_season.id)
 
     return jsonify({"msg": "Jugador eliminado correctamente"}), 200
 
@@ -445,7 +667,16 @@ def admin_get_matches():
     if not is_admin_user(current_user_id):
         return jsonify({"msg": "No autorizado"}), 403
 
-    matches = Match.query.order_by(Match.created_at.desc()).all()
+    assign_old_matches_to_active_season()
+
+    season_id = request.args.get("season_id")
+
+    query = Match.query
+
+    if season_id:
+        query = query.filter_by(season_id=season_id)
+
+    matches = query.order_by(Match.created_at.desc()).all()
 
     return jsonify([match.serialize() for match in matches]), 200
 
@@ -463,10 +694,12 @@ def admin_delete_match(match_id):
     if not match:
         return jsonify({"msg": "Partido no encontrado"}), 404
 
+    season_id = match.season_id
+
     db.session.delete(match)
     db.session.commit()
 
-    recalculate_ranking_internal()
+    recalculate_ranking_internal(season_id)
 
     return jsonify({"msg": "Partido eliminado correctamente"}), 200
 
@@ -479,6 +712,96 @@ def admin_recalculate_ranking():
     if not is_admin_user(current_user_id):
         return jsonify({"msg": "No autorizado"}), 403
 
-    recalculate_ranking_internal()
+    active_season = assign_old_matches_to_active_season()
+    recalculate_ranking_internal(active_season.id)
 
     return jsonify({"msg": "Ranking recalculado correctamente"}), 200
+
+
+@api.route("/admin/seasons/create", methods=["POST"])
+@jwt_required()
+def admin_create_season():
+    current_user_id = get_jwt_identity()
+
+    if not is_admin_user(current_user_id):
+        return jsonify({"msg": "No autorizado"}), 403
+
+    data = request.get_json() or {}
+
+    name = data.get("name", "").strip()
+
+    if not name:
+        return jsonify({"msg": "El nombre de la temporada es obligatorio"}), 400
+
+    active_season = Season.query.filter_by(is_active=True, is_closed=False).first()
+
+    if active_season:
+        return jsonify(
+            {
+                "msg": "Ya existe una temporada activa. Cierra la actual antes de crear otra."
+            }
+        ), 400
+
+    season = Season(
+        name=name,
+        start_date=datetime.utcnow(),
+        is_active=True,
+        is_closed=False,
+    )
+
+    db.session.add(season)
+    db.session.commit()
+
+    return jsonify(
+        {
+            "msg": "Temporada creada correctamente",
+            "season": season.serialize(),
+        }
+    ), 201
+
+
+@api.route("/admin/seasons/close", methods=["POST"])
+@jwt_required()
+def admin_close_current_season():
+    current_user_id = get_jwt_identity()
+
+    if not is_admin_user(current_user_id):
+        return jsonify({"msg": "No autorizado"}), 403
+
+    data = request.get_json() or {}
+
+    next_season_name = data.get("next_season_name", "").strip()
+
+    if not next_season_name:
+        return jsonify({"msg": "El nombre de la nueva temporada es obligatorio"}), 400
+
+    active_season = assign_old_matches_to_active_season()
+
+    recalculate_ranking_internal(active_season.id)
+
+    create_season_snapshots(active_season)
+
+    active_season.is_active = False
+    active_season.is_closed = True
+    active_season.end_date = datetime.utcnow()
+    active_season.closed_at = datetime.utcnow()
+
+    new_season = Season(
+        name=next_season_name,
+        start_date=datetime.utcnow(),
+        is_active=True,
+        is_closed=False,
+    )
+
+    db.session.add(new_season)
+    db.session.commit()
+
+    reset_current_ranking_stats()
+
+    return jsonify(
+        {
+            "msg": "Temporada cerrada correctamente. Nueva temporada creada.",
+            "closed_season": active_season.serialize(),
+            "new_season": new_season.serialize(),
+        }
+    ), 200

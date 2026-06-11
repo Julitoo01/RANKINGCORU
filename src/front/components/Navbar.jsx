@@ -41,7 +41,6 @@ export const Navbar = () => {
       </Link>
 
       <div className="navbar-links">
-        <Link to="/">Inicio</Link>
         <Link to="/ranking">Ranking</Link>
         <Link to="/matches">Partidos</Link>
         <Link to="/rules">Normas</Link>

@@ -2,24 +2,82 @@ import { useEffect, useState } from "react";
 
 export const Ranking = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const token = localStorage.getItem("token");
 
   const [ranking, setRanking] = useState([]);
+  const [seasons, setSeasons] = useState([]);
+  const [selectedSeasonId, setSelectedSeasonId] = useState("");
   const [level, setLevel] = useState("");
   const [loading, setLoading] = useState(true);
+  const [seasonsLoading, setSeasonsLoading] = useState(true);
   const [error, setError] = useState("");
 
   const levels = ["", "Iniciación", "Bronce", "Plata", "Oro", "Diamante"];
+
+  const selectedSeason = seasons.find(
+    (season) => String(season.id) === String(selectedSeasonId)
+  );
+
+  const activeSeason = seasons.find((season) => season.is_active);
+  const isHistoricalSeason = selectedSeason?.is_closed === true;
+
+  const loadSeasons = async () => {
+    try {
+      setSeasonsLoading(true);
+
+      const response = await fetch(`${backendUrl}/api/seasons`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.msg || "No se pudieron cargar las temporadas");
+      }
+
+      setSeasons(data);
+
+      const currentActiveSeason = data.find((season) => season.is_active);
+
+      if (currentActiveSeason && !selectedSeasonId) {
+        setSelectedSeasonId(String(currentActiveSeason.id));
+      }
+    } catch (error) {
+      console.error(error);
+      setError(error.message || "Error al cargar temporadas");
+    } finally {
+      setSeasonsLoading(false);
+    }
+  };
 
   const loadRanking = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const url = level
-        ? `${backendUrl}/api/ranking?level=${encodeURIComponent(level)}`
+      const params = new URLSearchParams();
+
+      if (level) {
+        params.append("level", level);
+      }
+
+      if (selectedSeasonId) {
+        params.append("season_id", selectedSeasonId);
+      }
+
+      const queryString = params.toString();
+      const url = queryString
+        ? `${backendUrl}/api/ranking?${queryString}`
         : `${backendUrl}/api/ranking`;
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -36,17 +94,34 @@ export const Ranking = () => {
   };
 
   useEffect(() => {
-    loadRanking();
-  }, [level]);
+    loadSeasons();
+  }, []);
+
+  useEffect(() => {
+    if (!seasonsLoading) {
+      loadRanking();
+    }
+  }, [level, selectedSeasonId, seasonsLoading]);
 
   const topThree = ranking.slice(0, 3);
-  const restRanking = ranking.slice(3);
 
   const getPositionLabel = (index) => {
     if (index === 0) return "🥇";
     if (index === 1) return "🥈";
     if (index === 2) return "🥉";
     return index + 1;
+  };
+
+  const getSeasonLabel = () => {
+    if (!selectedSeason && activeSeason) {
+      return activeSeason.name;
+    }
+
+    if (!selectedSeason) {
+      return "Temporada actual";
+    }
+
+    return selectedSeason.name;
   };
 
   return (
@@ -56,14 +131,45 @@ export const Ranking = () => {
           <span className="ranking-kicker">Fuera de Pista</span>
           <h1>Ranking</h1>
           <p>
-            Clasificación individual por niveles. Los partidos se juegan por
-            parejas, pero cada jugador suma sus propios puntos.
+            Clasificación individual por temporadas cuatrimestrales. Cada
+            jugador suma sus propios puntos aunque los partidos se jueguen por
+            parejas.
           </p>
         </div>
 
         <div className="ranking-hero-card">
           <strong>{ranking.length}</strong>
-          <span>Jugadores en ranking</span>
+          <span>
+            {isHistoricalSeason
+              ? "Jugadores en histórico"
+              : "Jugadores en ranking"}
+          </span>
+        </div>
+      </div>
+
+      <div className="ranking-season-card">
+        <div>
+          <span>Temporada</span>
+          <h2>{getSeasonLabel()}</h2>
+          <p>
+            {isHistoricalSeason
+              ? "Estás viendo una clasificación histórica cerrada."
+              : "Estás viendo la temporada activa actual."}
+          </p>
+        </div>
+
+        <div className="ranking-season-select-box">
+          <label>Ver temporada</label>
+          <select
+            value={selectedSeasonId}
+            onChange={(event) => setSelectedSeasonId(event.target.value)}
+          >
+            {seasons.map((season) => (
+              <option key={season.id} value={season.id}>
+                {season.name} {season.is_active ? "· Actual" : "· Histórico"}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -89,10 +195,15 @@ export const Ranking = () => {
 
       {!loading && !error && ranking.length === 0 && (
         <div className="ranking-empty">
-          <h2>Todavía no hay jugadores aprobados</h2>
+          <h2>
+            {isHistoricalSeason
+              ? "No hay histórico guardado para esta temporada"
+              : "Todavía no hay jugadores aprobados"}
+          </h2>
           <p>
-            Cuando los jugadores se registren y sean aprobados por el admin,
-            aparecerán en esta clasificación.
+            {isHistoricalSeason
+              ? "Cuando se cierre una temporada con jugadores aprobados, se guardará aquí su clasificación final."
+              : "Cuando los jugadores se registren y sean aprobados por el admin, aparecerán en esta clasificación."}
           </p>
         </div>
       )}
@@ -102,7 +213,7 @@ export const Ranking = () => {
           <div className="ranking-top">
             {topThree.map((player, index) => (
               <article
-                key={player.id}
+                key={`${player.id}-${player.profile_id || player.nickname}`}
                 className={`ranking-podium-card ranking-podium-${index + 1}`}
               >
                 <div className="ranking-medal">{getPositionLabel(index)}</div>
@@ -142,13 +253,23 @@ export const Ranking = () => {
           <div className="ranking-table-card">
             <div className="ranking-table-header">
               <div>
-                <h2>Clasificación general</h2>
+                <h2>
+                  {isHistoricalSeason
+                    ? "Clasificación histórica"
+                    : "Clasificación actual"}
+                </h2>
                 <p>
                   {level
                     ? `Mostrando jugadores de nivel ${level}`
                     : "Mostrando todos los niveles"}
                 </p>
               </div>
+
+              {isHistoricalSeason && (
+                <div className="ranking-history-badge">
+                  Histórico cerrado
+                </div>
+              )}
             </div>
 
             <div className="table-wrapper">
@@ -168,10 +289,14 @@ export const Ranking = () => {
 
                 <tbody>
                   {ranking.map((player, index) => (
-                    <tr key={player.id}>
+                    <tr key={`${player.id}-${player.profile_id || index}`}>
                       <td>
                         <span className="ranking-position">
-                          {index < 3 ? getPositionLabel(index) : index + 1}
+                          {isHistoricalSeason && player.final_position
+                            ? player.final_position
+                            : index < 3
+                            ? getPositionLabel(index)
+                            : index + 1}
                         </span>
                       </td>
 
