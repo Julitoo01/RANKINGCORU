@@ -1,6 +1,28 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 
 export const Home = () => {
+  const storedUser = localStorage.getItem("user");
+  const storedToken = localStorage.getItem("token");
+
+  let user = null;
+
+  try {
+    if (storedUser && storedUser !== "undefined") {
+      user = JSON.parse(storedUser);
+    }
+  } catch (error) {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("profile");
+    user = null;
+  }
+
+  const isLogged = Boolean(storedToken) && Boolean(user);
+  const isAdmin = user?.is_admin === true;
+
+  if (isLogged) {
+    return <Navigate to="/ranking" replace />;
+  }
   return (
     <section className="fdp-home">
       <div className="fdp-hero">

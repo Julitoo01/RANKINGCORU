@@ -43,8 +43,8 @@ export const Navbar = () => {
       <div className="navbar-links">
         <Link to="/ranking">Ranking</Link>
         <Link to="/matches">Partidos</Link>
+        <Link to="/notifications">Notificaciones</Link>
         <Link to="/rules">Normas</Link>
-        <Link to="/upload-result">Subir resultado</Link>
         <Link to="/profile">Mi perfil</Link>
 
         {isAdmin && <Link to="/admin">Admin</Link>}

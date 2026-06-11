@@ -22,6 +22,46 @@ def is_admin_user(user_id):
     return user and user.is_admin
 
 
+def get_current_user():
+    current_user_id = get_jwt_identity()
+    return User.query.get(current_user_id)
+
+
+def get_current_profile():
+    user = get_current_user()
+
+    if not user or not user.profile:
+        return None
+
+    return user.profile
+
+
+def get_match_validation_team_ids(match):
+    team_a_ids = [
+        match.team_a_player_1_id,
+        match.team_a_player_2_id,
+    ]
+
+    team_b_ids = [
+        match.team_b_player_1_id,
+        match.team_b_player_2_id,
+    ]
+
+    submitted_by_profile_id = match.submitted_by_profile_id
+
+    if not submitted_by_profile_id and match.submitted_by and match.submitted_by.profile:
+        submitted_by_profile_id = match.submitted_by.profile.id
+        match.submitted_by_profile_id = submitted_by_profile_id
+
+    if submitted_by_profile_id in team_a_ids:
+        return team_b_ids
+
+    if submitted_by_profile_id in team_b_ids:
+        return team_a_ids
+
+    return []
+
+
 def get_or_create_active_season():
     active_season = Season.query.filter_by(is_active=True, is_closed=False).first()
 
@@ -67,7 +107,10 @@ def recalculate_ranking_internal(season_id=None):
         profile.losses = 0
         profile.points = 0
 
-    matches = Match.query.filter_by(season_id=season_id).all()
+    matches = Match.query.filter_by(
+        season_id=season_id,
+        status="confirmed",
+    ).all()
 
     for match in matches:
         team_a_profiles = [
@@ -347,7 +390,7 @@ def get_matches():
 
     season_id = request.args.get("season_id")
 
-    query = Match.query
+    query = Match.query.filter_by(status="confirmed")
 
     if season_id:
         query = query.filter_by(season_id=season_id)
@@ -366,7 +409,20 @@ def create_match():
     active_season = assign_old_matches_to_active_season()
 
     current_user_id = get_jwt_identity()
-    data = request.get_json()
+    current_user = User.query.get(current_user_id)
+
+    if not current_user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    if not current_user.profile:
+        return jsonify({"msg": "Usuario sin perfil de jugador"}), 400
+
+    current_profile = current_user.profile
+
+    if current_profile.status != "approved":
+        return jsonify({"msg": "Tu perfil debe estar aprobado para subir resultados"}), 403
+
+    data = request.get_json() or {}
 
     required_fields = [
         "level",
@@ -376,22 +432,36 @@ def create_match():
         "team_b_player_2_id",
         "score",
         "winner_team",
-        "played_at",
     ]
 
     for field in required_fields:
         if not data.get(field):
             return jsonify({"msg": f"Falta el campo {field}"}), 400
 
+    try:
+        team_a_player_1_id = int(data.get("team_a_player_1_id"))
+        team_a_player_2_id = int(data.get("team_a_player_2_id"))
+        team_b_player_1_id = int(data.get("team_b_player_1_id"))
+        team_b_player_2_id = int(data.get("team_b_player_2_id"))
+    except ValueError:
+        return jsonify({"msg": "Los jugadores seleccionados no son válidos"}), 400
+
     player_ids = [
-        int(data.get("team_a_player_1_id")),
-        int(data.get("team_a_player_2_id")),
-        int(data.get("team_b_player_1_id")),
-        int(data.get("team_b_player_2_id")),
+        team_a_player_1_id,
+        team_a_player_2_id,
+        team_b_player_1_id,
+        team_b_player_2_id,
     ]
 
     if len(player_ids) != len(set(player_ids)):
         return jsonify({"msg": "No puedes repetir jugadores en el mismo partido"}), 400
+
+    if current_profile.id not in player_ids:
+        return jsonify(
+            {
+                "msg": "Para subir un resultado tienes que ser uno de los 4 jugadores del partido"
+            }
+        ), 403
 
     for player_id in player_ids:
         profile = PlayerProfile.query.get(player_id)
@@ -407,37 +477,146 @@ def create_match():
     if winner_team not in ["A", "B"]:
         return jsonify({"msg": "El ganador debe ser Equipo A o Equipo B"}), 400
 
-    try:
-        played_at = datetime.fromisoformat(data.get("played_at"))
-    except ValueError:
-        return jsonify({"msg": "Fecha no válida"}), 400
+    if data.get("played_at"):
+        try:
+            played_at = datetime.fromisoformat(data.get("played_at"))
+        except ValueError:
+            return jsonify({"msg": "Fecha no válida"}), 400
+    else:
+        played_at = datetime.utcnow()
 
     match = Match(
         season_id=active_season.id,
         level=data.get("level"),
-        team_a_player_1_id=player_ids[0],
-        team_a_player_2_id=player_ids[1],
-        team_b_player_1_id=player_ids[2],
-        team_b_player_2_id=player_ids[3],
-        score=data.get("score"),
+        team_a_player_1_id=team_a_player_1_id,
+        team_a_player_2_id=team_a_player_2_id,
+        team_b_player_1_id=team_b_player_1_id,
+        team_b_player_2_id=team_b_player_2_id,
+        score=data.get("score").strip(),
         winner_team=winner_team,
-        club=data.get("club", ""),
+        club=data.get("club", "").strip(),
         played_at=played_at,
-        status="approved",
+        status="pending",
         submitted_by_id=current_user_id,
+        submitted_by_profile_id=current_profile.id,
     )
 
     db.session.add(match)
     db.session.commit()
 
-    recalculate_ranking_internal(active_season.id)
-
     return jsonify(
         {
-            "msg": "Partido creado correctamente",
+            "msg": "Resultado enviado correctamente. Está pendiente de validación por la pareja rival.",
             "match": match.serialize(),
         }
     ), 201
+
+
+@api.route("/notifications", methods=["GET"])
+@jwt_required()
+def get_notifications():
+    current_profile = get_current_profile()
+
+    if not current_profile:
+        return jsonify({"msg": "Perfil no encontrado"}), 404
+
+    pending_matches = (
+        Match.query.filter_by(status="pending")
+        .order_by(Match.created_at.desc())
+        .all()
+    )
+
+    notifications = []
+
+    for match in pending_matches:
+        validation_team_ids = get_match_validation_team_ids(match)
+
+        if current_profile.id in validation_team_ids:
+            notifications.append(match.serialize())
+
+    db.session.commit()
+
+    return jsonify(notifications), 200
+
+
+@api.route("/matches/<int:match_id>/confirm", methods=["POST"])
+@jwt_required()
+def confirm_match(match_id):
+    current_profile = get_current_profile()
+
+    if not current_profile:
+        return jsonify({"msg": "Perfil no encontrado"}), 404
+
+    match = Match.query.get(match_id)
+
+    if not match:
+        return jsonify({"msg": "Partido no encontrado"}), 404
+
+    if match.status != "pending":
+        return jsonify({"msg": "Este partido ya no está pendiente"}), 400
+
+    validation_team_ids = get_match_validation_team_ids(match)
+
+    if current_profile.id not in validation_team_ids:
+        return jsonify(
+            {
+                "msg": "Solo un jugador de la pareja rival puede validar este resultado"
+            }
+        ), 403
+
+    match.status = "confirmed"
+    match.confirmed_by_profile_id = current_profile.id
+    match.confirmed_at = datetime.utcnow()
+
+    db.session.commit()
+
+    recalculate_ranking_internal(match.season_id)
+
+    return jsonify(
+        {
+            "msg": "Resultado aceptado correctamente. El ranking se ha actualizado.",
+            "match": match.serialize(),
+        }
+    ), 200
+
+
+@api.route("/matches/<int:match_id>/reject", methods=["POST"])
+@jwt_required()
+def reject_match(match_id):
+    current_profile = get_current_profile()
+
+    if not current_profile:
+        return jsonify({"msg": "Perfil no encontrado"}), 404
+
+    match = Match.query.get(match_id)
+
+    if not match:
+        return jsonify({"msg": "Partido no encontrado"}), 404
+
+    if match.status != "pending":
+        return jsonify({"msg": "Este partido ya no está pendiente"}), 400
+
+    validation_team_ids = get_match_validation_team_ids(match)
+
+    if current_profile.id not in validation_team_ids:
+        return jsonify(
+            {
+                "msg": "Solo un jugador de la pareja rival puede rechazar este resultado"
+            }
+        ), 403
+
+    match.status = "rejected"
+    match.rejected_by_profile_id = current_profile.id
+    match.rejected_at = datetime.utcnow()
+
+    db.session.commit()
+
+    return jsonify(
+        {
+            "msg": "Resultado rechazado correctamente. No sumará puntos.",
+            "match": match.serialize(),
+        }
+    ), 200
 
 
 @api.route("/rules", methods=["GET"])
@@ -608,6 +787,9 @@ def admin_update_player(profile_id):
 
     db.session.commit()
 
+    active_season = get_or_create_active_season()
+    recalculate_ranking_internal(active_season.id)
+
     return jsonify(
         {
             "msg": "Jugador actualizado correctamente",
@@ -670,11 +852,15 @@ def admin_get_matches():
     assign_old_matches_to_active_season()
 
     season_id = request.args.get("season_id")
+    status = request.args.get("status")
 
     query = Match.query
 
     if season_id:
         query = query.filter_by(season_id=season_id)
+
+    if status and status != "Todos":
+        query = query.filter_by(status=status)
 
     matches = query.order_by(Match.created_at.desc()).all()
 

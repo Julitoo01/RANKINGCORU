@@ -69,6 +69,7 @@ class PlayerProfile(db.Model):
     def win_percentage(self):
         if self.matches_played == 0:
             return 0
+
         return round((self.wins / self.matches_played) * 100)
 
     def serialize(self):
@@ -109,6 +110,7 @@ class Season(db.Model):
     closed_at = db.Column(db.DateTime, nullable=True)
 
     matches = db.relationship("Match", back_populates="season")
+
     snapshots = db.relationship(
         "SeasonRankingSnapshot",
         back_populates="season",
@@ -156,9 +158,32 @@ class Match(db.Model):
     club = db.Column(db.String(120), nullable=True)
     played_at = db.Column(db.DateTime, nullable=False)
 
-    status = db.Column(db.String(50), default="completed")
+    # Estados posibles:
+    # pending   -> resultado subido pero pendiente de validación rival
+    # confirmed -> resultado aceptado por un rival y ya suma puntos
+    # rejected  -> resultado rechazado y no suma puntos
+    status = db.Column(db.String(50), default="pending")
 
+    # Usuario que sube el resultado
     submitted_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    # Perfil del jugador que sube el resultado
+    submitted_by_profile_id = db.Column(
+        db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
+    )
+
+    # Perfil del rival que acepta
+    confirmed_by_profile_id = db.Column(
+        db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
+    )
+
+    # Perfil del rival que rechaza
+    rejected_by_profile_id = db.Column(
+        db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
+    )
+
+    confirmed_at = db.Column(db.DateTime, nullable=True)
+    rejected_at = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -178,6 +203,61 @@ class Match(db.Model):
     )
 
     submitted_by = db.relationship("User", foreign_keys=[submitted_by_id])
+
+    submitted_by_profile = db.relationship(
+        "PlayerProfile", foreign_keys=[submitted_by_profile_id]
+    )
+
+    confirmed_by_profile = db.relationship(
+        "PlayerProfile", foreign_keys=[confirmed_by_profile_id]
+    )
+
+    rejected_by_profile = db.relationship(
+        "PlayerProfile", foreign_keys=[rejected_by_profile_id]
+    )
+
+    def get_team_a_ids(self):
+        return [self.team_a_player_1_id, self.team_a_player_2_id]
+
+    def get_team_b_ids(self):
+        return [self.team_b_player_1_id, self.team_b_player_2_id]
+
+    def get_all_player_ids(self):
+        return [
+            self.team_a_player_1_id,
+            self.team_a_player_2_id,
+            self.team_b_player_1_id,
+            self.team_b_player_2_id,
+        ]
+
+    def get_submitted_team(self):
+        if not self.submitted_by_profile_id:
+            return None
+
+        if self.submitted_by_profile_id in self.get_team_a_ids():
+            return "A"
+
+        if self.submitted_by_profile_id in self.get_team_b_ids():
+            return "B"
+
+        return None
+
+    def get_validation_team_ids(self):
+        submitted_team = self.get_submitted_team()
+
+        if submitted_team == "A":
+            return self.get_team_b_ids()
+
+        if submitted_team == "B":
+            return self.get_team_a_ids()
+
+        return []
+
+    def can_be_validated_by(self, profile_id):
+        if self.status != "pending":
+            return False
+
+        return profile_id in self.get_validation_team_ids()
 
     def serialize(self):
         return {
@@ -199,6 +279,28 @@ class Match(db.Model):
             "played_at": self.played_at.isoformat() if self.played_at else None,
             "status": self.status,
             "submitted_by": self.submitted_by.nickname if self.submitted_by else None,
+            "submitted_by_profile_id": self.submitted_by_profile_id,
+            "submitted_by_profile": (
+                self.submitted_by_profile.serialize()
+                if self.submitted_by_profile
+                else None
+            ),
+            "confirmed_by_profile_id": self.confirmed_by_profile_id,
+            "confirmed_by_profile": (
+                self.confirmed_by_profile.serialize()
+                if self.confirmed_by_profile
+                else None
+            ),
+            "rejected_by_profile_id": self.rejected_by_profile_id,
+            "rejected_by_profile": (
+                self.rejected_by_profile.serialize()
+                if self.rejected_by_profile
+                else None
+            ),
+            "confirmed_at": self.confirmed_at.isoformat()
+            if self.confirmed_at
+            else None,
+            "rejected_at": self.rejected_at.isoformat() if self.rejected_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -264,6 +366,7 @@ class Rules(db.Model):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
     )
+
     updated_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     updated_by = db.relationship("User", foreign_keys=[updated_by_id])

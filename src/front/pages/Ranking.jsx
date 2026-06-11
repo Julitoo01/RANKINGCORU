@@ -5,14 +5,32 @@ export const Ranking = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const [ranking, setRanking] = useState([]);
+  const [players, setPlayers] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState("");
   const [level, setLevel] = useState("");
+  const [showUploadForm, setShowUploadForm] = useState(false);
+
+  const [formData, setFormData] = useState({
+    team_a_player_1_id: "",
+    team_a_player_2_id: "",
+    team_b_player_1_id: "",
+    team_b_player_2_id: "",
+    winner_team: "A",
+    score: "",
+    level: "Bronce",
+    club: "",
+    played_at: "",
+  });
+
   const [loading, setLoading] = useState(true);
   const [seasonsLoading, setSeasonsLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const levels = ["", "Iniciación", "Bronce", "Plata", "Oro", "Diamante"];
+  const matchLevels = ["Iniciación", "Bronce", "Plata", "Oro", "Diamante"];
 
   const selectedSeason = seasons.find(
     (season) => String(season.id) === String(selectedSeasonId)
@@ -79,8 +97,22 @@ export const Ranking = () => {
     }
   };
 
+  const loadPlayersForForm = async () => {
+    try {
+      const data = await authFetch(`${backendUrl}/api/ranking`);
+
+      if (!data) return;
+
+      setPlayers(data);
+    } catch (error) {
+      console.error(error);
+      setError(error.message || "Error al cargar jugadores");
+    }
+  };
+
   useEffect(() => {
     loadSeasons();
+    loadPlayersForForm();
   }, []);
 
   useEffect(() => {
@@ -106,6 +138,116 @@ export const Ranking = () => {
     }
 
     return selectedSeason.name;
+  };
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const validateForm = () => {
+    const selectedPlayers = [
+      formData.team_a_player_1_id,
+      formData.team_a_player_2_id,
+      formData.team_b_player_1_id,
+      formData.team_b_player_2_id,
+    ];
+
+    if (selectedPlayers.some((playerId) => !playerId)) {
+      return "Tienes que seleccionar los 4 jugadores.";
+    }
+
+    const uniquePlayers = new Set(selectedPlayers);
+
+    if (uniquePlayers.size !== 4) {
+      return "No puedes repetir jugadores en el mismo partido.";
+    }
+
+    if (!formData.score.trim()) {
+      return "Tienes que escribir el resultado.";
+    }
+
+    if (!formData.level) {
+      return "Tienes que seleccionar el nivel del partido.";
+    }
+
+    return "";
+  };
+
+  const handleSubmitResult = async (event) => {
+    event.preventDefault();
+
+    setMessage("");
+    setError("");
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      setSending(true);
+
+      const payload = {
+        team_a_player_1_id: Number(formData.team_a_player_1_id),
+        team_a_player_2_id: Number(formData.team_a_player_2_id),
+        team_b_player_1_id: Number(formData.team_b_player_1_id),
+        team_b_player_2_id: Number(formData.team_b_player_2_id),
+        winner_team: formData.winner_team,
+        score: formData.score.trim(),
+        level: formData.level,
+        club: formData.club.trim(),
+        played_at: formData.played_at || null,
+      };
+
+      const data = await authFetch(`${backendUrl}/api/matches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!data) return;
+
+      setMessage("Resultado subido correctamente. El ranking se ha actualizado.");
+
+      setFormData({
+        team_a_player_1_id: "",
+        team_a_player_2_id: "",
+        team_b_player_1_id: "",
+        team_b_player_2_id: "",
+        winner_team: "A",
+        score: "",
+        level: "Bronce",
+        club: "",
+        played_at: "",
+      });
+
+      setShowUploadForm(false);
+
+      loadRanking();
+      loadPlayersForForm();
+    } catch (error) {
+      console.error(error);
+      setError(error.message || "Error al subir resultado");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const renderPlayerOptions = () => {
+    return players.map((player) => (
+      <option key={player.id} value={player.id}>
+        {player.nickname} · {player.level}
+      </option>
+    ));
   };
 
   return (
@@ -175,13 +317,14 @@ export const Ranking = () => {
         </div>
       </div>
 
+      {message && <div className="success-message">{message}</div>}
+      {error && <div className="error-message">{error}</div>}
+
       {loading && (
         <div className="ranking-state">
           <p>Cargando ranking...</p>
         </div>
       )}
-
-      {error && <div className="error-message">{error}</div>}
 
       {!loading && !error && ranking.length === 0 && (
         <div className="ranking-empty">
@@ -199,7 +342,7 @@ export const Ranking = () => {
         </div>
       )}
 
-      {!loading && !error && ranking.length > 0 && (
+      {!loading && ranking.length > 0 && (
         <div className="ranking-table-card">
           <div className="ranking-table-header">
             <div>
@@ -216,10 +359,142 @@ export const Ranking = () => {
               </p>
             </div>
 
+            {!isHistoricalSeason && (
+              <button
+                className="ranking-upload-toggle-btn"
+                onClick={() => setShowUploadForm(!showUploadForm)}
+              >
+                {showUploadForm ? "Cerrar formulario" : "Subir resultado"}
+              </button>
+            )}
+
             {isHistoricalSeason && (
               <div className="ranking-history-badge">Histórico cerrado</div>
             )}
           </div>
+
+          {showUploadForm && !isHistoricalSeason && (
+            <form className="ranking-upload-form" onSubmit={handleSubmitResult}>
+              <div className="ranking-upload-form-header">
+                <div>
+                  <span>Nuevo resultado</span>
+                  <h3>Registrar partido</h3>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowUploadForm(false)}
+                  className="ranking-upload-close-btn"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="ranking-upload-grid">
+                <div className="ranking-upload-section">
+                  <span>Equipo A</span>
+
+                  <select
+                    name="team_a_player_1_id"
+                    value={formData.team_a_player_1_id}
+                    onChange={handleChange}
+                  >
+                    <option value="">Derecha</option>
+                    {renderPlayerOptions()}
+                  </select>
+
+                  <select
+                    name="team_a_player_2_id"
+                    value={formData.team_a_player_2_id}
+                    onChange={handleChange}
+                  >
+                    <option value="">Reves</option>
+                    {renderPlayerOptions()}
+                  </select>
+                </div>
+
+                <div className="ranking-upload-section">
+                  <span>Equipo B</span>
+
+                  <select
+                    name="team_b_player_1_id"
+                    value={formData.team_b_player_1_id}
+                    onChange={handleChange}
+                  >
+                    <option value="">Derecha</option>
+                    {renderPlayerOptions()}
+                  </select>
+
+                  <select
+                    name="team_b_player_2_id"
+                    value={formData.team_b_player_2_id}
+                    onChange={handleChange}
+                  >
+                    <option value="">Reves</option>
+                    {renderPlayerOptions()}
+                  </select>
+                </div>
+              </div>
+
+              <div className="ranking-upload-grid">
+                <div className="ranking-upload-section">
+                  <span>Resultado</span>
+
+                  <select
+                    name="winner_team"
+                    value={formData.winner_team}
+                    onChange={handleChange}
+                  >
+                    <option value="A">Gana Equipo A</option>
+                    <option value="B">Gana Equipo B</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    name="score"
+                    value={formData.score}
+                    onChange={handleChange}
+                    placeholder="Ej: 6-4 / 6-3"
+                  />
+                </div>
+
+                <div className="ranking-upload-section">
+                  <span>Datos del partido</span>
+
+                  <select
+                    name="level"
+                    value={formData.level}
+                    onChange={handleChange}
+                  >
+                    {matchLevels.map((level) => (
+                      <option key={level} value={level}>
+                        {level}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="text"
+                    name="club"
+                    value={formData.club}
+                    onChange={handleChange}
+                    placeholder="Club"
+                  />
+
+                  <input
+                    type="date"
+                    name="played_at"
+                    value={formData.played_at}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              <button className="ranking-upload-submit-btn" disabled={sending}>
+                {sending ? "Subiendo resultado..." : "Guardar resultado"}
+              </button>
+            </form>
+          )}
 
           <div className="table-wrapper">
             <table className="ranking-table ranking-table-premium">

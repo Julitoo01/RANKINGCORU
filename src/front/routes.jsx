@@ -14,7 +14,7 @@ import { Matches } from "./pages/Matches";
 import { UploadResult } from "./pages/UploadResult";
 import { Rules } from "./pages/Rules";
 import { Profile } from "./pages/Profile";
-
+import { Notifications } from "./pages/Notifications";
 import { Admin } from "./pages/admin/Admin";
 import { AdminPlayers } from "./pages/admin/AdminPlayers";
 import { AdminMatches } from "./pages/admin/AdminMatches";
@@ -106,7 +106,14 @@ export const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
-
+<Route
+  path="notifications"
+  element={
+    <ProtectedRoute>
+      <Notifications />
+    </ProtectedRoute>
+  }
+/>
       <Route
         path="profile"
         element={
