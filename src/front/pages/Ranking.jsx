@@ -89,8 +89,6 @@ export const Ranking = () => {
     }
   }, [level, selectedSeasonId, seasonsLoading]);
 
-  const topThree = ranking.slice(0, 3);
-
   const getPositionLabel = (index) => {
     if (index === 0) return "🥇";
     if (index === 1) return "🥈";
@@ -144,32 +142,37 @@ export const Ranking = () => {
           </p>
         </div>
 
-        <div className="ranking-season-select-box">
-          <label>Ver temporada</label>
+        <div className="ranking-selects-row">
+          <div className="ranking-season-select-box">
+            <label>Ver temporada</label>
 
-          <select
-            value={selectedSeasonId}
-            onChange={(event) => setSelectedSeasonId(event.target.value)}
-          >
-            {seasons.map((season) => (
-              <option key={season.id} value={season.id}>
-                {season.name} {season.is_active ? "· Actual" : "· Histórico"}
-              </option>
-            ))}
-          </select>
+            <select
+              value={selectedSeasonId}
+              onChange={(event) => setSelectedSeasonId(event.target.value)}
+            >
+              {seasons.map((season) => (
+                <option key={season.id} value={season.id}>
+                  {season.name} {season.is_active ? "· Actual" : "· Histórico"}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="ranking-season-select-box">
+            <label>Ver nivel</label>
+
+            <select
+              value={level}
+              onChange={(event) => setLevel(event.target.value)}
+            >
+              {levels.map((item) => (
+                <option key={item || "Todos"} value={item}>
+                  {item || "Todos"}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
-
-      <div className="ranking-filters">
-        {levels.map((item) => (
-          <button
-            key={item || "Todos"}
-            className={`ranking-filter-btn ${level === item ? "active" : ""}`}
-            onClick={() => setLevel(item)}
-          >
-            {item || "Todos"}
-          </button>
-        ))}
       </div>
 
       {loading && (
@@ -197,132 +200,88 @@ export const Ranking = () => {
       )}
 
       {!loading && !error && ranking.length > 0 && (
-        <>
-          <div className="ranking-top">
-            {topThree.map((player, index) => (
-              <article
-                key={`${player.id}-${player.profile_id || player.nickname}`}
-                className={`ranking-podium-card ranking-podium-${index + 1}`}
-              >
-                <div className="ranking-medal">{getPositionLabel(index)}</div>
+        <div className="ranking-table-card">
+          <div className="ranking-table-header">
+            <div>
+              <h2>
+                {isHistoricalSeason
+                  ? "Clasificación histórica"
+                  : "Clasificación actual"}
+              </h2>
 
-                <div>
-                  <h3>{player.nickname}</h3>
-                  <span>{player.level}</span>
-                </div>
-
-                <strong>{player.points} pts</strong>
-
-                <div className="ranking-mini-stats">
-                  <p>
-                    <b>{player.matches_played}</b>
-                    <span>PJ</span>
-                  </p>
-
-                  <p>
-                    <b>{player.wins}</b>
-                    <span>PG</span>
-                  </p>
-
-                  <p>
-                    <b>{player.losses}</b>
-                    <span>PP</span>
-                  </p>
-
-                  <p>
-                    <b>{player.win_percentage}%</b>
-                    <span>Vict.</span>
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <div className="ranking-table-card">
-            <div className="ranking-table-header">
-              <div>
-                <h2>
-                  {isHistoricalSeason
-                    ? "Clasificación histórica"
-                    : "Clasificación actual"}
-                </h2>
-
-                <p>
-                  {level
-                    ? `Mostrando jugadores de nivel ${level}`
-                    : "Mostrando todos los niveles"}
-                </p>
-              </div>
-
-              {isHistoricalSeason && (
-                <div className="ranking-history-badge">
-                  Histórico cerrado
-                </div>
-              )}
+              <p>
+                {level
+                  ? `Mostrando jugadores de nivel ${level}`
+                  : "Mostrando todos los niveles"}
+              </p>
             </div>
 
-            <div className="table-wrapper">
-              <table className="ranking-table ranking-table-premium">
-                <thead>
-                  <tr>
-                    <th>Pos</th>
-                    <th>Jugador</th>
-                    <th>Nivel</th>
-                    <th>PJ</th>
-                    <th>PG</th>
-                    <th>PP</th>
-                    <th>Puntos</th>
-                    <th>% Victorias</th>
-                  </tr>
-                </thead>
+            {isHistoricalSeason && (
+              <div className="ranking-history-badge">Histórico cerrado</div>
+            )}
+          </div>
 
-                <tbody>
-                  {ranking.map((player, index) => (
-                    <tr key={`${player.id}-${player.profile_id || index}`}>
-                      <td>
-                        <span className="ranking-position">
-                          {isHistoricalSeason && player.final_position
-                            ? player.final_position
-                            : index < 3
-                            ? getPositionLabel(index)
-                            : index + 1}
-                        </span>
-                      </td>
+          <div className="table-wrapper">
+            <table className="ranking-table ranking-table-premium">
+              <thead>
+                <tr>
+                  <th>Pos</th>
+                  <th>Jugador</th>
+                  <th>Nivel</th>
+                  <th>PJ</th>
+                  <th>PG</th>
+                  <th>PP</th>
+                  <th>Puntos</th>
+                  <th>% Victorias</th>
+                </tr>
+              </thead>
 
-                      <td>
-                        <div className="ranking-player-cell">
-                          <div className="ranking-avatar">
-                            {player.nickname?.charAt(0)?.toUpperCase() || "J"}
-                          </div>
+              <tbody>
+                {ranking.map((player, index) => (
+                  <tr key={`${player.id}-${player.profile_id || index}`}>
+                    <td>
+                      <span className="ranking-position">
+                        {isHistoricalSeason && player.final_position
+                          ? player.final_position
+                          : index < 3
+                          ? getPositionLabel(index)
+                          : index + 1}
+                      </span>
+                    </td>
 
-                          <strong>{player.nickname}</strong>
+                    <td>
+                      <div className="ranking-player-cell">
+                        <div className="ranking-avatar">
+                          {player.nickname?.charAt(0)?.toUpperCase() || "J"}
                         </div>
-                      </td>
 
-                      <td>
-                        <span className="ranking-level-pill">
-                          {player.level}
-                        </span>
-                      </td>
+                        <strong>{player.nickname}</strong>
+                      </div>
+                    </td>
 
-                      <td>{player.matches_played}</td>
-                      <td>{player.wins}</td>
-                      <td>{player.losses}</td>
+                    <td>
+                      <span className="ranking-level-pill">
+                        {player.level}
+                      </span>
+                    </td>
 
-                      <td>
-                        <strong className="ranking-points">
-                          {player.points}
-                        </strong>
-                      </td>
+                    <td>{player.matches_played}</td>
+                    <td>{player.wins}</td>
+                    <td>{player.losses}</td>
 
-                      <td>{player.win_percentage}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    <td>
+                      <strong className="ranking-points">
+                        {player.points}
+                      </strong>
+                    </td>
+
+                    <td>{player.win_percentage}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
+        </div>
       )}
     </section>
   );

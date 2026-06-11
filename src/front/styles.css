@@ -1438,29 +1438,6 @@ a {
   color: rgba(255, 255, 255, 0.78);
   font-weight: 700;
 }
-
-.ranking-filters {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  background: #ffffff;
-  border: 1px solid #dce8f6;
-  border-radius: 24px;
-  padding: 12px;
-  box-shadow: 0 10px 28px rgba(6, 27, 58, 0.06);
-}
-
-.ranking-filter-btn {
-  border: none;
-  background: #f2f7ff;
-  color: #071f45;
-  border-radius: 999px;
-  padding: 11px 16px;
-  font-weight: 900;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
 .ranking-filter-btn:hover {
   background: #e4f0ff;
   color: #0a4fb8;
@@ -5297,6 +5274,28 @@ a {
   }
 
   .matches-season-select-box {
+    min-width: 100%;
+  }
+}
+.ranking-selects-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ranking-selects-row .ranking-season-select-box {
+  min-width: 220px;
+}
+
+@media (max-width: 750px) {
+  .ranking-selects-row {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ranking-selects-row .ranking-season-select-box {
     min-width: 100%;
   }
 }
