@@ -7768,3 +7768,8 @@ a {
     z-index: 100000 !important;
   }
 }
+.open-match-player-pill.current-player {
+  background: #071f45 !important;
+  color: #ffffff !important;
+  border-color: #071f45 !important;
+}

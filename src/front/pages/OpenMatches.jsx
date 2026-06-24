@@ -5,7 +5,8 @@ import { authFetch } from "../utils/authFetch";
 export const OpenMatches = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  const [profile, setProfile] = useState(null);
+  const [user, setUser] = useState(null);
+  const [playerProfile, setPlayerProfile] = useState(null);
   const [openMatches, setOpenMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
@@ -15,10 +16,19 @@ export const OpenMatches = () => {
   const loadProfile = async () => {
     try {
       const data = await authFetch(`${backendUrl}/api/profile`);
-      setProfile(data);
+
+      if (!data) {
+        setUser(null);
+        setPlayerProfile(null);
+        return;
+      }
+
+      setUser(data);
+      setPlayerProfile(data.profile || null);
     } catch (error) {
       console.error("Error cargando perfil:", error);
-      setProfile(null);
+      setUser(null);
+      setPlayerProfile(null);
     }
   };
 
@@ -43,9 +53,13 @@ export const OpenMatches = () => {
     }
   };
 
+  const loadInitialData = async () => {
+    await loadProfile();
+    await loadOpenMatches();
+  };
+
   useEffect(() => {
-    loadProfile();
-    loadOpenMatches();
+    loadInitialData();
   }, []);
 
   const handleJoin = async (openMatchId) => {
@@ -59,6 +73,9 @@ export const OpenMatches = () => {
       });
 
       setMessage("Te has unido al partido correctamente.");
+
+      window.dispatchEvent(new Event("notificationsUpdated"));
+
       await loadOpenMatches();
     } catch (error) {
       console.error("Error uniéndose al partido:", error);
@@ -79,6 +96,9 @@ export const OpenMatches = () => {
       });
 
       setMessage("Has salido del partido correctamente.");
+
+      window.dispatchEvent(new Event("notificationsUpdated"));
+
       await loadOpenMatches();
     } catch (error) {
       console.error("Error saliendo del partido:", error);
@@ -111,10 +131,21 @@ export const OpenMatches = () => {
   };
 
   const isPlayerJoined = (openMatch) => {
-    if (!profile) return false;
+    if (!playerProfile) return false;
 
     return openMatch.players?.some(
-      (item) => item.player_profile_id === profile.id
+      (item) => Number(item.player_profile_id) === Number(playerProfile.id)
+    );
+  };
+
+  const canUploadResult = (openMatch) => {
+    const joined = isPlayerJoined(openMatch);
+
+    return (
+      openMatch.status === "closed" &&
+      joined &&
+      !openMatch.has_result &&
+      !openMatch.result_match_id
     );
   };
 
@@ -122,6 +153,10 @@ export const OpenMatches = () => {
     if (!date) return "";
 
     const dateObject = new Date(`${date}T00:00:00`);
+
+    if (Number.isNaN(dateObject.getTime())) {
+      return date;
+    }
 
     return dateObject.toLocaleDateString("es-ES", {
       day: "2-digit",
@@ -147,9 +182,17 @@ export const OpenMatches = () => {
 
         <p>
           Apúntate a partidos de tu nivel. Cuando haya 4 jugadores, el partido
-          se cierra automáticamente y se crean las parejas.
+          se cierra automáticamente, se crean las parejas y uno de los jugadores
+          podrá subir el resultado.
         </p>
       </div>
+
+      {playerProfile?.status && playerProfile.status !== "approved" && (
+        <div className="error-message">
+          Tu perfil todavía no está aprobado. Podrás apuntarte a partidos cuando
+          el admin apruebe tu inscripción.
+        </div>
+      )}
 
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
@@ -180,6 +223,7 @@ export const OpenMatches = () => {
               const isClosed = openMatch.status === "closed";
               const isFull = openMatch.players_count >= openMatch.max_players;
               const isActionLoading = actionLoadingId === openMatch.id;
+              const uploadAllowed = canUploadResult(openMatch);
 
               return (
                 <article key={openMatch.id} className="open-match-card">
@@ -213,7 +257,12 @@ export const OpenMatches = () => {
                       openMatch.players.map((playerItem) => (
                         <span
                           key={playerItem.id}
-                          className="open-match-player-pill"
+                          className={`open-match-player-pill ${
+                            Number(playerItem.player_profile_id) ===
+                            Number(playerProfile?.id)
+                              ? "current-player"
+                              : ""
+                          }`}
                         >
                           {getPlayerName(playerItem)}
                         </span>
@@ -251,7 +300,11 @@ export const OpenMatches = () => {
                         type="button"
                         className="primary-button"
                         onClick={() => handleJoin(openMatch.id)}
-                        disabled={isActionLoading}
+                        disabled={
+                          isActionLoading ||
+                          !playerProfile ||
+                          playerProfile.status !== "approved"
+                        }
                       >
                         {isActionLoading ? "Apuntando..." : "Apuntarme"}
                       </button>
@@ -268,7 +321,7 @@ export const OpenMatches = () => {
                       </button>
                     )}
 
-                    {isClosed && joined && !openMatch.has_result && (
+                    {uploadAllowed && (
                       <Link
                         to={`/upload-result?open_match_id=${openMatch.id}`}
                         className="primary-button"
@@ -283,9 +336,15 @@ export const OpenMatches = () => {
                       </span>
                     )}
 
-                    {openMatch.has_result && (
+                    {isClosed && joined && openMatch.has_result && (
                       <span className="open-match-closed-text">
                         Resultado enviado
+                      </span>
+                    )}
+
+                    {isOpen && isFull && !joined && (
+                      <span className="open-match-closed-text">
+                        Partido completo
                       </span>
                     )}
                   </div>
