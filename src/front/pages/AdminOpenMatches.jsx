@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
 
 export const AdminOpenMatches = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const [openMatches, setOpenMatches] = useState([]);
+  const [filteredOpenMatches, setFilteredOpenMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [levelFilter, setLevelFilter] = useState("Todos");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -18,7 +22,9 @@ export const AdminOpenMatches = () => {
     description: "",
   });
 
-  const levels = ["Bronce", "Plata", "Oro", "Platino", "Diamante"];
+  const levels = ["Iniciación", "Bronce", "Plata", "Oro", "Diamante"];
+  const filterLevels = ["Todos", ...levels];
+  const statusOptions = ["Todos", "open", "closed"];
 
   const loadOpenMatches = async () => {
     try {
@@ -27,10 +33,14 @@ export const AdminOpenMatches = () => {
 
       const data = await authFetch(`${backendUrl}/api/open-matches`);
 
-      if (data) {
-        setOpenMatches(data);
+      if (!data) {
+        setOpenMatches([]);
+        return;
       }
+
+      setOpenMatches(data);
     } catch (err) {
+      console.error(err);
       setError(err.message || "No se pudieron cargar los partidos abiertos");
     } finally {
       setLoading(false);
@@ -40,6 +50,20 @@ export const AdminOpenMatches = () => {
   useEffect(() => {
     loadOpenMatches();
   }, []);
+
+  useEffect(() => {
+    let result = [...openMatches];
+
+    if (statusFilter !== "Todos") {
+      result = result.filter((openMatch) => openMatch.status === statusFilter);
+    }
+
+    if (levelFilter !== "Todos") {
+      result = result.filter((openMatch) => openMatch.level === levelFilter);
+    }
+
+    setFilteredOpenMatches(result);
+  }, [openMatches, statusFilter, levelFilter]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -80,27 +104,30 @@ export const AdminOpenMatches = () => {
         },
         body: JSON.stringify({
           level: form.level,
-          club: form.club,
+          club: form.club.trim(),
           match_date: form.match_date,
           match_time: form.match_time,
-          description: form.description,
+          description: form.description.trim(),
         }),
       });
 
-      if (data) {
-        setMessage("Partido abierto creado correctamente");
+      if (!data) return;
 
-        setForm({
-          level: "Bronce",
-          club: "",
-          match_date: "",
-          match_time: "",
-          description: "",
-        });
+      setMessage("Partido abierto creado correctamente. Se ha notificado a los jugadores de ese nivel.");
 
-        loadOpenMatches();
-      }
+      setForm({
+        level: "Bronce",
+        club: "",
+        match_date: "",
+        match_time: "",
+        description: "",
+      });
+
+      window.dispatchEvent(new Event("notificationsUpdated"));
+
+      await loadOpenMatches();
     } catch (err) {
+      console.error(err);
       setError(err.message || "No se pudo crear el partido");
     } finally {
       setCreating(false);
@@ -109,12 +136,13 @@ export const AdminOpenMatches = () => {
 
   const handleDeleteMatch = async (openMatchId) => {
     const confirmDelete = window.confirm(
-      "¿Seguro que quieres eliminar este partido abierto?"
+      "¿Seguro que quieres eliminar este partido abierto? Esta acción no se puede deshacer."
     );
 
     if (!confirmDelete) return;
 
     try {
+      setDeletingId(openMatchId);
       setMessage("");
       setError("");
 
@@ -125,12 +153,15 @@ export const AdminOpenMatches = () => {
         }
       );
 
-      if (data) {
-        setMessage("Partido eliminado correctamente");
-        loadOpenMatches();
-      }
+      if (!data) return;
+
+      setMessage("Partido eliminado correctamente");
+      await loadOpenMatches();
     } catch (err) {
+      console.error(err);
       setError(err.message || "No se pudo eliminar el partido");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -138,7 +169,23 @@ export const AdminOpenMatches = () => {
     if (status === "open") return "Abierto";
     if (status === "closed") return "Cerrado";
     if (status === "cancelled") return "Cancelado";
-    return status;
+    return status || "-";
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "-";
+
+    const dateObject = new Date(`${date}T00:00:00`);
+
+    if (Number.isNaN(dateObject.getTime())) {
+      return date;
+    }
+
+    return dateObject.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   const getPlayerName = (playerData) => {
@@ -153,7 +200,11 @@ export const AdminOpenMatches = () => {
 
   const renderPlayers = (openMatch) => {
     if (!openMatch.players || openMatch.players.length === 0) {
-      return <p className="admin-open-match-empty">Todavía no hay jugadores apuntados.</p>;
+      return (
+        <p className="admin-open-match-empty">
+          Todavía no hay jugadores apuntados.
+        </p>
+      );
     }
 
     return (
@@ -281,28 +332,65 @@ export const AdminOpenMatches = () => {
             <h2>Partidos creados</h2>
           </div>
 
-          <button className="secondary-button" type="button" onClick={loadOpenMatches}>
-            Actualizar
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={loadOpenMatches}
+            disabled={loading}
+          >
+            {loading ? "Actualizando..." : "Actualizar"}
           </button>
+        </div>
+
+        <div className="admin-open-matches-filters">
+          <div className="form-group">
+            <label>Filtrar por estado</label>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status === "Todos" ? "Todos" : getStatusText(status)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Filtrar por nivel</label>
+            <select
+              value={levelFilter}
+              onChange={(event) => setLevelFilter(event.target.value)}
+            >
+              {filterLevels.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loading ? (
           <p className="admin-open-match-empty">Cargando partidos...</p>
-        ) : openMatches.length === 0 ? (
+        ) : filteredOpenMatches.length === 0 ? (
           <p className="admin-open-match-empty">
-            Todavía no hay partidos abiertos creados.
+            No hay partidos que coincidan con los filtros.
           </p>
         ) : (
           <div className="admin-open-match-grid">
-            {openMatches.map((openMatch) => (
+            {filteredOpenMatches.map((openMatch) => (
               <article key={openMatch.id} className="admin-open-match-card">
                 <div className="admin-open-match-card-header">
                   <div>
                     <h3>
                       {openMatch.level} · {openMatch.club}
                     </h3>
+
                     <p>
-                      {openMatch.match_date} · {openMatch.match_time}
+                      {formatDate(openMatch.match_date)} ·{" "}
+                      {openMatch.match_time}
                     </p>
                   </div>
 
@@ -321,6 +409,12 @@ export const AdminOpenMatches = () => {
                   {openMatch.players_count}/{openMatch.max_players} jugadores
                 </div>
 
+                {openMatch.has_result && (
+                  <div className="success-message">
+                    Este partido ya tiene resultado subido.
+                  </div>
+                )}
+
                 {renderPlayers(openMatch)}
 
                 {renderTeams(openMatch)}
@@ -330,8 +424,9 @@ export const AdminOpenMatches = () => {
                     className="danger-button"
                     type="button"
                     onClick={() => handleDeleteMatch(openMatch.id)}
+                    disabled={deletingId === openMatch.id}
                   >
-                    Eliminar
+                    {deletingId === openMatch.id ? "Eliminando..." : "Eliminar"}
                   </button>
                 </div>
               </article>

@@ -80,8 +80,8 @@ export const Admin = () => {
           <span>Fuera de Pista</span>
           <h1>Panel admin</h1>
           <p>
-            Gestiona los jugadores, revisa los partidos registrados, actualiza
-            las normas y controla las temporadas del ranking.
+            Gestiona jugadores, partidos abiertos, resultados, normas y
+            temporadas del ranking.
           </p>
         </div>
 
@@ -110,14 +110,29 @@ export const Admin = () => {
           <strong>Entrar →</strong>
         </Link>
 
+        <Link to="/admin/open-matches" className="admin-dashboard-card">
+          <div className="admin-card-icon">📅</div>
+
+          <div>
+            <span>Partidos abiertos</span>
+            <h2>Abrir partidos</h2>
+            <p>
+              Crea partidos por nivel, revisa los partidos disponibles y elimina
+              partidos abiertos si hay algún error.
+            </p>
+          </div>
+
+          <strong>Entrar →</strong>
+        </Link>
+
         <Link to="/admin/matches" className="admin-dashboard-card">
           <div className="admin-card-icon">🎾</div>
 
           <div>
-            <span>Partidos</span>
-            <h2>Gestionar partidos</h2>
+            <span>Resultados</span>
+            <h2>Gestionar resultados</h2>
             <p>
-              Revisa resultados subidos, elimina partidos incorrectos y recalcula
+              Revisa partidos subidos, elimina resultados incorrectos y recalcula
               el ranking cuando sea necesario.
             </p>
           </div>
@@ -150,7 +165,7 @@ export const Admin = () => {
             <h2>Cerrar cuatrimestre</h2>
             <p>
               Guarda el ranking actual como histórico, crea una nueva temporada
-              y reinicia los puntos para empezar el siguiente cuatrimestre.
+              y reinicia las estadísticas para empezar el siguiente cuatrimestre.
             </p>
           </div>
         </div>
@@ -173,12 +188,12 @@ export const Admin = () => {
 
       <div className="admin-help-card">
         <div>
-          <span>Consejo de uso</span>
-          <h2>Mantén el ranking limpio y actualizado.</h2>
+          <span>Checklist MVP</span>
+          <h2>Qué revisar cada semana</h2>
           <p>
-            Aprueba jugadores antes de que aparezcan en la clasificación, revisa
-            los resultados y cierra cada cuatrimestre cuando termine la
-            temporada.
+            Aprueba jugadores pendientes, abre partidos por nivel, revisa
+            resultados subidos y elimina cualquier partido incorrecto antes de
+            que afecte al ranking.
           </p>
         </div>
       </div>
