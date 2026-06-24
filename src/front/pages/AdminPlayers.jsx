@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { authFetch } from "../../utils/authFetch";
 
 export const AdminPlayers = () => {
@@ -7,6 +7,7 @@ export const AdminPlayers = () => {
   const [players, setPlayers] = useState([]);
   const [editingPlayerId, setEditingPlayerId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [statusFilter, setStatusFilter] = useState("Todos");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -39,11 +40,33 @@ export const AdminPlayers = () => {
   }, []);
 
   const getStatusText = (status) => {
-    if (status === "approved") return "Aprobado";
-    if (status === "pending") return "Pendiente";
+    if (status === "approved") return "Pagado";
+    if (status === "pending") return "Pendiente de pago";
     if (status === "rejected") return "Rechazado";
     return status || "-";
   };
+
+  const getStatusDescription = (status) => {
+    if (status === "approved") return "Jugador activo";
+    if (status === "pending") return "Esperando verificación";
+    if (status === "rejected") return "No activo";
+    return "-";
+  };
+
+  const filteredPlayers = useMemo(() => {
+    if (statusFilter === "Todos") return players;
+
+    return players.filter((player) => player.status === statusFilter);
+  }, [players, statusFilter]);
+
+  const counters = useMemo(() => {
+    return {
+      total: players.length,
+      pending: players.filter((player) => player.status === "pending").length,
+      approved: players.filter((player) => player.status === "approved").length,
+      rejected: players.filter((player) => player.status === "rejected").length,
+    };
+  }, [players]);
 
   const startEditing = (player) => {
     setMessage("");
@@ -105,6 +128,41 @@ export const AdminPlayers = () => {
     }
   };
 
+  const updatePlayerStatus = async (player, newStatus) => {
+    try {
+      setSaving(true);
+      setMessage("");
+      setError("");
+
+      const data = await authFetch(`${backendUrl}/api/admin/players/${player.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      });
+
+      if (!data) return;
+
+      if (newStatus === "approved") {
+        setMessage(`${player.nickname} marcado como pagado y aprobado.`);
+      } else if (newStatus === "pending") {
+        setMessage(`${player.nickname} marcado como pendiente de pago.`);
+      } else {
+        setMessage(`${player.nickname} marcado como rechazado.`);
+      }
+
+      loadPlayers();
+    } catch (error) {
+      console.error(error);
+      setError(error.message || "Error al cambiar el estado del jugador");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const deletePlayer = async (profileId, nickname) => {
     const confirmDelete = window.confirm(
       `¿Seguro que quieres eliminar a ${nickname}? Esta acción no se puede deshacer.`
@@ -135,10 +193,10 @@ export const AdminPlayers = () => {
       <div className="admin-hero">
         <div>
           <span>Panel admin</span>
-          <h1>Jugadores</h1>
+          <h1>Jugadores y pagos</h1>
           <p>
-            Revisa los registros, modifica datos personales, cambia niveles y
-            controla el estado de cada jugador.
+            Verifica el pago de cada jugador, activa su perfil y modifica sus
+            datos si hay algún error.
           </p>
         </div>
 
@@ -148,6 +206,56 @@ export const AdminPlayers = () => {
         </div>
       </div>
 
+      <div className="admin-payment-summary">
+        <button
+          className={
+            statusFilter === "Todos"
+              ? "admin-payment-card active"
+              : "admin-payment-card"
+          }
+          onClick={() => setStatusFilter("Todos")}
+        >
+          <strong>{counters.total}</strong>
+          <span>Todos</span>
+        </button>
+
+        <button
+          className={
+            statusFilter === "pending"
+              ? "admin-payment-card pending active"
+              : "admin-payment-card pending"
+          }
+          onClick={() => setStatusFilter("pending")}
+        >
+          <strong>{counters.pending}</strong>
+          <span>Pendientes de pago</span>
+        </button>
+
+        <button
+          className={
+            statusFilter === "approved"
+              ? "admin-payment-card approved active"
+              : "admin-payment-card approved"
+          }
+          onClick={() => setStatusFilter("approved")}
+        >
+          <strong>{counters.approved}</strong>
+          <span>Pagados</span>
+        </button>
+
+        <button
+          className={
+            statusFilter === "rejected"
+              ? "admin-payment-card rejected active"
+              : "admin-payment-card rejected"
+          }
+          onClick={() => setStatusFilter("rejected")}
+        >
+          <strong>{counters.rejected}</strong>
+          <span>Rechazados</span>
+        </button>
+      </div>
+
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
 
@@ -155,10 +263,12 @@ export const AdminPlayers = () => {
         <div className="admin-state">
           <p>Cargando jugadores...</p>
         </div>
-      ) : players.length === 0 ? (
+      ) : filteredPlayers.length === 0 ? (
         <div className="admin-empty">
-          <h2>No hay jugadores registrados</h2>
-          <p>Cuando alguien se registre, aparecerá aquí para ser gestionado.</p>
+          <h2>No hay jugadores en este estado</h2>
+          <p>
+            Cambia el filtro superior para ver otros jugadores registrados.
+          </p>
         </div>
       ) : (
         <div className="admin-table-card">
@@ -170,14 +280,14 @@ export const AdminPlayers = () => {
                   <th>Contacto</th>
                   <th>Nivel</th>
                   <th>Posición</th>
-                  <th>Estado</th>
+                  <th>Pago / Estado</th>
                   <th>Puntos</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
 
               <tbody>
-                {players.map((player) => (
+                {filteredPlayers.map((player) => (
                   <tr key={player.id}>
                     <td>
                       {editingPlayerId === player.id ? (
@@ -307,9 +417,15 @@ export const AdminPlayers = () => {
                           ))}
                         </select>
                       ) : (
-                        <span className={`admin-status-pill status-${player.status}`}>
-                          {getStatusText(player.status)}
-                        </span>
+                        <div className="admin-payment-status-cell">
+                          <span
+                            className={`admin-status-pill status-${player.status}`}
+                          >
+                            {getStatusText(player.status)}
+                          </span>
+
+                          <small>{getStatusDescription(player.status)}</small>
+                        </div>
                       )}
                     </td>
 
@@ -339,8 +455,32 @@ export const AdminPlayers = () => {
                           </>
                         ) : (
                           <>
+                            {player.status !== "approved" && (
+                              <button
+                                className="admin-action-btn approve"
+                                onClick={() =>
+                                  updatePlayerStatus(player, "approved")
+                                }
+                                disabled={saving}
+                              >
+                                Marcar pagado
+                              </button>
+                            )}
+
+                            {player.status !== "pending" && (
+                              <button
+                                className="admin-action-btn neutral"
+                                onClick={() =>
+                                  updatePlayerStatus(player, "pending")
+                                }
+                                disabled={saving}
+                              >
+                                Pendiente
+                              </button>
+                            )}
+
                             <button
-                              className="admin-action-btn approve"
+                              className="admin-action-btn edit"
                               onClick={() => startEditing(player)}
                             >
                               Editar

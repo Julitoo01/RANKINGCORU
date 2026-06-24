@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import { authFetch } from "../../utils/authFetch";
 
 export const AdminPlayers = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const token = localStorage.getItem("token");
 
   const [players, setPlayers] = useState([]);
   const [filters, setFilters] = useState({
@@ -24,13 +24,12 @@ export const AdminPlayers = () => {
   const levels = ["Todos", "Bronce", "Plata", "Oro", "Platino", "Diamante"];
   const playerLevels = ["Bronce", "Plata", "Oro", "Platino", "Diamante"];
   const positions = ["Derecha", "Revés", "Ambas"];
-  const statuses = ["Todos", "pending", "approved", "rejected"];
-  const playerStatuses = ["pending", "approved", "rejected"];
+  const statuses = ["Todos", "pending", "approved"];
+  const playerStatuses = ["pending", "approved"];
 
   const statusLabels = {
     pending: "Pendiente",
     approved: "Aprobado",
-    rejected: "Rechazado",
   };
 
   const loadPlayers = async () => {
@@ -48,20 +47,15 @@ export const AdminPlayers = () => {
         params.append("level", filters.level);
       }
 
-      const response = await fetch(
-        `${backendUrl}/api/admin/players?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const queryString = params.toString();
 
-      const data = await response.json();
+      const url = queryString
+        ? `${backendUrl}/api/admin/players?${queryString}`
+        : `${backendUrl}/api/admin/players`;
 
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudieron cargar los jugadores");
-      }
+      const data = await authFetch(url);
+
+      if (!data) return;
 
       setPlayers(data);
     } catch (error) {
@@ -90,23 +84,15 @@ export const AdminPlayers = () => {
     setError("");
 
     try {
-      const response = await fetch(
-        `${backendUrl}/api/admin/players/${profileId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const data = await authFetch(`${backendUrl}/api/admin/players/${profileId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudo actualizar el jugador");
-      }
+      if (!data) return;
 
       setMessage("Jugador actualizado correctamente.");
       setEditingPlayerId(null);
@@ -121,27 +107,22 @@ export const AdminPlayers = () => {
     updatePlayer(profileId, { status: "approved" });
   };
 
-  const rejectPlayer = (profileId) => {
-    updatePlayer(profileId, { status: "rejected" });
-  };
-
-  const pendingPlayer = (profileId) => {
-    updatePlayer(profileId, { status: "pending" });
-  };
-
   const startEditing = (player) => {
     setEditingPlayerId(player.id);
+
     setEditForm({
       level: player.level || "Bronce",
       position: player.position || "Derecha",
-      status: player.status || "pending",
+      status: player.status === "approved" ? "approved" : "pending",
     });
+
     setMessage("");
     setError("");
   };
 
   const cancelEditing = () => {
     setEditingPlayerId(null);
+
     setEditForm({
       level: "",
       position: "",
@@ -177,21 +158,11 @@ export const AdminPlayers = () => {
     setError("");
 
     try {
-      const response = await fetch(
-        `${backendUrl}/api/admin/players/${profileId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const data = await authFetch(`${backendUrl}/api/admin/players/${profileId}`, {
+        method: "DELETE",
+      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudo eliminar el jugador");
-      }
+      if (!data) return;
 
       setMessage("Jugador eliminado correctamente.");
       loadPlayers();
@@ -203,7 +174,6 @@ export const AdminPlayers = () => {
 
   const getStatusClass = (status) => {
     if (status === "approved") return "approved";
-    if (status === "rejected") return "rejected";
     return "pending";
   };
 
@@ -237,6 +207,7 @@ export const AdminPlayers = () => {
         <div className="admin-players-filters">
           <div className="form-group">
             <label>Estado</label>
+
             <select
               name="status"
               value={filters.status}
@@ -252,6 +223,7 @@ export const AdminPlayers = () => {
 
           <div className="form-group">
             <label>Nivel</label>
+
             <select
               name="level"
               value={filters.level}
@@ -300,8 +272,10 @@ export const AdminPlayers = () => {
                   <th>Nivel</th>
                   <th>Posición</th>
                   <th>Estado</th>
-                  <th>Puntos</th>
                   <th>Partidos</th>
+                  <th>Victorias</th>
+                  <th>Derrotas</th>
+                  <th>% Victorias</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -361,7 +335,7 @@ export const AdminPlayers = () => {
                             ))}
                           </select>
                         ) : (
-                          player.position
+                          player.position || "-"
                         )}
                       </td>
 
@@ -385,13 +359,15 @@ export const AdminPlayers = () => {
                               player.status
                             )}`}
                           >
-                            {statusLabels[player.status] || player.status}
+                            {statusLabels[player.status] || "Pendiente"}
                           </span>
                         )}
                       </td>
 
-                      <td>{player.points}</td>
-                      <td>{player.matches_played}</td>
+                      <td>{player.matches_played ?? 0}</td>
+                      <td>{player.wins ?? 0}</td>
+                      <td>{player.losses ?? 0}</td>
+                      <td>{player.win_percentage ?? 0}%</td>
 
                       <td>
                         <div className="admin-player-actions">
@@ -426,24 +402,6 @@ export const AdminPlayers = () => {
                                   onClick={() => approvePlayer(player.id)}
                                 >
                                   Aprobar
-                                </button>
-                              )}
-
-                              {player.status !== "rejected" && (
-                                <button
-                                  className="admin-action-btn reject"
-                                  onClick={() => rejectPlayer(player.id)}
-                                >
-                                  Rechazar
-                                </button>
-                              )}
-
-                              {player.status !== "pending" && (
-                                <button
-                                  className="admin-action-btn neutral"
-                                  onClick={() => pendingPlayer(player.id)}
-                                >
-                                  Pendiente
                                 </button>
                               )}
 

@@ -44,17 +44,14 @@ export const Rules = () => {
       <div className="rules-hero">
         <div>
           <span>Fuera de Pista</span>
-          <h1>Normas</h1>
+          <h1>Normativa</h1>
           <p>
             Consulta las reglas del ranking, el sistema de puntuación y el
             funcionamiento general de la competición.
           </p>
         </div>
 
-        <div className="rules-hero-card">
-          <strong>2 vs 2</strong>
-          <span>Ranking individual</span>
-        </div>
+       
       </div>
 
       {loading && (
@@ -68,8 +65,6 @@ export const Rules = () => {
       {!loading && !error && rules && (
         <div className="rules-content-card">
           <div className="rules-content-header">
-            <span>Normativa oficial</span>
-            <h2>{rules.title || "Normas de Fuera de Pista"}</h2>
           </div>
 
           <div className="rules-text">
@@ -79,24 +74,9 @@ export const Rules = () => {
           </div>
 
           <div className="rules-points-card">
-            <h3>Sistema de puntos</h3>
+          
 
-            <div className="rules-points-grid">
-              <div>
-                <strong>+3</strong>
-                <span>Victoria</span>
-              </div>
-
-              <div>
-                <strong>+1</strong>
-                <span>Derrota</span>
-              </div>
-
-              <div>
-                <strong>-2</strong>
-                <span>No show</span>
-              </div>
-            </div>
+            
           </div>
         </div>
       )}

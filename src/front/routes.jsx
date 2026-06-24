@@ -19,6 +19,8 @@ import { Admin } from "./pages/admin/Admin";
 import { AdminPlayers } from "./pages/admin/AdminPlayers";
 import { AdminMatches } from "./pages/admin/AdminMatches";
 import { AdminRules } from "./pages/admin/AdminRules";
+import { AdminOpenMatches } from "./pages/AdminOpenMatches";
+import { OpenMatches } from "./pages/OpenMatches";
 
 const getStoredUser = () => {
   const storedUser = localStorage.getItem("user");
@@ -158,6 +160,23 @@ export const router = createBrowserRouter(
           </AdminRoute>
         }
       />
+      <Route
+  path="/open-matches"
+  element={
+    <ProtectedRoute>
+      <OpenMatches />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/open-matches"
+  element={
+    <ProtectedRoute>
+      <AdminOpenMatches />
+    </ProtectedRoute>
+  }
+/>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Route>

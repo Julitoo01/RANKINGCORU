@@ -125,7 +125,16 @@ export const Ranking = () => {
     if (index === 0) return "🥇";
     if (index === 1) return "🥈";
     if (index === 2) return "🥉";
+
     return index + 1;
+  };
+
+  const getMobilePositionLabel = (player, index) => {
+    if (isHistoricalSeason && player.final_position) {
+      return `#${player.final_position}`;
+    }
+
+    return `#${index + 1}`;
   };
 
   const getSeasonLabel = () => {
@@ -259,9 +268,9 @@ export const Ranking = () => {
           <span className="ranking-kicker">Fuera de Pista</span>
           <h1>Ranking</h1>
           <p>
-            Clasificación individual por temporadas cuatrimestrales. Cada
-            jugador suma sus propios puntos aunque los partidos se jueguen por
-            parejas.
+            Clasificación individual por temporadas cuatrimestrales. Los
+            partidos se juegan por parejas, pero las estadísticas son
+            individuales para cada jugador.
           </p>
         </div>
 
@@ -498,7 +507,7 @@ export const Ranking = () => {
             </form>
           )}
 
-          <div className="table-wrapper">
+          <div className="table-wrapper ranking-desktop-table">
             <table className="ranking-table ranking-table-premium">
               <thead>
                 <tr>
@@ -508,7 +517,6 @@ export const Ranking = () => {
                   <th>PJ</th>
                   <th>PG</th>
                   <th>PP</th>
-                  <th>Puntos</th>
                   <th>% Victorias</th>
                 </tr>
               </thead>
@@ -544,26 +552,78 @@ export const Ranking = () => {
                     </td>
 
                     <td>
-                      <span className="ranking-level-pill">
-                        {player.level}
-                      </span>
+                      <span className="ranking-level-pill">{player.level}</span>
                     </td>
 
                     <td>{player.matches_played}</td>
                     <td>{player.wins}</td>
                     <td>{player.losses}</td>
-
-                    <td>
-                      <strong className="ranking-points">
-                        {player.points}
-                      </strong>
-                    </td>
-
                     <td>{player.win_percentage}%</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="ranking-mobile-cards">
+            {ranking.map((player, index) => (
+              <article
+                key={`mobile-${player.id}-${player.profile_id || index}`}
+                className={`ranking-mobile-card ${
+                  index === 0 ? "ranking-mobile-card-first" : ""
+                }`}
+              >
+                <div className="ranking-mobile-card-top">
+                  <div className="ranking-player-cell">
+                    <div className="ranking-avatar ranking-mobile-avatar">
+                      {player.profile_image ? (
+                        <img
+                          src={player.profile_image}
+                          alt={player.nickname || "Jugador"}
+                        />
+                      ) : (
+                        player.nickname?.charAt(0)?.toUpperCase() || "J"
+                      )}
+                    </div>
+
+                    <div>
+                      <strong>{player.nickname}</strong>
+                      <span className="ranking-mobile-subtitle">
+                        {player.level}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="ranking-mobile-position">
+                    {index < 3 && !isHistoricalSeason
+                      ? getPositionLabel(index)
+                      : getMobilePositionLabel(player, index)}
+                  </div>
+                </div>
+
+                <div className="ranking-mobile-stats">
+                  <div>
+                    <span>PJ</span>
+                    <strong>{player.matches_played}</strong>
+                  </div>
+
+                  <div>
+                    <span>PG</span>
+                    <strong>{player.wins}</strong>
+                  </div>
+
+                  <div>
+                    <span>PP</span>
+                    <strong>{player.losses}</strong>
+                  </div>
+
+                  <div>
+                    <span>%</span>
+                    <strong>{player.win_percentage}%</strong>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       )}

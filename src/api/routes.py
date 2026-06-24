@@ -9,13 +9,20 @@ from api.models import (
     User,
     PlayerProfile,
     Match,
-    Rules,
     Season,
     SeasonRankingSnapshot,
+    Rules,
+    OpenMatch,
+    OpenMatchPlayer,
+    Notification,
 )
 
 api = Blueprint("api", __name__)
 
+
+# =========================
+# HELPERS
+# =========================
 
 def is_admin_user(user_id):
     user = User.query.get(user_id)
@@ -35,6 +42,86 @@ def get_current_profile():
 
     return user.profile
 
+
+
+def create_notification(user_id, title, message, notification_type, open_match_id=None):
+    notification = Notification(
+        user_id=user_id,
+        title=title,
+        message=message,
+        notification_type=notification_type,
+        open_match_id=open_match_id,
+        is_read=False,
+    )
+
+    db.session.add(notification)
+    return notification
+
+
+def get_ranking_sorted_players():
+    players = PlayerProfile.query.filter_by(status="approved").all()
+
+    return sorted(
+        players,
+        key=lambda player: (
+            player.win_percentage(),
+            player.wins,
+            player.matches_played,
+        ),
+        reverse=True,
+    )
+
+
+def get_profile_ranking_index(profile_id):
+    sorted_players = get_ranking_sorted_players()
+
+    for index, player in enumerate(sorted_players, start=1):
+        if player.id == profile_id:
+            return index
+
+    return 999999
+
+
+def close_open_match_if_full(open_match):
+    if open_match.status != "open":
+        return
+
+    joined_players = [item.player_profile for item in open_match.players]
+
+    if len(joined_players) < open_match.max_players:
+        return
+
+    ranked_players = sorted(
+        joined_players,
+        key=lambda player: get_profile_ranking_index(player.id),
+    )
+
+    if len(ranked_players) != 4:
+        return
+
+    open_match.team_a_player_1_id = ranked_players[0].id
+    open_match.team_a_player_2_id = ranked_players[2].id
+
+    open_match.team_b_player_1_id = ranked_players[1].id
+    open_match.team_b_player_2_id = ranked_players[3].id
+
+    open_match.status = "closed"
+    open_match.closed_at = datetime.utcnow()
+
+    for player in ranked_players:
+        if player and player.user_id:
+            create_notification(
+                user_id=player.user_id,
+                title="Partido cerrado",
+                message=(
+                    f"Ya están los 4 jugadores para el partido de {open_match.level} "
+                    f"en {open_match.club}. Las parejas se han creado automáticamente."
+                ),
+                notification_type="open_match_closed",
+                open_match_id=open_match.id,
+            )
+
+    db.session.commit()
 
 def get_match_validation_team_ids(match):
     team_a_ids = [
@@ -167,14 +254,14 @@ def create_season_snapshots(season):
 
     db.session.flush()
 
-    players = (
-        PlayerProfile.query.filter_by(status="approved")
-        .order_by(
-            PlayerProfile.points.desc(),
-            PlayerProfile.wins.desc(),
-            PlayerProfile.matches_played.desc(),
-        )
-        .all()
+    players = sorted(
+        PlayerProfile.query.filter_by(status="approved").all(),
+        key=lambda player: (
+            player.win_percentage(),
+            player.wins,
+            player.matches_played,
+        ),
+        reverse=True,
     )
 
     for index, player in enumerate(players, start=1):
@@ -199,10 +286,18 @@ def create_season_snapshots(season):
     db.session.commit()
 
 
+# =========================
+# BASIC
+# =========================
+
 @api.route("/hello", methods=["GET"])
 def handle_hello():
     return jsonify({"message": "Hello from Fuera de Pista"}), 200
 
+
+# =========================
+# AUTH
+# =========================
 
 @api.route("/register", methods=["POST"])
 def register():
@@ -299,11 +394,14 @@ def login():
     ), 200
 
 
+# =========================
+# PROFILE
+# =========================
+
 @api.route("/profile", methods=["GET"])
 @jwt_required()
 def get_profile():
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+    user = get_current_user()
 
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
@@ -314,8 +412,7 @@ def get_profile():
 @api.route("/profile/photo", methods=["PUT"])
 @jwt_required()
 def update_profile_photo():
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+    user = get_current_user()
 
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
@@ -345,6 +442,10 @@ def update_profile_photo():
         }
     ), 200
 
+
+# =========================
+# SEASONS / RANKING
+# =========================
 
 @api.route("/seasons", methods=["GET"])
 @jwt_required()
@@ -393,17 +494,19 @@ def get_ranking():
     if level and level != "Todos":
         query = query.filter(PlayerProfile.level == level)
 
-    players = (
-        query.filter(PlayerProfile.status == "approved")
-        .order_by(
-            PlayerProfile.points.desc(),
-            PlayerProfile.wins.desc(),
-            PlayerProfile.matches_played.desc(),
-        )
-        .all()
+    players = query.filter(PlayerProfile.status == "approved").all()
+
+    sorted_players = sorted(
+        players,
+        key=lambda player: (
+            player.win_percentage(),
+            player.wins,
+            player.matches_played,
+        ),
+        reverse=True,
     )
 
-    return jsonify([player.serialize() for player in players]), 200
+    return jsonify([player.serialize() for player in sorted_players]), 200
 
 
 @api.route("/players", methods=["GET"])
@@ -417,6 +520,10 @@ def get_players():
 
     return jsonify([player.serialize() for player in players]), 200
 
+
+# =========================
+# MATCH RESULTS
+# =========================
 
 @api.route("/matches", methods=["GET"])
 @jwt_required()
@@ -443,8 +550,7 @@ def get_matches():
 def create_match():
     active_season = assign_old_matches_to_active_season()
 
-    current_user_id = get_jwt_identity()
-    current_user = User.query.get(current_user_id)
+    current_user = get_current_user()
 
     if not current_user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
@@ -458,6 +564,26 @@ def create_match():
         return jsonify({"msg": "Tu perfil debe estar aprobado para subir resultados"}), 403
 
     data = request.get_json() or {}
+
+    open_match_id = data.get("open_match_id")
+    open_match = None
+
+    if open_match_id:
+        try:
+            open_match_id = int(open_match_id)
+        except (ValueError, TypeError):
+            return jsonify({"msg": "Partido abierto no válido"}), 400
+
+        open_match = OpenMatch.query.get(open_match_id)
+
+        if not open_match:
+            return jsonify({"msg": "Partido abierto no encontrado"}), 404
+
+        if open_match.status != "closed":
+            return jsonify({"msg": "El partido abierto todavía no está cerrado"}), 400
+
+        if open_match.result_match_id:
+            return jsonify({"msg": "Este partido abierto ya tiene un resultado subido"}), 400
 
     required_fields = [
         "level",
@@ -478,7 +604,7 @@ def create_match():
         team_a_player_2_id = int(data.get("team_a_player_2_id"))
         team_b_player_1_id = int(data.get("team_b_player_1_id"))
         team_b_player_2_id = int(data.get("team_b_player_2_id"))
-    except ValueError:
+    except (ValueError, TypeError):
         return jsonify({"msg": "Los jugadores seleccionados no son válidos"}), 400
 
     player_ids = [
@@ -491,12 +617,16 @@ def create_match():
     if len(player_ids) != len(set(player_ids)):
         return jsonify({"msg": "No puedes repetir jugadores en el mismo partido"}), 400
 
+    # Seguridad principal:
+    # Solo uno de los 4 jugadores del partido puede subir el resultado.
     if current_profile.id not in player_ids:
         return jsonify(
             {
                 "msg": "Para subir un resultado tienes que ser uno de los 4 jugadores del partido"
             }
         ), 403
+
+    players_by_id = {}
 
     for player_id in player_ids:
         profile = PlayerProfile.query.get(player_id)
@@ -506,6 +636,31 @@ def create_match():
 
         if profile.status != "approved":
             return jsonify({"msg": "Todos los jugadores deben estar aprobados"}), 400
+
+        players_by_id[player_id] = profile
+
+    if open_match:
+        open_match_player_ids = [
+            open_match.team_a_player_1_id,
+            open_match.team_a_player_2_id,
+            open_match.team_b_player_1_id,
+            open_match.team_b_player_2_id,
+        ]
+
+        if None in open_match_player_ids:
+            return jsonify({"msg": "El partido abierto no tiene parejas creadas"}), 400
+
+        # Seguridad extra:
+        # Si viene de partido abierto, los jugadores tienen que ser exactamente los 4 apuntados.
+        if set(player_ids) != set(open_match_player_ids):
+            return jsonify(
+                {"msg": "Los jugadores no coinciden con el partido abierto"}
+            ), 400
+
+        if data.get("level") != open_match.level:
+            return jsonify(
+                {"msg": "El nivel no coincide con el partido abierto"}
+            ), 400
 
     winner_team = data.get("winner_team")
 
@@ -531,48 +686,97 @@ def create_match():
         winner_team=winner_team,
         club=data.get("club", "").strip(),
         played_at=played_at,
-        status="pending",
-        submitted_by_id=current_user_id,
+
+        # Ya no queda pendiente.
+        # Se confirma automáticamente al subirlo uno de los 4 jugadores.
+        status="confirmed",
+        submitted_by_id=current_user.id,
         submitted_by_profile_id=current_profile.id,
+        confirmed_by_profile_id=current_profile.id,
+        confirmed_at=datetime.utcnow(),
     )
 
     db.session.add(match)
+    db.session.flush()
+
+    # Si viene de partido abierto, lo marcamos como resultado subido.
+    if open_match:
+        open_match.result_match_id = match.id
+
+    team_a_ids = [team_a_player_1_id, team_a_player_2_id]
+    team_b_ids = [team_b_player_1_id, team_b_player_2_id]
+
+    if winner_team == "A":
+        winner_ids = team_a_ids
+        loser_ids = team_b_ids
+    else:
+        winner_ids = team_b_ids
+        loser_ids = team_a_ids
+
+    # Actualizamos estadísticas al momento.
+    for player_id in player_ids:
+        player = players_by_id[player_id]
+        player.matches_played = (player.matches_played or 0) + 1
+
+        if player_id in winner_ids:
+            player.wins = (player.wins or 0) + 1
+        elif player_id in loser_ids:
+            player.losses = (player.losses or 0) + 1
+
     db.session.commit()
 
     return jsonify(
         {
-            "msg": "Resultado enviado correctamente. Está pendiente de validación por la pareja rival.",
+            "msg": "Resultado subido correctamente. El ranking se ha actualizado automáticamente.",
             "match": match.serialize(),
+            "open_match": open_match.serialize() if open_match else None,
         }
     ), 201
-
-
 @api.route("/notifications", methods=["GET"])
 @jwt_required()
 def get_notifications():
-    current_profile = get_current_profile()
+    current_user = get_current_user()
 
-    if not current_profile:
-        return jsonify({"msg": "Perfil no encontrado"}), 404
+    if not current_user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
 
-    pending_matches = (
-        Match.query.filter_by(status="pending")
-        .order_by(Match.created_at.desc())
+    notifications = (
+        Notification.query.filter_by(
+            user_id=current_user.id,
+            is_read=False,
+        )
+        .order_by(Notification.created_at.desc())
         .all()
     )
 
-    notifications = []
+    return jsonify([notification.serialize() for notification in notifications]), 200
 
-    for match in pending_matches:
-        validation_team_ids = get_match_validation_team_ids(match)
 
-        if current_profile.id in validation_team_ids:
-            notifications.append(match.serialize())
+@api.route("/notifications/<int:notification_id>/read", methods=["PUT"])
+@jwt_required()
+def mark_notification_as_read(notification_id):
+    current_user = get_current_user()
 
+    if not current_user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    notification = Notification.query.get(notification_id)
+
+    if not notification:
+        return jsonify({"msg": "Notificación no encontrada"}), 404
+
+    if notification.user_id != current_user.id:
+        return jsonify({"msg": "No autorizado"}), 403
+
+    notification.is_read = True
     db.session.commit()
 
-    return jsonify(notifications), 200
-
+    return jsonify(
+        {
+            "msg": "Notificación marcada como leída",
+            "notification": notification.serialize(),
+        }
+    ), 200
 
 @api.route("/matches/<int:match_id>/confirm", methods=["POST"])
 @jwt_required()
@@ -594,9 +798,7 @@ def confirm_match(match_id):
 
     if current_profile.id not in validation_team_ids:
         return jsonify(
-            {
-                "msg": "Solo un jugador de la pareja rival puede validar este resultado"
-            }
+            {"msg": "Solo un jugador de la pareja rival puede validar este resultado"}
         ), 403
 
     match.status = "confirmed"
@@ -635,9 +837,7 @@ def reject_match(match_id):
 
     if current_profile.id not in validation_team_ids:
         return jsonify(
-            {
-                "msg": "Solo un jugador de la pareja rival puede rechazar este resultado"
-            }
+            {"msg": "Solo un jugador de la pareja rival puede rechazar este resultado"}
         ), 403
 
     match.status = "rejected"
@@ -648,11 +848,260 @@ def reject_match(match_id):
 
     return jsonify(
         {
-            "msg": "Resultado rechazado correctamente. No sumará puntos.",
+            "msg": "Resultado rechazado correctamente. No se guardará en resultados.",
             "match": match.serialize(),
         }
     ), 200
 
+
+# =========================
+# OPEN MATCHES
+# =========================
+
+@api.route("/open-matches", methods=["GET"])
+@jwt_required()
+def get_open_matches():
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    query = OpenMatch.query
+
+    # En la pantalla "Jugar" nunca queremos mostrar partidos que ya tienen resultado.
+    # Si ya se subió resultado, ese partido debe pasar a "Partidos".
+    query = query.filter(OpenMatch.result_match_id.is_(None))
+
+    # Tampoco mostramos partidos cancelados en "Jugar".
+    query = query.filter(OpenMatch.status != "cancelled")
+
+    # Si NO es admin, solo ve partidos de su nivel.
+    if not current_user.is_admin:
+        if not current_user.profile:
+            return jsonify({"msg": "Perfil no encontrado"}), 404
+
+        query = query.filter(OpenMatch.level == current_user.profile.level)
+
+    open_matches = query.order_by(
+        OpenMatch.match_date.asc(),
+        OpenMatch.match_time.asc(),
+    ).all()
+
+    return jsonify([open_match.serialize() for open_match in open_matches]), 200
+
+
+@api.route("/admin/open-matches", methods=["POST"])
+@jwt_required()
+def admin_create_open_match():
+    current_user_id = get_jwt_identity()
+
+    if not is_admin_user(current_user_id):
+        return jsonify({"msg": "No autorizado"}), 403
+
+    data = request.get_json() or {}
+
+    required_fields = ["level", "club", "match_date", "match_time"]
+
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({"msg": f"Falta el campo {field}"}), 400
+
+    try:
+        match_date = datetime.strptime(data.get("match_date"), "%Y-%m-%d").date()
+    except ValueError:
+        return jsonify({"msg": "Fecha no válida"}), 400
+
+    try:
+        match_time = datetime.strptime(data.get("match_time"), "%H:%M").time()
+    except ValueError:
+        return jsonify({"msg": "Hora no válida"}), 400
+
+    open_match = OpenMatch(
+        level=data.get("level"),
+        club=data.get("club").strip(),
+        match_date=match_date,
+        match_time=match_time,
+        max_players=4,
+        status="open",
+        description=data.get("description", "").strip(),
+        created_by_id=current_user_id,
+    )
+
+    db.session.add(open_match)
+    db.session.flush()
+
+    players_to_notify = PlayerProfile.query.filter_by(
+        level=open_match.level,
+        status="approved",
+    ).all()
+
+    for player in players_to_notify:
+        if player.user_id:
+            create_notification(
+                user_id=player.user_id,
+                title=f"Nuevo partido en {open_match.level}",
+                message=(
+                    f"El admin ha abierto un partido en {open_match.club} "
+                    f"el {open_match.match_date.strftime('%d/%m/%Y')} "
+                    f"a las {open_match.match_time.strftime('%H:%M')}."
+                ),
+                notification_type="open_match_created",
+                open_match_id=open_match.id,
+            )
+
+    db.session.commit()
+
+    return jsonify(
+        {
+            "msg": "Partido abierto creado correctamente",
+            "open_match": open_match.serialize(),
+        }
+    ), 201
+
+@api.route("/open-matches/<int:open_match_id>/join", methods=["POST"])
+@jwt_required()
+def join_open_match(open_match_id):
+    current_profile = get_current_profile()
+
+    if not current_profile:
+        return jsonify({"msg": "Perfil no encontrado"}), 404
+
+    if current_profile.status != "approved":
+        return jsonify(
+            {"msg": "Tu perfil debe estar aprobado para unirte a partidos"}
+        ), 403
+
+    open_match = OpenMatch.query.get(open_match_id)
+
+    if not open_match:
+        return jsonify({"msg": "Partido no encontrado"}), 404
+
+    if open_match.status != "open":
+        return jsonify({"msg": "Este partido ya está cerrado"}), 400
+
+    if open_match.level != current_profile.level:
+        return jsonify(
+            {"msg": "Solo puedes apuntarte a partidos de tu nivel"}
+        ), 403
+
+    already_joined = OpenMatchPlayer.query.filter_by(
+        open_match_id=open_match.id,
+        player_profile_id=current_profile.id,
+    ).first()
+
+    if already_joined:
+        return jsonify({"msg": "Ya estás apuntado a este partido"}), 400
+
+    current_players_count = OpenMatchPlayer.query.filter_by(
+        open_match_id=open_match.id
+    ).count()
+
+    if current_players_count >= open_match.max_players:
+        return jsonify({"msg": "El partido ya está completo"}), 400
+
+    existing_players = OpenMatchPlayer.query.filter_by(
+        open_match_id=open_match.id
+    ).all()
+
+    open_match_player = OpenMatchPlayer(
+        open_match_id=open_match.id,
+        player_profile_id=current_profile.id,
+    )
+
+    db.session.add(open_match_player)
+    db.session.flush()
+
+    player_name = (
+        current_profile.user.nickname
+        if current_profile.user and current_profile.user.nickname
+        else "Un jugador"
+    )
+
+    for existing_player in existing_players:
+        player_profile = existing_player.player_profile
+
+        if player_profile and player_profile.user_id:
+            create_notification(
+                user_id=player_profile.user_id,
+                title="Nuevo jugador apuntado",
+                message=(
+                    f"{player_name} se ha unido al partido de {open_match.level} "
+                    f"en {open_match.club}. Ya sois {current_players_count + 1}/4 jugadores."
+                ),
+                notification_type="open_match_joined",
+                open_match_id=open_match.id,
+            )
+
+    db.session.commit()
+
+    db.session.refresh(open_match)
+
+    close_open_match_if_full(open_match)
+
+    return jsonify(
+        {
+            "msg": "Te has unido al partido correctamente",
+            "open_match": open_match.serialize(),
+        }
+    ), 200
+
+@api.route("/open-matches/<int:open_match_id>/leave", methods=["DELETE"])
+@jwt_required()
+def leave_open_match(open_match_id):
+    current_profile = get_current_profile()
+
+    if not current_profile:
+        return jsonify({"msg": "Perfil no encontrado"}), 404
+
+    open_match = OpenMatch.query.get(open_match_id)
+
+    if not open_match:
+        return jsonify({"msg": "Partido no encontrado"}), 404
+
+    if open_match.status != "open":
+        return jsonify({"msg": "No puedes salir de un partido ya cerrado"}), 400
+
+    open_match_player = OpenMatchPlayer.query.filter_by(
+        open_match_id=open_match.id,
+        player_profile_id=current_profile.id,
+    ).first()
+
+    if not open_match_player:
+        return jsonify({"msg": "No estás apuntado a este partido"}), 400
+
+    db.session.delete(open_match_player)
+    db.session.commit()
+
+    return jsonify(
+        {
+            "msg": "Has salido del partido correctamente",
+            "open_match": open_match.serialize(),
+        }
+    ), 200
+
+
+@api.route("/admin/open-matches/<int:open_match_id>", methods=["DELETE"])
+@jwt_required()
+def admin_delete_open_match(open_match_id):
+    current_user_id = get_jwt_identity()
+
+    if not is_admin_user(current_user_id):
+        return jsonify({"msg": "No autorizado"}), 403
+
+    open_match = OpenMatch.query.get(open_match_id)
+
+    if not open_match:
+        return jsonify({"msg": "Partido no encontrado"}), 404
+
+    db.session.delete(open_match)
+    db.session.commit()
+
+    return jsonify({"msg": "Partido eliminado correctamente"}), 200
+
+
+# =========================
+# RULES
+# =========================
 
 @api.route("/rules", methods=["GET"])
 @jwt_required()
@@ -707,6 +1156,10 @@ def update_rules():
         }
     ), 200
 
+
+# =========================
+# ADMIN PLAYERS
+# =========================
 
 @api.route("/admin/players", methods=["GET"])
 @jwt_required()
@@ -876,6 +1329,10 @@ def admin_delete_player(profile_id):
     return jsonify({"msg": "Jugador eliminado correctamente"}), 200
 
 
+# =========================
+# ADMIN MATCHES
+# =========================
+
 @api.route("/admin/matches", methods=["GET"])
 @jwt_required()
 def admin_get_matches():
@@ -938,6 +1395,10 @@ def admin_recalculate_ranking():
 
     return jsonify({"msg": "Ranking recalculado correctamente"}), 200
 
+
+# =========================
+# ADMIN SEASONS
+# =========================
 
 @api.route("/admin/seasons/create", methods=["POST"])
 @jwt_required()

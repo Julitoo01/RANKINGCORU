@@ -118,11 +118,6 @@ export const AdminRules = () => {
             </div>
 
             <div>
-              <strong>Puntuación</strong>
-              <span>Victoria +3, derrota +1 y no show -2.</span>
-            </div>
-
-            <div>
               <strong>Comunidad</strong>
               <span>Añade normas de respeto, puntualidad y comportamiento.</span>
             </div>
@@ -171,10 +166,7 @@ export const AdminRules = () => {
 
 1. Los partidos se juegan en formato 2 vs 2.
 2. El ranking es individual.
-3. Victoria: +3 puntos.
-4. Derrota: +1 punto.
-5. No show: -2 puntos.
-6. Los jugadores deben respetar horarios, rivales y normas del club.`}
+3. Los jugadores deben respetar horarios, rivales y normas del club.`}
               required
             />
           </div>

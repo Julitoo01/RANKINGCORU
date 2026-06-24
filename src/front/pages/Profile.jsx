@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
 
 export const Profile = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const navigate = useNavigate();
 
   const [profileData, setProfileData] = useState(null);
   const [error, setError] = useState("");
@@ -38,6 +39,14 @@ export const Profile = () => {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("profile");
+
+    navigate("/");
+  };
 
   const handleProfileImageChange = async (event) => {
     const file = event.target.files[0];
@@ -98,6 +107,7 @@ export const Profile = () => {
     if (status === "approved") return "Aprobado";
     if (status === "pending") return "Pendiente";
     if (status === "rejected") return "Rechazado";
+
     return "";
   };
 
@@ -176,13 +186,6 @@ export const Profile = () => {
             </p>
           </div>
         </div>
-
-        {profile?.status && (
-          <div className={`profile-status-card status-${profile.status}`}>
-            <span>Estado</span>
-            <strong>{getStatusText(profile.status)}</strong>
-          </div>
-        )}
       </div>
 
       <div className="profile-layout">
@@ -200,13 +203,6 @@ export const Profile = () => {
               <strong>{user?.phone || "-"}</strong>
             </div>
 
-            {user?.instagram && (
-              <div>
-                <span>Instagram</span>
-                <strong>{user.instagram}</strong>
-              </div>
-            )}
-
             <div>
               <span>Nivel</span>
               <strong>{profile?.level || "-"}</strong>
@@ -219,27 +215,22 @@ export const Profile = () => {
           </div>
 
           <div className="profile-actions">
-            <Link to="/ranking" className="profile-action-btn secondary">
-              Ver ranking
-            </Link>
+
+            <button
+              type="button"
+              className="profile-action-btn logout"
+              onClick={handleLogout}
+            >
+              Cerrar sesión
+            </button>
           </div>
         </aside>
 
         <main className="profile-main">
-          {profile?.status && (
-            <div className="profile-status-message">
-              <h2>{getStatusText(profile.status)}</h2>
-              <p>{getStatusDescription(profile.status)}</p>
-            </div>
-          )}
+      
 
           <div className="profile-stats-grid">
             <div className="profile-stat-card highlight">
-              <span>Puntos</span>
-              <strong>{profile?.points ?? 0}</strong>
-            </div>
-
-            <div className="profile-stat-card">
               <span>Partidos jugados</span>
               <strong>{profile?.matches_played ?? 0}</strong>
             </div>
@@ -258,37 +249,6 @@ export const Profile = () => {
               <span>% Victorias</span>
               <strong>{profile?.win_percentage ?? 0}%</strong>
             </div>
-
-            <div className="profile-stat-card">
-              <span>Formato</span>
-              <strong>2 vs 2</strong>
-            </div>
-          </div>
-
-          <div className="profile-explanation-card">
-            <h2>¿Cómo suma puntos tu perfil?</h2>
-
-            <div className="profile-points-rules">
-              <div>
-                <strong>+3</strong>
-                <span>Victoria</span>
-              </div>
-
-              <div>
-                <strong>+1</strong>
-                <span>Derrota</span>
-              </div>
-
-              <div>
-                <strong>-2</strong>
-                <span>No show</span>
-              </div>
-            </div>
-
-            <p>
-              Los partidos se juegan por parejas, pero el ranking es individual:
-              cada jugador suma sus propios puntos en función del resultado.
-            </p>
           </div>
         </main>
       </div>

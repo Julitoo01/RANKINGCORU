@@ -78,7 +78,13 @@ export const Matches = () => {
   const formatDate = (date) => {
     if (!date) return "-";
 
-    return new Date(date).toLocaleDateString("es-ES", {
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "-";
+    }
+
+    return parsedDate.toLocaleDateString("es-ES", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -89,6 +95,17 @@ export const Matches = () => {
     if (winnerTeam === "A") return "Equipo A";
     if (winnerTeam === "B") return "Equipo B";
     return "-";
+  };
+
+  const renderTeam = (team) => {
+    if (!team || team.length === 0) return "-";
+
+    const names = team
+      .filter(Boolean)
+      .map((player) => player.nickname)
+      .filter(Boolean);
+
+    return names.length > 0 ? names.join(" / ") : "-";
   };
 
   const selectedSeason = seasons.find(
@@ -102,8 +119,8 @@ export const Matches = () => {
           <span>Fuera de Pista</span>
           <h1>Partidos</h1>
           <p>
-            Consulta los resultados registrados en el ranking y revisa el
-            historial de partidos de cada temporada.
+            Consulta los resultados registrados en el ranking y el historial de
+            partidos de cada temporada.
           </p>
         </div>
 
@@ -165,10 +182,20 @@ export const Matches = () => {
               <div className="match-card-header">
                 <div>
                   <span>{formatDate(match.played_at)}</span>
-                  <h2>{match.level}</h2>
+                  <h2>{match.level || "Nivel no indicado"}</h2>
                 </div>
 
-                <div className="match-score">{match.score}</div>
+                <div className="match-score">{match.score || "-"}</div>
+              </div>
+
+              <div className="match-status-row">
+                <span className="match-status-badge confirmed">
+                  Confirmado
+                </span>
+
+                <span>
+                  Ganador: <strong>{getWinnerText(match.winner_team)}</strong>
+                </span>
               </div>
 
               <div className="match-teams">
@@ -178,11 +205,10 @@ export const Matches = () => {
                   }`}
                 >
                   <span>Equipo A</span>
-                  <strong>
-                    {match.team_a?.[0]?.nickname || "-"} /{" "}
-                    {match.team_a?.[1]?.nickname || "-"}
-                  </strong>
+                  <strong>{renderTeam(match.team_a)}</strong>
                 </div>
+
+                <div className="match-vs">vs</div>
 
                 <div
                   className={`match-team ${
@@ -190,18 +216,22 @@ export const Matches = () => {
                   }`}
                 >
                   <span>Equipo B</span>
-                  <strong>
-                    {match.team_b?.[0]?.nickname || "-"} /{" "}
-                    {match.team_b?.[1]?.nickname || "-"}
-                  </strong>
+                  <strong>{renderTeam(match.team_b)}</strong>
                 </div>
               </div>
 
               <div className="match-card-footer">
-                <span>Ganador: {getWinnerText(match.winner_team)}</span>
-                <span>Club: {match.club || "-"}</span>
                 <span>
-                  Temporada: {match.season || selectedSeason?.name || "-"}
+                  Club: <strong>{match.club || "-"}</strong>
+                </span>
+
+                <span>
+                  Temporada:{" "}
+                  <strong>{match.season || selectedSeason?.name || "-"}</strong>
+                </span>
+
+                <span>
+                  Subido por: <strong>{match.submitted_by || "-"}</strong>
                 </span>
               </div>
             </article>

@@ -331,3 +331,164 @@ class Rules(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "updated_by": self.updated_by.nickname if self.updated_by else None,
         }
+
+
+class OpenMatch(db.Model):
+    __tablename__ = "open_matches"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    level = db.Column(db.String(50), nullable=False)
+    club = db.Column(db.String(120), nullable=False)
+
+    match_date = db.Column(db.Date, nullable=False)
+    match_time = db.Column(db.Time, nullable=False)
+
+    max_players = db.Column(db.Integer, default=4)
+
+    status = db.Column(db.String(50), default="open")
+    # open = abierto
+    # closed = completo y parejas creadas
+    # cancelled = cancelado por admin
+
+    description = db.Column(db.Text, nullable=True)
+
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    team_a_player_1_id = db.Column(
+        db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
+    )
+    team_a_player_2_id = db.Column(
+        db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
+    )
+    team_b_player_1_id = db.Column(
+        db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
+    )
+    team_b_player_2_id = db.Column(
+        db.Integer, db.ForeignKey("player_profiles.id"), nullable=True
+    )
+
+    result_match_id = db.Column(
+        db.Integer, db.ForeignKey("matches.id"), nullable=True
+    )
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    closed_at = db.Column(db.DateTime, nullable=True)
+
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
+
+    players = db.relationship(
+        "OpenMatchPlayer",
+        back_populates="open_match",
+        cascade="all, delete-orphan",
+    )
+
+    team_a_player_1 = db.relationship(
+        "PlayerProfile", foreign_keys=[team_a_player_1_id]
+    )
+    team_a_player_2 = db.relationship(
+        "PlayerProfile", foreign_keys=[team_a_player_2_id]
+    )
+    team_b_player_1 = db.relationship(
+        "PlayerProfile", foreign_keys=[team_b_player_1_id]
+    )
+    team_b_player_2 = db.relationship(
+        "PlayerProfile", foreign_keys=[team_b_player_2_id]
+    )
+
+    result_match = db.relationship("Match", foreign_keys=[result_match_id])
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "level": self.level,
+            "club": self.club,
+            "match_date": self.match_date.isoformat() if self.match_date else None,
+            "match_time": self.match_time.strftime("%H:%M") if self.match_time else None,
+            "max_players": self.max_players,
+            "status": self.status,
+            "description": self.description,
+            "created_by": self.created_by.nickname if self.created_by else None,
+            "players_count": len(self.players) if self.players else 0,
+            "players": [player.serialize() for player in self.players],
+            "team_a": [
+                self.team_a_player_1.serialize() if self.team_a_player_1 else None,
+                self.team_a_player_2.serialize() if self.team_a_player_2 else None,
+            ],
+            "team_b": [
+                self.team_b_player_1.serialize() if self.team_b_player_1 else None,
+                self.team_b_player_2.serialize() if self.team_b_player_2 else None,
+            ],
+            "result_match_id": self.result_match_id,
+            "has_result": self.result_match_id is not None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "closed_at": self.closed_at.isoformat() if self.closed_at else None,
+        }
+
+
+class OpenMatchPlayer(db.Model):
+    __tablename__ = "open_match_players"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    open_match_id = db.Column(
+        db.Integer, db.ForeignKey("open_matches.id"), nullable=False
+    )
+
+    player_profile_id = db.Column(
+        db.Integer, db.ForeignKey("player_profiles.id"), nullable=False
+    )
+
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    open_match = db.relationship("OpenMatch", back_populates="players")
+    player_profile = db.relationship("PlayerProfile", foreign_keys=[player_profile_id])
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "open_match_id": self.open_match_id,
+            "player_profile_id": self.player_profile_id,
+            "player": self.player_profile.serialize() if self.player_profile else None,
+            "joined_at": self.joined_at.isoformat() if self.joined_at else None,
+        }
+
+
+class Notification(db.Model):
+    __tablename__ = "notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    title = db.Column(db.String(160), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+
+    notification_type = db.Column(db.String(80), nullable=False)
+    # open_match_created
+    # open_match_joined
+    # open_match_closed
+
+    open_match_id = db.Column(
+        db.Integer, db.ForeignKey("open_matches.id"), nullable=True
+    )
+
+    is_read = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", foreign_keys=[user_id])
+    open_match = db.relationship("OpenMatch", foreign_keys=[open_match_id])
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "message": self.message,
+            "notification_type": self.notification_type,
+            "open_match_id": self.open_match_id,
+            "is_read": self.is_read,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "open_match": self.open_match.serialize() if self.open_match else None,
+        }
