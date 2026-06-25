@@ -8234,3 +8234,436 @@ a {
     width: 100%;
   }
 }
+/* ========================= */
+/* RULES PAGE POLISH */
+/* ========================= */
+
+.rules-hero-card {
+  background: #071f45;
+  color: #ffffff;
+  border-radius: 26px;
+  padding: 22px;
+  min-width: 180px;
+  box-shadow: 0 18px 45px rgba(6, 27, 58, 0.22);
+}
+
+.rules-hero-card strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.rules-hero-card span {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.78;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rules-content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.rules-content-header span {
+  color: #0a4fb8;
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.rules-content-header h2 {
+  margin: 6px 0 4px;
+  color: #071f45;
+  font-size: 28px;
+}
+
+.rules-content-header p {
+  color: #6a7890;
+  margin: 0;
+  font-weight: 800;
+}
+
+.rules-text {
+  display: grid;
+  gap: 12px;
+}
+
+.rules-text p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.7;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.rules-empty {
+  background: #f8fbff;
+  border: 1px solid #edf3fb;
+  border-radius: 22px;
+  padding: 22px;
+}
+
+.rules-empty h2 {
+  margin: 0 0 8px;
+  color: #071f45;
+}
+
+.rules-empty p {
+  margin: 0;
+  color: #6a7890;
+  font-weight: 750;
+}
+
+.rules-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.rules-summary-card {
+  background: #f8fbff;
+  border: 1px solid #edf3fb;
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.rules-summary-card span {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #071f45;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 950;
+  margin-bottom: 12px;
+}
+
+.rules-summary-card h3 {
+  margin: 0 0 8px;
+  color: #071f45;
+  font-size: 17px;
+}
+
+.rules-summary-card p {
+  margin: 0;
+  color: #6a7890;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 750;
+}
+
+@media (max-width: 768px) {
+  .rules-page {
+    padding-bottom: 120px;
+  }
+
+  .rules-hero {
+    display: grid;
+    gap: 18px;
+  }
+
+  .rules-hero-card {
+    width: 100%;
+  }
+
+  .rules-content-header {
+    display: grid;
+  }
+
+  .rules-content-header h2 {
+    font-size: 23px;
+  }
+
+  .rules-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ========================= */
+/* ADMIN RULES POLISH */
+/* ========================= */
+
+.admin-rules-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.admin-rules-form-header h2 {
+  margin: 0 0 6px;
+  color: #071f45;
+  font-size: 24px;
+}
+
+.admin-rules-form-header p {
+  margin: 0;
+  color: #6a7890;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.admin-rules-help-card {
+  background: #f8fbff;
+  border: 1px solid #edf3fb;
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.admin-rules-help-card h3 {
+  margin: 0 0 12px;
+  color: #071f45;
+  font-size: 18px;
+}
+
+.admin-rules-help-card div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-rules-help-card span {
+  background: #ffffff;
+  border: 1px solid #edf3fb;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #071f45;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+@media (max-width: 768px) {
+  .admin-rules-form-header {
+    display: grid;
+  }
+
+  .admin-rules-form-header .secondary-button {
+    width: 100%;
+  }
+
+  .admin-rules-help-card div {
+    display: grid;
+  }
+}
+/* ========================= */
+/* RULES NUMBERED CARDS */
+/* ========================= */
+
+.rules-hero-card {
+  background: #071f45;
+  color: #ffffff;
+  border-radius: 26px;
+  padding: 22px;
+  min-width: 180px;
+  box-shadow: 0 18px 45px rgba(6, 27, 58, 0.22);
+}
+
+.rules-hero-card strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.rules-hero-card span {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.78;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rules-content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.rules-content-header span {
+  color: #0a4fb8;
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.rules-content-header h2 {
+  margin: 6px 0 4px;
+  color: #071f45;
+  font-size: 28px;
+}
+
+.rules-content-header p {
+  color: #6a7890;
+  margin: 0;
+  font-weight: 800;
+}
+
+.rules-cards-list {
+  display: grid;
+  gap: 14px;
+}
+
+.rules-card-item {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 16px;
+  align-items: flex-start;
+  background: #f8fbff;
+  border: 1px solid #edf3fb;
+  border-radius: 24px;
+  padding: 18px;
+}
+
+.rules-card-number {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #071f45;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.rules-card-content h3 {
+  margin: 0;
+  color: #071f45;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.rules-card-content p {
+  margin: 10px 0 0;
+  color: #526276;
+  line-height: 1.6;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rules-empty {
+  background: #f8fbff;
+  border: 1px solid #edf3fb;
+  border-radius: 22px;
+  padding: 22px;
+}
+
+.rules-empty h2 {
+  margin: 0 0 8px;
+  color: #071f45;
+}
+
+.rules-empty p {
+  margin: 0;
+  color: #6a7890;
+  font-weight: 750;
+}
+
+.admin-rules-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.admin-rules-form-header h2 {
+  margin: 0 0 6px;
+  color: #071f45;
+  font-size: 24px;
+}
+
+.admin-rules-form-header p {
+  margin: 0;
+  color: #6a7890;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.admin-rules-help-card {
+  background: #f8fbff;
+  border: 1px solid #edf3fb;
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.admin-rules-help-card h3 {
+  margin: 0 0 12px;
+  color: #071f45;
+  font-size: 18px;
+}
+
+.admin-rules-help-card div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-rules-help-card span {
+  background: #ffffff;
+  border: 1px solid #edf3fb;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #071f45;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+@media (max-width: 768px) {
+  .rules-page {
+    padding-bottom: 120px;
+  }
+
+  .rules-hero {
+    display: grid;
+    gap: 18px;
+  }
+
+  .rules-hero-card {
+    width: 100%;
+  }
+
+  .rules-content-header {
+    display: grid;
+  }
+
+  .rules-content-header h2 {
+    font-size: 23px;
+  }
+
+  .rules-card-item {
+    grid-template-columns: 44px 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .rules-card-number {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+  }
+
+  .rules-card-content h3 {
+    font-size: 16px;
+  }
+
+  .admin-rules-form-header {
+    display: grid;
+  }
+
+  .admin-rules-help-card div {
+    display: grid;
+  }
+}

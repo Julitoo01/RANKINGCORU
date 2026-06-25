@@ -96,8 +96,8 @@ export const AdminRules = () => {
           <span>Panel admin</span>
           <h1>Normas</h1>
           <p>
-            Edita el texto que verán los jugadores en la sección de normas del
-            ranking.
+            Escribe las normas que verán los jugadores en la sección de
+            normativa.
           </p>
         </div>
 
@@ -116,6 +116,16 @@ export const AdminRules = () => {
         </div>
       ) : (
         <form className="admin-rules-form-card" onSubmit={saveRules}>
+          <div className="admin-rules-form-header">
+            <div>
+              <h2>Editar normativa</h2>
+              <p>
+                Escribe cada norma empezando por un número: 1., 2., 3. Cada
+                punto aparecerá como una card independiente para los jugadores.
+              </p>
+            </div>
+          </div>
+
           <div className="form-group">
             <label>Título</label>
 
@@ -135,25 +145,25 @@ export const AdminRules = () => {
               name="content"
               value={formData.content}
               onChange={handleChange}
-              placeholder="Escribe aquí las normas del ranking..."
-              rows="14"
+              placeholder={`Ejemplo:
+
+1. Los jugadores deberán apuntarse desde la sección Jugar.
+
+2. Cuando haya 4 jugadores, el partido se cerrará automáticamente.
+
+3. Uno de los jugadores deberá subir el resultado al terminar.`}
+              rows="18"
             />
           </div>
 
-          <div className="upload-result-points-info">
-            <div>
-              <strong>+3</strong>
-              <span>Victoria</span>
-            </div>
+          <div className="admin-rules-help-card">
+            <h3>Formato recomendado</h3>
 
             <div>
-              <strong>+1</strong>
-              <span>Derrota</span>
-            </div>
-
-            <div>
-              <strong>-2</strong>
-              <span>No show</span>
+              <span>1. Primera norma</span>
+              <span>2. Segunda norma</span>
+              <span>3. Tercera norma</span>
+              <span>Cada punto será una card</span>
             </div>
           </div>
 
