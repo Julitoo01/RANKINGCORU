@@ -7975,3 +7975,262 @@ a {
     width: 100%;
   }
 }
+/* ========================= */
+/* ADMIN PLAYERS POLISH */
+/* ========================= */
+
+.status-badge.rejected,
+.admin-action-btn.reject {
+  background: #ffe6ea;
+  color: #c9182b;
+}
+
+.admin-action-btn.reject {
+  border: 1px solid rgba(201, 24, 43, 0.18);
+}
+
+.admin-players-mobile-cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .admin-players-desktop-table {
+    display: none !important;
+  }
+
+  .admin-players-mobile-cards {
+    display: grid;
+    gap: 14px;
+  }
+
+  .admin-player-card {
+    background: #ffffff;
+    border: 1px solid #edf3fb;
+    border-radius: 24px;
+    padding: 16px;
+    box-shadow: 0 10px 24px rgba(6, 27, 58, 0.06);
+  }
+
+  .admin-player-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .admin-player-card-header h3 {
+    margin: 0;
+    color: #071f45;
+    font-size: 20px;
+  }
+
+  .admin-player-card-header span {
+    color: #6a7890;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .admin-player-card-contact {
+    display: grid;
+    gap: 5px;
+    margin: 14px 0;
+    color: #6a7890;
+    font-size: 13px;
+    font-weight: 800;
+    word-break: break-word;
+  }
+
+  .admin-player-card-info {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 9px;
+    margin: 14px 0;
+  }
+
+  .admin-player-card-info div,
+  .admin-player-card-stats div {
+    background: #f8fbff;
+    border: 1px solid #edf3fb;
+    border-radius: 16px;
+    padding: 10px;
+  }
+
+  .admin-player-card-info span,
+  .admin-player-card-stats span {
+    display: block;
+    color: #6a7890;
+    font-size: 11px;
+    font-weight: 900;
+    margin-bottom: 5px;
+  }
+
+  .admin-player-card-info strong,
+  .admin-player-card-stats strong {
+    color: #071f45;
+    font-size: 14px;
+  }
+
+  .admin-player-card-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 14px 0;
+  }
+
+  .admin-player-card-edit {
+    display: grid;
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  .admin-player-actions.mobile {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .admin-player-actions.mobile .admin-action-btn {
+    width: 100%;
+  }
+}
+/* ========================= */
+/* ADMIN PLAYERS SIMPLE VIEW */
+/* ========================= */
+
+.admin-players-simple-list {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-player-simple-card {
+  background: #ffffff;
+  border: 1px solid #edf3fb;
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 10px 24px rgba(6, 27, 58, 0.06);
+}
+
+.admin-player-simple-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.admin-player-simple-main h3 {
+  margin: 0;
+  color: #071f45;
+  font-size: 20px;
+}
+
+.admin-player-simple-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.admin-player-actions.compact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-player-edit-panel {
+  margin-top: 16px;
+  border-top: 1px solid #edf3fb;
+  padding-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.admin-player-edit-details {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.admin-player-edit-details div,
+.admin-player-edit-stats div {
+  background: #f8fbff;
+  border: 1px solid #edf3fb;
+  border-radius: 16px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.admin-player-edit-details span,
+.admin-player-edit-stats span {
+  display: block;
+  color: #6a7890;
+  font-size: 11px;
+  font-weight: 900;
+  margin-bottom: 5px;
+}
+
+.admin-player-edit-details strong,
+.admin-player-edit-stats strong {
+  color: #071f45;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.admin-player-edit-form {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.admin-player-edit-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.admin-player-actions.edit-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-badge.rejected,
+.admin-action-btn.reject {
+  background: #ffe6ea;
+  color: #c9182b;
+}
+
+.admin-action-btn.reject {
+  border: 1px solid rgba(201, 24, 43, 0.18);
+}
+
+@media (max-width: 768px) {
+  .admin-player-simple-main {
+    display: grid;
+    gap: 14px;
+  }
+
+  .admin-player-actions.compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-player-actions.compact .admin-action-btn {
+    width: 100%;
+  }
+
+  .admin-player-edit-details,
+  .admin-player-edit-form,
+  .admin-player-edit-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-player-actions.edit-panel {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-player-actions.edit-panel .admin-action-btn {
+    width: 100%;
+  }
+}

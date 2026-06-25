@@ -18,18 +18,22 @@ export const AdminPlayers = () => {
   });
 
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const levels = ["Todos", "Bronce", "Plata", "Oro", "Platino", "Diamante"];
-  const playerLevels = ["Bronce", "Plata", "Oro", "Platino", "Diamante"];
-  const positions = ["Derecha", "Revés", "Ambas"];
-  const statuses = ["Todos", "pending", "approved"];
-  const playerStatuses = ["pending", "approved"];
+  const playerLevels = ["Iniciación", "Bronce", "Plata", "Oro", "Diamante"];
+  const levels = ["Todos", ...playerLevels];
+
+  const positions = ["Derecha", "Revés", "Ambas", "No lo sé"];
+
+  const playerStatuses = ["pending", "approved", "rejected"];
+  const statuses = ["Todos", ...playerStatuses];
 
   const statusLabels = {
     pending: "Pendiente",
     approved: "Aprobado",
+    rejected: "Rechazado",
   };
 
   const loadPlayers = async () => {
@@ -84,27 +88,39 @@ export const AdminPlayers = () => {
     setError("");
 
     try {
-      const data = await authFetch(`${backendUrl}/api/admin/players/${profileId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      setActionLoadingId(profileId);
+
+      const data = await authFetch(
+        `${backendUrl}/api/admin/players/${profileId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!data) return;
 
       setMessage("Jugador actualizado correctamente.");
       setEditingPlayerId(null);
-      loadPlayers();
+
+      await loadPlayers();
     } catch (error) {
       console.error(error);
       setError(error.message || "Error al actualizar jugador");
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
   const approvePlayer = (profileId) => {
     updatePlayer(profileId, { status: "approved" });
+  };
+
+  const rejectPlayer = (profileId) => {
+    updatePlayer(profileId, { status: "rejected" });
   };
 
   const startEditing = (player) => {
@@ -113,7 +129,7 @@ export const AdminPlayers = () => {
     setEditForm({
       level: player.level || "Bronce",
       position: player.position || "Derecha",
-      status: player.status === "approved" ? "approved" : "pending",
+      status: player.status || "pending",
     });
 
     setMessage("");
@@ -149,7 +165,7 @@ export const AdminPlayers = () => {
 
   const deletePlayer = async (profileId, nickname) => {
     const confirmDelete = window.confirm(
-      `¿Seguro que quieres eliminar a ${nickname}? También se eliminarán sus partidos asociados.`
+      `¿Seguro que quieres eliminar a ${nickname}? Esta acción borra el usuario y también sus partidos asociados.`
     );
 
     if (!confirmDelete) return;
@@ -158,23 +174,39 @@ export const AdminPlayers = () => {
     setError("");
 
     try {
-      const data = await authFetch(`${backendUrl}/api/admin/players/${profileId}`, {
-        method: "DELETE",
-      });
+      setActionLoadingId(profileId);
+
+      const data = await authFetch(
+        `${backendUrl}/api/admin/players/${profileId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!data) return;
 
       setMessage("Jugador eliminado correctamente.");
-      loadPlayers();
+      setEditingPlayerId(null);
+
+      await loadPlayers();
     } catch (error) {
       console.error(error);
       setError(error.message || "Error al eliminar jugador");
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
   const getStatusClass = (status) => {
     if (status === "approved") return "approved";
+    if (status === "rejected") return "rejected";
     return "pending";
+  };
+
+  const getFullName = (player) => {
+    const fullName = `${player.name || ""} ${player.last_name || ""}`.trim();
+
+    return fullName || "-";
   };
 
   return (
@@ -184,8 +216,8 @@ export const AdminPlayers = () => {
           <span>Panel admin</span>
           <h1>Gestión de jugadores</h1>
           <p>
-            Aprueba nuevos registros, edita nivel o posición y elimina jugadores
-            de prueba o duplicados.
+            Revisa jugadores por nickname. Al editar podrás ver toda la ficha y
+            modificar nivel, posición o estado.
           </p>
         </div>
 
@@ -257,52 +289,108 @@ export const AdminPlayers = () => {
           <div className="admin-players-table-header">
             <div>
               <h2>Listado de jugadores</h2>
-              <p>Gestiona el estado, nivel y posición de cada jugador.</p>
+              <p>
+                Cada jugador aparece en una card simple. Pulsa editar para ver
+                toda la información.
+              </p>
             </div>
           </div>
 
-          <div className="table-wrapper">
-            <table className="ranking-table admin-players-table">
-              <thead>
-                <tr>
-                  <th>Jugador</th>
-                  <th>Email</th>
-                  <th>Teléfono</th>
-                  <th>Instagram</th>
-                  <th>Nivel</th>
-                  <th>Posición</th>
-                  <th>Estado</th>
-                  <th>Partidos</th>
-                  <th>Victorias</th>
-                  <th>Derrotas</th>
-                  <th>% Victorias</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
+          <div className="admin-players-simple-list">
+            {players.map((player) => {
+              const isEditing = editingPlayerId === player.id;
+              const isActionLoading = actionLoadingId === player.id;
 
-              <tbody>
-                {players.map((player) => {
-                  const isEditing = editingPlayerId === player.id;
+              return (
+                <article key={player.id} className="admin-player-simple-card">
+                  <div className="admin-player-simple-main">
+                    <div>
+                      <h3>{player.nickname}</h3>
 
-                  return (
-                    <tr key={player.id}>
-                      <td>
-                        <div className="admin-player-name">
-                          <strong>{player.nickname}</strong>
-                          <span>
-                            {player.name} {player.last_name}
+                      {!isEditing && (
+                        <div className="admin-player-simple-meta">
+                          <span className="admin-player-level-pill">
+                            {player.level}
+                          </span>
+
+                          <span
+                            className={`status-badge ${getStatusClass(
+                              player.status
+                            )}`}
+                          >
+                            {statusLabels[player.status] || "Pendiente"}
                           </span>
                         </div>
-                      </td>
+                      )}
+                    </div>
 
-                      <td>{player.email}</td>
-                      <td>{player.phone || "-"}</td>
-                      <td>{player.instagram || "-"}</td>
+                    {!isEditing && (
+                      <div className="admin-player-actions compact">
+                        <button
+                          className="admin-action-btn neutral"
+                          onClick={() => startEditing(player)}
+                          disabled={isActionLoading}
+                        >
+                          Editar
+                        </button>
 
-                      <td>
-                        {isEditing ? (
+                        {player.status !== "approved" && (
+                          <button
+                            className="admin-action-btn approve"
+                            onClick={() => approvePlayer(player.id)}
+                            disabled={isActionLoading}
+                          >
+                            {isActionLoading ? "Aprobando..." : "Aprobar"}
+                          </button>
+                        )}
+
+                        {player.status !== "rejected" && (
+                          <button
+                            className="admin-action-btn reject"
+                            onClick={() => rejectPlayer(player.id)}
+                            disabled={isActionLoading}
+                          >
+                            {isActionLoading ? "Rechazando..." : "Rechazar"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {isEditing && (
+                    <div className="admin-player-edit-panel">
+                      <div className="admin-player-edit-details">
+                        <div>
+                          <span>Nickname</span>
+                          <strong>{player.nickname || "-"}</strong>
+                        </div>
+
+                        <div>
+                          <span>Nombre completo</span>
+                          <strong>{getFullName(player)}</strong>
+                        </div>
+
+                        <div>
+                          <span>Email</span>
+                          <strong>{player.email || "-"}</strong>
+                        </div>
+
+                        <div>
+                          <span>Teléfono</span>
+                          <strong>{player.phone || "-"}</strong>
+                        </div>
+
+                        <div>
+                          <span>Instagram</span>
+                          <strong>{player.instagram || "-"}</strong>
+                        </div>
+                      </div>
+
+                      <div className="admin-player-edit-form">
+                        <div className="form-group">
+                          <label>Nivel</label>
+
                           <select
-                            className="admin-edit-select"
                             name="level"
                             value={editForm.level}
                             onChange={handleEditChange}
@@ -313,17 +401,12 @@ export const AdminPlayers = () => {
                               </option>
                             ))}
                           </select>
-                        ) : (
-                          <span className="admin-player-level-pill">
-                            {player.level}
-                          </span>
-                        )}
-                      </td>
+                        </div>
 
-                      <td>
-                        {isEditing ? (
+                        <div className="form-group">
+                          <label>Posición</label>
+
                           <select
-                            className="admin-edit-select"
                             name="position"
                             value={editForm.position}
                             onChange={handleEditChange}
@@ -334,15 +417,12 @@ export const AdminPlayers = () => {
                               </option>
                             ))}
                           </select>
-                        ) : (
-                          player.position || "-"
-                        )}
-                      </td>
+                        </div>
 
-                      <td>
-                        {isEditing ? (
+                        <div className="form-group">
+                          <label>Estado</label>
+
                           <select
-                            className="admin-edit-select"
                             name="status"
                             value={editForm.status}
                             onChange={handleEditChange}
@@ -353,75 +433,63 @@ export const AdminPlayers = () => {
                               </option>
                             ))}
                           </select>
-                        ) : (
-                          <span
-                            className={`status-badge ${getStatusClass(
-                              player.status
-                            )}`}
-                          >
-                            {statusLabels[player.status] || "Pendiente"}
-                          </span>
-                        )}
-                      </td>
-
-                      <td>{player.matches_played ?? 0}</td>
-                      <td>{player.wins ?? 0}</td>
-                      <td>{player.losses ?? 0}</td>
-                      <td>{player.win_percentage ?? 0}%</td>
-
-                      <td>
-                        <div className="admin-player-actions">
-                          {isEditing ? (
-                            <>
-                              <button
-                                className="admin-action-btn approve"
-                                onClick={() => saveEditing(player.id)}
-                              >
-                                Guardar
-                              </button>
-
-                              <button
-                                className="admin-action-btn neutral"
-                                onClick={cancelEditing}
-                              >
-                                Cancelar
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                className="admin-action-btn neutral"
-                                onClick={() => startEditing(player)}
-                              >
-                                Editar
-                              </button>
-
-                              {player.status !== "approved" && (
-                                <button
-                                  className="admin-action-btn approve"
-                                  onClick={() => approvePlayer(player.id)}
-                                >
-                                  Aprobar
-                                </button>
-                              )}
-
-                              <button
-                                className="admin-action-btn delete"
-                                onClick={() =>
-                                  deletePlayer(player.id, player.nickname)
-                                }
-                              >
-                                Eliminar
-                              </button>
-                            </>
-                          )}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+
+                      <div className="admin-player-edit-stats">
+                        <div>
+                          <span>PJ</span>
+                          <strong>{player.matches_played ?? 0}</strong>
+                        </div>
+
+                        <div>
+                          <span>PG</span>
+                          <strong>{player.wins ?? 0}</strong>
+                        </div>
+
+                        <div>
+                          <span>PP</span>
+                          <strong>{player.losses ?? 0}</strong>
+                        </div>
+
+                        <div>
+                          <span>% Victorias</span>
+                          <strong>{player.win_percentage ?? 0}%</strong>
+                        </div>
+                      </div>
+
+                      <div className="admin-player-actions edit-panel">
+                        <button
+                          className="admin-action-btn approve"
+                          onClick={() => saveEditing(player.id)}
+                          disabled={isActionLoading}
+                        >
+                          {isActionLoading ? "Guardando..." : "Guardar cambios"}
+                        </button>
+
+                        <button
+                          className="admin-action-btn neutral"
+                          onClick={cancelEditing}
+                          disabled={isActionLoading}
+                        >
+                          Cancelar
+                        </button>
+
+                        <button
+                          className="admin-action-btn delete"
+                          onClick={() =>
+                            deletePlayer(player.id, player.nickname)
+                          }
+                          disabled={isActionLoading}
+                        >
+                          {isActionLoading ? "Eliminando..." : "Eliminar jugador"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </div>
       )}
