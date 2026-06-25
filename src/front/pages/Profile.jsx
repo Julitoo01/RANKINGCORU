@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
 
 export const Profile = () => {
@@ -103,30 +103,6 @@ export const Profile = () => {
     reader.readAsDataURL(file);
   };
 
-  const getStatusText = (status) => {
-    if (status === "approved") return "Aprobado";
-    if (status === "pending") return "Pendiente";
-    if (status === "rejected") return "Rechazado";
-
-    return "";
-  };
-
-  const getStatusDescription = (status) => {
-    if (status === "approved") {
-      return "Tu perfil ya forma parte del ranking. Puedes subir resultados y competir.";
-    }
-
-    if (status === "pending") {
-      return "Tu perfil está pendiente de aprobación. Cuando la organización lo revise, aparecerás en el ranking.";
-    }
-
-    if (status === "rejected") {
-      return "Tu perfil ha sido rechazado. Contacta con la organización si crees que ha sido un error.";
-    }
-
-    return "";
-  };
-
   if (error) {
     return (
       <section className="profile-page">
@@ -215,7 +191,6 @@ export const Profile = () => {
           </div>
 
           <div className="profile-actions">
-
             <button
               type="button"
               className="profile-action-btn logout"
@@ -227,8 +202,6 @@ export const Profile = () => {
         </aside>
 
         <main className="profile-main">
-      
-
           <div className="profile-stats-grid">
             <div className="profile-stat-card highlight">
               <span>Partidos jugados</span>
