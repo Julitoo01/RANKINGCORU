@@ -58,8 +58,7 @@ export const Home = () => {
           <p>
             Fuera de Pista nace para organizar partidos de pádel de una forma
             más social, más competitiva y más divertida. Los partidos se juegan
-            por parejas, pero cada jugador suma puntos dentro de un ranking
-            individual.
+            por parejas, pero el  ranking es individual.
           </p>
         </section>
 
@@ -106,7 +105,7 @@ export const Home = () => {
 
             <div className="fdp-step">
               <strong>2</strong>
-              <p>Juegas partidos 2 vs 2 con jugadores de tu nivel.</p>
+              <p>Juegas partidos con jugadores de tu nivel.</p>
             </div>
 
             <div className="fdp-step">

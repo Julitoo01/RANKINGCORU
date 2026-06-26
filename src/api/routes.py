@@ -57,6 +57,33 @@ def create_notification(user_id, title, message, notification_type, open_match_i
     db.session.add(notification)
     return notification
 
+def expire_old_open_matches():
+    now = datetime.utcnow()
+
+    open_matches = OpenMatch.query.filter(
+        OpenMatch.status == "open",
+        OpenMatch.result_match_id.is_(None),
+    ).all()
+
+    expired_count = 0
+
+    for open_match in open_matches:
+        if not open_match.match_date or not open_match.match_time:
+            continue
+
+        match_datetime = datetime.combine(
+            open_match.match_date,
+            open_match.match_time,
+        )
+
+        if match_datetime < now:
+            open_match.status = "cancelled"
+            expired_count += 1
+
+    if expired_count > 0:
+        db.session.commit()
+
+    return expired_count
 
 def get_ranking_sorted_players():
     players = PlayerProfile.query.filter_by(status="approved").all()
@@ -318,6 +345,16 @@ def register():
         if not data.get(field):
             return jsonify({"msg": f"Falta el campo {field}"}), 400
 
+    if data.get("terms_accepted") is not True:
+        return jsonify(
+            {"msg": "Debes aceptar los Términos y Condiciones para registrarte"}
+        ), 400
+
+    if data.get("privacy_accepted") is not True:
+        return jsonify(
+            {"msg": "Debes aceptar la Política de Privacidad para registrarte"}
+        ), 400
+
     email = data.get("email").lower().strip()
     nickname = data.get("nickname").strip()
 
@@ -329,6 +366,8 @@ def register():
     if existing_nickname:
         return jsonify({"msg": "Ya existe un usuario con este nickname"}), 400
 
+    now = datetime.utcnow()
+
     user = User(
         name=data.get("name").strip(),
         last_name=data.get("last_name").strip(),
@@ -338,6 +377,10 @@ def register():
         phone=data.get("phone").strip(),
         instagram=data.get("instagram", "").strip(),
         is_admin=False,
+        terms_accepted=True,
+        terms_accepted_at=now,
+        privacy_accepted=True,
+        privacy_accepted_at=now,
     )
 
     db.session.add(user)
@@ -857,10 +900,11 @@ def reject_match(match_id):
 # =========================
 # OPEN MATCHES
 # =========================
-
 @api.route("/open-matches", methods=["GET"])
 @jwt_required()
 def get_open_matches():
+    expire_old_open_matches()
+
     current_user = get_current_user()
 
     if not current_user:
@@ -872,7 +916,7 @@ def get_open_matches():
     # Si ya se subió resultado, ese partido debe pasar a "Partidos".
     query = query.filter(OpenMatch.result_match_id.is_(None))
 
-    # Tampoco mostramos partidos cancelados en "Jugar".
+    # Tampoco mostramos partidos cancelados o caducados en "Jugar".
     query = query.filter(OpenMatch.status != "cancelled")
 
     # Si NO es admin, solo ve partidos de su nivel.
@@ -893,6 +937,8 @@ def get_open_matches():
 @api.route("/admin/open-matches", methods=["POST"])
 @jwt_required()
 def admin_create_open_match():
+    expire_old_open_matches()
+
     current_user_id = get_jwt_identity()
 
     if not is_admin_user(current_user_id):
@@ -915,6 +961,13 @@ def admin_create_open_match():
         match_time = datetime.strptime(data.get("match_time"), "%H:%M").time()
     except ValueError:
         return jsonify({"msg": "Hora no válida"}), 400
+
+    match_datetime = datetime.combine(match_date, match_time)
+
+    if match_datetime < datetime.utcnow():
+        return jsonify(
+            {"msg": "No puedes crear un partido con una fecha u hora pasada"}
+        ), 400
 
     open_match = OpenMatch(
         level=data.get("level"),
@@ -961,6 +1014,8 @@ def admin_create_open_match():
 @api.route("/open-matches/<int:open_match_id>/join", methods=["POST"])
 @jwt_required()
 def join_open_match(open_match_id):
+    expire_old_open_matches()
+
     current_profile = get_current_profile()
 
     if not current_profile:
@@ -976,8 +1031,30 @@ def join_open_match(open_match_id):
     if not open_match:
         return jsonify({"msg": "Partido no encontrado"}), 404
 
+    if open_match.status == "cancelled":
+        return jsonify(
+            {"msg": "Este partido ya no está disponible porque la fecha ha pasado"}
+        ), 400
+
     if open_match.status != "open":
         return jsonify({"msg": "Este partido ya está cerrado"}), 400
+
+    if open_match.result_match_id:
+        return jsonify({"msg": "Este partido ya tiene resultado subido"}), 400
+
+    if open_match.match_date and open_match.match_time:
+        match_datetime = datetime.combine(
+            open_match.match_date,
+            open_match.match_time,
+        )
+
+        if match_datetime < datetime.utcnow():
+            open_match.status = "cancelled"
+            db.session.commit()
+
+            return jsonify(
+                {"msg": "Este partido ya no está disponible porque la fecha ha pasado"}
+            ), 400
 
     if open_match.level != current_profile.level:
         return jsonify(

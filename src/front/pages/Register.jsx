@@ -15,6 +15,8 @@ export const Register = () => {
     instagram: "",
     level: "",
     position: "",
+    terms_accepted: false,
+    privacy_accepted: false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -33,11 +35,11 @@ export const Register = () => {
   const positions = ["Derecha", "Revés", "Ambas", "No lo sé"];
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    const { name, value, type, checked } = event.target;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -47,6 +49,12 @@ export const Register = () => {
     setLoading(true);
     setMessage("");
     setError("");
+
+    if (!formData.terms_accepted || !formData.privacy_accepted) {
+      setError("Debes aceptar los Términos y Condiciones y la Política de Privacidad para registrarte.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${backendUrl}/api/register`, {
@@ -65,7 +73,10 @@ export const Register = () => {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("profile", JSON.stringify(data.profile));
+
+      if (data.user?.profile) {
+        localStorage.setItem("profile", JSON.stringify(data.user.profile));
+      }
 
       setMessage("Registro completado correctamente.");
       navigate("/profile");
@@ -250,7 +261,50 @@ export const Register = () => {
             </div>
           </div>
 
-          <button className="register-submit" disabled={loading}>
+          <div className="register-legal-box">
+            <label className="register-legal-check">
+              <input
+                type="checkbox"
+                name="terms_accepted"
+                checked={formData.terms_accepted}
+                onChange={handleChange}
+                required
+              />
+              <span>
+                He leído y acepto los{" "}
+                <Link to="/terms" target="_blank">
+                  Términos y Condiciones
+                </Link>
+                .
+              </span>
+            </label>
+
+            <label className="register-legal-check">
+              <input
+                type="checkbox"
+                name="privacy_accepted"
+                checked={formData.privacy_accepted}
+                onChange={handleChange}
+                required
+              />
+              <span>
+                He leído y acepto la{" "}
+                <Link to="/privacy" target="_blank">
+                  Política de Privacidad
+                </Link>
+                .
+              </span>
+            </label>
+          </div>
+
+          <button
+            className="register-submit"
+            disabled={
+              loading ||
+              !formData.terms_accepted ||
+              !formData.privacy_accepted
+            }
+          >
             {loading ? "Creando cuenta..." : "Enviar inscripción"}
           </button>
         </form>

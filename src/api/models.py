@@ -23,6 +23,12 @@ class User(db.Model):
 
     is_admin = db.Column(db.Boolean, default=False)
 
+    terms_accepted = db.Column(db.Boolean, default=False)
+    terms_accepted_at = db.Column(db.DateTime, nullable=True)
+
+    privacy_accepted = db.Column(db.Boolean, default=False)
+    privacy_accepted_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     profile = db.relationship(
@@ -43,6 +49,14 @@ class User(db.Model):
             "instagram": self.instagram,
             "profile_image": self.profile_image,
             "is_admin": self.is_admin,
+            "terms_accepted": self.terms_accepted,
+            "terms_accepted_at": (
+                self.terms_accepted_at.isoformat() if self.terms_accepted_at else None
+            ),
+            "privacy_accepted": self.privacy_accepted,
+            "privacy_accepted_at": (
+                self.privacy_accepted_at.isoformat() if self.privacy_accepted_at else None
+            ),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "profile": self.profile.serialize() if self.profile else None,
         }
