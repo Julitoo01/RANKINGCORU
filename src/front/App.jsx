@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { Navbar } from "./components/Navbar.jsx";
+import { Footer } from "./components/Footer.jsx";
 import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { AdminRoute } from "./components/AdminRoute.jsx";
 
@@ -14,15 +15,15 @@ import { Rules } from "./pages/Rules.jsx";
 import { Profile } from "./pages/Profile.jsx";
 import { Terms } from "./pages/Terms.jsx";
 import { Privacy } from "./pages/Privacy.jsx";
+import { RegisterSuccess } from "./pages/RegisterSuccess.jsx";
+import { OpenMatches } from "./pages/OpenMatches.jsx";
+import { Notifications } from "./pages/Notifications.jsx";
 
 import { Admin } from "./pages/admin/Admin.jsx";
 import { AdminPlayers } from "./pages/admin/AdminPlayers.jsx";
 import { AdminMatches } from "./pages/admin/AdminMatches.jsx";
 import { AdminRules } from "./pages/admin/AdminRules.jsx";
 import { AdminOpenMatches } from "./pages/admin/AdminOpenMatches.jsx";
-
-import { OpenMatches } from "./pages/OpenMatches.jsx";
-import { Notifications } from "./pages/Notifications.jsx";
 
 import "./styles.css";
 
@@ -39,7 +40,14 @@ export const App = () => {
 
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
-
+<Route
+  path="/register-success"
+  element={
+    <ProtectedRoute>
+      <RegisterSuccess />
+    </ProtectedRoute>
+  }
+/>
           <Route
             path="/ranking"
             element={
@@ -158,6 +166,8 @@ export const App = () => {
           />
         </Routes>
       </main>
+
+      <Footer />
     </BrowserRouter>
   );
 };
