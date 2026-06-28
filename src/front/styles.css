@@ -3909,3 +3909,303 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* ========================= */
+/* LEAVE MATCH CONFIRM MODAL */
+/* ========================= */
+
+.leave-modal-icon {
+  background: #fff4e5;
+  color: #b45309;
+}
+
+.leave-confirm-button {
+  background: #b42318;
+  box-shadow: 0 14px 30px rgba(180, 35, 24, 0.22);
+}
+
+.leave-confirm-button:hover {
+  background: #8f1d14;
+}
+/* ========================= */
+/* UPLOAD RESULT UX */
+/* ========================= */
+
+.upload-result-match-summary {
+  background: #f8fbff;
+  border: 1px solid #edf3fb;
+  border-radius: 24px;
+  padding: 22px;
+  margin-bottom: 26px;
+}
+
+.upload-result-match-summary span {
+  display: inline-block;
+  color: #0a4fb8;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+
+.upload-result-match-summary h2 {
+  margin: 0;
+  color: #071f45;
+  font-size: 26px;
+  letter-spacing: -0.6px;
+}
+
+.upload-result-match-summary p {
+  margin: 8px 0 0;
+  color: #526276;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.upload-teams-preview {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.upload-team-preview-card {
+  background: #ffffff;
+  border: 1px solid #dce8f6;
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 10px 24px rgba(6, 27, 58, 0.06);
+}
+
+.upload-team-preview-card span {
+  display: block;
+  color: #0a4fb8;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 12px;
+}
+
+.upload-team-preview-card strong {
+  display: block;
+  color: #071f45;
+  font-size: 17px;
+  font-weight: 950;
+  line-height: 1.35;
+}
+
+.upload-team-preview-card strong + strong {
+  margin-top: 8px;
+}
+
+.upload-vs-badge {
+  width: 50px;
+  height: 50px;
+  border-radius: 999px;
+  background: #071f45;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  font-size: 13px;
+  font-weight: 950;
+  box-shadow: 0 12px 26px rgba(7, 31, 69, 0.22);
+}
+
+/* ========================= */
+/* RESULT CONFIRM MODAL */
+/* ========================= */
+
+.result-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: rgba(6, 27, 58, 0.58);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.result-modal-card {
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100vh - 44px);
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 30px;
+  padding: 34px;
+  text-align: center;
+  box-shadow: 0 26px 70px rgba(6, 27, 58, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.result-modal-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 999px;
+  background: #f2f7ff;
+  color: #0a4fb8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  font-size: 30px;
+  font-weight: 950;
+}
+
+.result-modal-card > span {
+  display: inline-block;
+  color: #0a4fb8;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+}
+
+.result-modal-card h2 {
+  margin: 0;
+  color: #071f45;
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -0.8px;
+}
+
+.result-modal-card p {
+  margin: 20px 0 0;
+  color: #526276;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 750;
+}
+
+.result-modal-teams {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.result-modal-team-card {
+  background: #f8fbff;
+  border: 1px solid #edf3fb;
+  border-radius: 18px;
+  padding: 16px;
+  text-align: left;
+}
+
+.result-modal-team-card span {
+  display: block;
+  color: #0a4fb8;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+
+.result-modal-team-card strong {
+  display: block;
+  color: #071f45;
+  font-size: 15px;
+  font-weight: 950;
+  line-height: 1.35;
+}
+
+.result-modal-team-card strong + strong {
+  margin-top: 6px;
+}
+
+.result-modal-vs {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #071f45;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.result-modal-summary {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.result-modal-summary div {
+  background: #ffffff;
+  border: 1px solid #edf3fb;
+  border-radius: 16px;
+  padding: 14px;
+  text-align: left;
+}
+
+.result-modal-summary strong {
+  display: block;
+  color: #071f45;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 5px;
+}
+
+.result-modal-summary span {
+  display: block;
+  color: #526276;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.result-modal-actions {
+  margin-top: 26px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.result-modal-actions .primary-button,
+.result-modal-actions .secondary-button {
+  width: 100%;
+}
+
+@media (max-width: 650px) {
+  .upload-teams-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-vs-badge {
+    margin: -4px auto;
+  }
+
+  .result-modal-card {
+    border-radius: 24px;
+    padding: 28px 22px;
+  }
+
+  .result-modal-card h2 {
+    font-size: 25px;
+  }
+
+  .result-modal-teams,
+  .result-modal-summary,
+  .result-modal-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .result-modal-vs {
+    margin: 0 auto;
+  }
+}

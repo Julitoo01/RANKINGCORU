@@ -11,6 +11,7 @@ export const UploadResult = () => {
   const [players, setPlayers] = useState([]);
   const [openMatch, setOpenMatch] = useState(null);
   const [isAutoFilled, setIsAutoFilled] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [formData, setFormData] = useState({
     team_a_player_1_id: "",
@@ -152,7 +153,7 @@ export const UploadResult = () => {
     return "";
   };
 
-  const handleSubmit = async (event) => {
+  const openConfirmModal = (event) => {
     event.preventDefault();
 
     setMessage("");
@@ -165,21 +166,27 @@ export const UploadResult = () => {
       return;
     }
 
+    setShowConfirmModal(true);
+  };
+
+  const submitResult = async () => {
     try {
       setSending(true);
+      setMessage("");
+      setError("");
 
       const payload = {
-  team_a_player_1_id: Number(formData.team_a_player_1_id),
-  team_a_player_2_id: Number(formData.team_a_player_2_id),
-  team_b_player_1_id: Number(formData.team_b_player_1_id),
-  team_b_player_2_id: Number(formData.team_b_player_2_id),
-  winner_team: formData.winner_team,
-  score: formData.score.trim(),
-  level: formData.level,
-  club: formData.club.trim(),
-  played_at: formData.played_at || null,
-  open_match_id: openMatchId ? Number(openMatchId) : null,
-};
+        team_a_player_1_id: Number(formData.team_a_player_1_id),
+        team_a_player_2_id: Number(formData.team_a_player_2_id),
+        team_b_player_1_id: Number(formData.team_b_player_1_id),
+        team_b_player_2_id: Number(formData.team_b_player_2_id),
+        winner_team: formData.winner_team,
+        score: formData.score.trim(),
+        level: formData.level,
+        club: formData.club.trim(),
+        played_at: formData.played_at || null,
+        open_match_id: openMatchId ? Number(openMatchId) : null,
+      };
 
       const data = await authFetch(`${backendUrl}/api/matches`, {
         method: "POST",
@@ -191,8 +198,10 @@ export const UploadResult = () => {
 
       if (!data) return;
 
+      setShowConfirmModal(false);
+
       setMessage(
-        "Resultado enviado correctamente. Está pendiente de validación por la pareja rival."
+        "Resultado enviado correctamente. El ranking se actualizará automáticamente."
       );
 
       if (!isAutoFilled) {
@@ -235,7 +244,16 @@ export const UploadResult = () => {
 
     if (!player) return "Jugador";
 
-    return player.nickname || `${player.name || ""} ${player.last_name || ""}`.trim();
+    return (
+      player.nickname || `${player.name || ""} ${player.last_name || ""}`.trim()
+    );
+  };
+
+  const getWinnerLabel = () => {
+    if (formData.winner_team === "A") return "Equipo A";
+    if (formData.winner_team === "B") return "Equipo B";
+
+    return "Equipo ganador";
   };
 
   const isLoading = loadingPlayers || loadingOpenMatch;
@@ -247,8 +265,8 @@ export const UploadResult = () => {
           <span>Fuera de Pista</span>
           <h1>Subir resultado</h1>
           <p>
-            Registra un partido 2 vs 2. El resultado quedará pendiente de
-            validación por la pareja rival antes de actualizar el ranking.
+            Registra el resultado del partido. Una vez enviado, el ranking se
+            actualizará automáticamente con los puntos, victorias y derrotas.
           </p>
         </div>
 
@@ -273,7 +291,39 @@ export const UploadResult = () => {
           <p>Cargando datos...</p>
         </div>
       ) : (
-        <form className="upload-result-form-card" onSubmit={handleSubmit}>
+        <form className="upload-result-form-card" onSubmit={openConfirmModal}>
+          {isAutoFilled && openMatch && (
+            <div className="upload-result-match-summary">
+              <span>Partido seleccionado</span>
+
+              <h2>
+                {openMatch.level} · {openMatch.club}
+              </h2>
+
+              <p>
+                {openMatch.match_date} · {openMatch.match_time}
+              </p>
+            </div>
+          )}
+
+          <div className="upload-teams-preview">
+            <div className="upload-team-preview-card">
+              <span>Equipo A</span>
+
+              <strong>{getPlayerName(formData.team_a_player_1_id)}</strong>
+              <strong>{getPlayerName(formData.team_a_player_2_id)}</strong>
+            </div>
+
+            <div className="upload-vs-badge">VS</div>
+
+            <div className="upload-team-preview-card">
+              <span>Equipo B</span>
+
+              <strong>{getPlayerName(formData.team_b_player_1_id)}</strong>
+              <strong>{getPlayerName(formData.team_b_player_2_id)}</strong>
+            </div>
+          </div>
+
           <div className="upload-form-section">
             <div className="upload-form-section-title">
               <span>Equipo A</span>
@@ -412,6 +462,7 @@ export const UploadResult = () => {
                   onChange={handleChange}
                   placeholder="Ej: 6-4 / 6-3"
                 />
+                <small>Revisa bien el resultado antes de enviarlo.</small>
               </div>
 
               <div className="form-group">
@@ -459,9 +510,85 @@ export const UploadResult = () => {
           </div>
 
           <button className="upload-result-submit-btn" disabled={sending}>
-            {sending ? "Subiendo resultado..." : "Subir resultado"}
+            {sending ? "Preparando resultado..." : "Revisar y enviar resultado"}
           </button>
         </form>
+      )}
+
+      {showConfirmModal && (
+        <div className="result-modal-overlay">
+          <div className="result-modal-card">
+            <div className="result-modal-icon">🏆</div>
+
+            <span>Confirmar resultado</span>
+
+            <h2>¿Seguro que quieres enviar este resultado?</h2>
+
+            <div className="result-modal-teams">
+              <div className="result-modal-team-card">
+                <span>Equipo A</span>
+                <strong>{getPlayerName(formData.team_a_player_1_id)}</strong>
+                <strong>{getPlayerName(formData.team_a_player_2_id)}</strong>
+              </div>
+
+              <div className="result-modal-vs">VS</div>
+
+              <div className="result-modal-team-card">
+                <span>Equipo B</span>
+                <strong>{getPlayerName(formData.team_b_player_1_id)}</strong>
+                <strong>{getPlayerName(formData.team_b_player_2_id)}</strong>
+              </div>
+            </div>
+
+            <div className="result-modal-summary">
+              <div>
+                <strong>Ganador</strong>
+                <span>{getWinnerLabel()}</span>
+              </div>
+
+              <div>
+                <strong>Resultado</strong>
+                <span>{formData.score}</span>
+              </div>
+
+              <div>
+                <strong>Nivel</strong>
+                <span>{formData.level}</span>
+              </div>
+
+              <div>
+                <strong>Club</strong>
+                <span>{formData.club || "Sin club indicado"}</span>
+              </div>
+            </div>
+
+            <p>
+              Al confirmar, el resultado se guardará y el ranking se actualizará
+              automáticamente. Revisa que los equipos, el ganador y el marcador
+              sean correctos.
+            </p>
+
+            <div className="result-modal-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setShowConfirmModal(false)}
+                disabled={sending}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="primary-button"
+                onClick={submitResult}
+                disabled={sending}
+              >
+                {sending ? "Enviando..." : "Sí, enviar resultado"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

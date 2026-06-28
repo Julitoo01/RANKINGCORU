@@ -11,6 +11,7 @@ export const OpenMatches = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [selectedMatchToJoin, setSelectedMatchToJoin] = useState(null);
+  const [selectedMatchToLeave, setSelectedMatchToLeave] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -121,6 +122,7 @@ export const OpenMatches = () => {
       });
 
       setMessage("Has salido del partido correctamente.");
+      setSelectedMatchToLeave(null);
 
       window.dispatchEvent(new Event("notificationsUpdated"));
 
@@ -131,6 +133,12 @@ export const OpenMatches = () => {
     } finally {
       setActionLoadingId(null);
     }
+  };
+
+  const confirmLeaveMatch = async () => {
+    if (!selectedMatchToLeave) return;
+
+    await handleLeave(selectedMatchToLeave.id);
   };
 
   const getPlayerName = (playerItem) => {
@@ -397,7 +405,7 @@ export const OpenMatches = () => {
                         <button
                           type="button"
                           className="secondary-button"
-                          onClick={() => handleLeave(openMatch.id)}
+                          onClick={() => setSelectedMatchToLeave(openMatch)}
                           disabled={isActionLoading}
                         >
                           {isActionLoading ? "Saliendo..." : "Salir del partido"}
@@ -494,6 +502,68 @@ export const OpenMatches = () => {
                 {actionLoadingId === selectedMatchToJoin.id
                   ? "Apuntando..."
                   : "Sí, apuntarme"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedMatchToLeave && (
+        <div className="join-modal-overlay">
+          <div className="join-modal-card leave-modal-card">
+            <div className="join-modal-icon leave-modal-icon">⚠️</div>
+
+            <span>Confirmar salida</span>
+
+            <h2>¿Seguro que quieres salirte de este partido?</h2>
+
+            <div className="join-modal-details">
+              <div>
+                <strong>Nivel</strong>
+                <span>{selectedMatchToLeave.level}</span>
+              </div>
+
+              <div>
+                <strong>Club</strong>
+                <span>{selectedMatchToLeave.club}</span>
+              </div>
+
+              <div>
+                <strong>Fecha</strong>
+                <span>{formatDate(selectedMatchToLeave.match_date)}</span>
+              </div>
+
+              <div>
+                <strong>Hora</strong>
+                <span>{selectedMatchToLeave.match_time}</span>
+              </div>
+            </div>
+
+            <p>
+              Recuerda que solo puedes salirte si faltan más de 24 horas para el
+              inicio del partido. Si faltan 24 horas o menos, la app no permitirá
+              abandonar el partido.
+            </p>
+
+            <div className="join-modal-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setSelectedMatchToLeave(null)}
+                disabled={actionLoadingId === selectedMatchToLeave.id}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="primary-button leave-confirm-button"
+                onClick={confirmLeaveMatch}
+                disabled={actionLoadingId === selectedMatchToLeave.id}
+              >
+                {actionLoadingId === selectedMatchToLeave.id
+                  ? "Saliendo..."
+                  : "Sí, salir del partido"}
               </button>
             </div>
           </div>
