@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, date, time, timedelta
 from sqlalchemy import or_
 
 from api.models import (
@@ -1138,6 +1138,21 @@ def leave_open_match(open_match_id):
     if open_match.status != "open":
         return jsonify({"msg": "No puedes salir de un partido ya cerrado"}), 400
 
+    if open_match.match_date and open_match.match_time:
+        match_datetime = datetime.combine(
+            open_match.match_date,
+            open_match.match_time,
+        )
+
+        time_until_match = match_datetime - datetime.utcnow()
+
+        if time_until_match <= timedelta(hours=24):
+            return jsonify(
+                {
+                    "msg": "No puedes salirte del partido cuando faltan menos de 24 horas."
+                }
+            ), 400
+
     open_match_player = OpenMatchPlayer.query.filter_by(
         open_match_id=open_match.id,
         player_profile_id=current_profile.id,
@@ -1155,7 +1170,6 @@ def leave_open_match(open_match_id):
             "open_match": open_match.serialize(),
         }
     ), 200
-
 
 @api.route("/admin/open-matches/<int:open_match_id>", methods=["DELETE"])
 @jwt_required()
