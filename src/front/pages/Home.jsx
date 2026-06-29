@@ -18,11 +18,11 @@ export const Home = () => {
   }
 
   const isLogged = Boolean(storedToken) && Boolean(user);
-  const isAdmin = user?.is_admin === true;
 
   if (isLogged) {
     return <Navigate to="/ranking" replace />;
   }
+
   return (
     <section className="fdp-home">
       <div className="fdp-hero">
@@ -36,17 +36,18 @@ export const Home = () => {
           <h1>FUERA DE PISTA</h1>
 
           <p>
-            El ranking donde juegas partidos por parejas, compites de forma
-            individual y conectas con jugadores de tu nivel.
+            Juega partidos por parejas, compite de forma individual y sube en
+            el ranking contra jugadores de tu nivel.
           </p>
 
           <div className="fdp-hero-buttons">
             <Link to="/register" className="fdp-btn fdp-btn-primary">
-              Únete
+              Crear cuenta
             </Link>
-             <Link to="/login" className="home-premium-btn secondary">
-    Iniciar sesión
-  </Link>
+
+            <Link to="/login" className="home-premium-btn secondary">
+              Iniciar sesión
+            </Link>
           </div>
         </div>
       </div>
@@ -54,39 +55,47 @@ export const Home = () => {
       <div className="fdp-content">
         <section className="fdp-intro">
           <span>¿Qué es Fuera de Pista?</span>
-          <h2>Una comunidad para competir, jugar más y conocer nuevos jugadores.</h2>
+
+          <h2>Una forma fácil de jugar más, competir mejor y conocer gente.</h2>
+
           <p>
-            Fuera de Pista nace para organizar partidos de pádel de una forma
-            más social, más competitiva y más divertida. Los partidos se juegan
-            por parejas, pero el  ranking es individual.
+            Fuera de Pista organiza partidos de pádel por niveles. Te apuntas a
+            partidos abiertos, juegas con otros jugadores de la comunidad y cada
+            resultado actualiza tu posición en el ranking individual.
           </p>
         </section>
 
         <section className="fdp-cards">
           <article className="fdp-card">
             <div className="fdp-card-number">01</div>
-            <h3>Ranking individual</h3>
+
+            <h3>Partidos por nivel</h3>
+
             <p>
-              Cada jugador tiene sus propios puntos, victorias, derrotas,
-              partidos jugados y porcentaje de victorias.
+              Entra en partidos abiertos de tu categoría para que cada encuentro
+              sea equilibrado, competitivo y divertido.
             </p>
           </article>
 
           <article className="fdp-card">
             <div className="fdp-card-number">02</div>
-            <h3>Partidos por niveles</h3>
+
+            <h3>Ranking individual</h3>
+
             <p>
-              Los jugadores se organizan por nivel para que los partidos sean
-              más equilibrados, competitivos y entretenidos.
+              Aunque los partidos se juegan por parejas, cada jugador suma sus
+              propias estadísticas: partidos, victorias, derrotas y porcentaje.
             </p>
           </article>
 
           <article className="fdp-card">
             <div className="fdp-card-number">03</div>
-            <h3>Resultados al momento</h3>
+
+            <h3>Resultados automáticos</h3>
+
             <p>
-              Al terminar el partido, uno de los jugadores sube el resultado y
-              el ranking se actualiza automáticamente.
+              Al terminar, uno de los jugadores sube el resultado y el ranking se
+              actualiza automáticamente.
             </p>
           </article>
         </section>
@@ -94,38 +103,77 @@ export const Home = () => {
         <section className="fdp-how">
           <div className="fdp-how-title">
             <span>Cómo funciona</span>
-            <h2>Simple, claro y competitivo.</h2>
+
+            <h2>Del registro al ranking en pocos pasos.</h2>
           </div>
 
           <div className="fdp-steps">
             <div className="fdp-step">
               <strong>1</strong>
-              <p>Te registras con tu nickname, nivel y posición.</p>
+              <p>Te registras con tu nombre, nickname, nivel y posición.</p>
             </div>
 
             <div className="fdp-step">
               <strong>2</strong>
-              <p>Juegas partidos con jugadores de tu nivel.</p>
+              <p>El admin revisa y aprueba tu inscripción.</p>
             </div>
 
             <div className="fdp-step">
               <strong>3</strong>
-              <p>Subes el resultado al terminar el partido.</p>
+              <p>Te apuntas a partidos abiertos de tu nivel.</p>
             </div>
 
             <div className="fdp-step">
               <strong>4</strong>
-              <p>Sumas puntos y subes posiciones en el ranking.</p>
+              <p>Cuando hay 4 jugadores, se crean las parejas.</p>
+            </div>
+
+            <div className="fdp-step">
+              <strong>5</strong>
+              <p>Subes el resultado y el ranking se actualiza.</p>
             </div>
           </div>
         </section>
 
+        <section className="fdp-extra">
+          <div className="fdp-extra-card">
+            <span>Para jugadores</span>
+            <h3>Juega más partidos sin depender siempre del mismo grupo.</h3>
+            <p>
+              Encuentra jugadores de tu nivel, apúntate cuando te venga bien y
+              compite dentro de una comunidad organizada.
+            </p>
+          </div>
+
+          <div className="fdp-extra-card">
+            <span>Para competir</span>
+            <h3>Cada partido cuenta.</h3>
+            <p>
+              Cada resultado suma a tu historial y te ayuda a escalar posiciones
+              dentro de la clasificación.
+            </p>
+          </div>
+        </section>
+
         <section className="fdp-final">
+          <span>Empieza ahora</span>
+
           <h2>Únete al ranking y vive el pádel también fuera de la pista.</h2>
 
-          <Link to="/register" className="fdp-btn fdp-btn-primary">
-            Crear cuenta
-          </Link>
+          <p>
+            Crea tu cuenta, espera la aprobación del admin y empieza a apuntarte
+            a partidos de tu nivel.
+          </p>
+
+          <div className="fdp-final-actions">
+            <Link to="/register" className="fdp-btn fdp-btn-primary">
+              Crear cuenta
+            </Link>
+
+            <Link to="/login" className="fdp-btn fdp-btn-secondary">
+              Ya tengo cuenta
+            </Link>
+          </div>
         </section>
       </div>
     </section>

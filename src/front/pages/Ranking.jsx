@@ -141,50 +141,6 @@ export const Ranking = () => {
         </div>
       </div>
 
-      <div className="ranking-season-card">
-        <div>
-          <span>Temporada</span>
-          <h2>{getSeasonLabel()}</h2>
-          <p>
-            {isHistoricalSeason
-              ? "Estás viendo una clasificación histórica cerrada."
-              : "Estás viendo la temporada activa actual."}
-          </p>
-        </div>
-
-        <div className="ranking-selects-row">
-          <div className="ranking-season-select-box">
-            <label>Ver temporada</label>
-
-            <select
-              value={selectedSeasonId}
-              onChange={(event) => setSelectedSeasonId(event.target.value)}
-            >
-              {seasons.map((season) => (
-                <option key={season.id} value={season.id}>
-                  {season.name} {season.is_active ? "· Actual" : "· Histórico"}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="ranking-season-select-box">
-            <label>Ver nivel</label>
-
-            <select
-              value={level}
-              onChange={(event) => setLevel(event.target.value)}
-            >
-              {levels.map((item) => (
-                <option key={item || "Todos"} value={item}>
-                  {item || "Todos"}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
       {error && <div className="error-message">{error}</div>}
 
       {loading && (
@@ -193,25 +149,54 @@ export const Ranking = () => {
         </div>
       )}
 
-      {!loading && !error && ranking.length === 0 && (
-        <div className="ranking-empty">
-          <h2>
-            {isHistoricalSeason
-              ? "No hay histórico guardado para esta temporada"
-              : "Todavía no hay jugadores aprobados"}
-          </h2>
+      {!loading && !error && (
+        <div className="ranking-table-card ranking-combined-card">
+          <div className="ranking-season-card ranking-season-card-inside">
+            <div>
+              <span>Temporada</span>
+              <h2>{getSeasonLabel()}</h2>
+              <p>
+                {isHistoricalSeason
+                  ? "Estás viendo una clasificación histórica cerrada."
+                  : "Estás viendo la temporada activa actual."}
+              </p>
+            </div>
 
-          <p>
-            {isHistoricalSeason
-              ? "Cuando se cierre una temporada con jugadores aprobados, se guardará aquí su clasificación final."
-              : "Cuando los jugadores se registren y sean aprobados por el admin, aparecerán en esta clasificación."}
-          </p>
-        </div>
-      )}
+            <div className="ranking-selects-row">
+              <div className="ranking-season-select-box">
+                <label>Ver temporada</label>
 
-      {!loading && !error && ranking.length > 0 && (
-        <div className="ranking-table-card">
-          <div className="ranking-table-header">
+                <select
+                  value={selectedSeasonId}
+                  onChange={(event) => setSelectedSeasonId(event.target.value)}
+                >
+                  {seasons.map((season) => (
+                    <option key={season.id} value={season.id}>
+                      {season.name}{" "}
+                      {season.is_active ? "· Actual" : "· Histórico"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="ranking-season-select-box">
+                <label>Ver nivel</label>
+
+                <select
+                  value={level}
+                  onChange={(event) => setLevel(event.target.value)}
+                >
+                  {levels.map((item) => (
+                    <option key={item || "Todos"} value={item}>
+                      {item || "Todos"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="ranking-table-header ranking-table-header-inside">
             <div>
               <h2>
                 {isHistoricalSeason
@@ -231,36 +216,96 @@ export const Ranking = () => {
             )}
           </div>
 
-          <div className="table-wrapper ranking-desktop-table">
-            <table className="ranking-table ranking-table-premium">
-              <thead>
-                <tr>
-                  <th>Pos</th>
-                  <th>Jugador</th>
-                  <th>Nivel</th>
-                  <th>PJ</th>
-                  <th>PG</th>
-                  <th>PP</th>
-                  <th>% Victorias</th>
-                </tr>
-              </thead>
+          {ranking.length === 0 && (
+            <div className="ranking-empty ranking-empty-inside">
+              <h2>
+                {isHistoricalSeason
+                  ? "No hay histórico guardado para esta temporada"
+                  : "Todavía no hay jugadores aprobados"}
+              </h2>
 
-              <tbody>
+              <p>
+                {isHistoricalSeason
+                  ? "Cuando se cierre una temporada con jugadores aprobados, se guardará aquí su clasificación final."
+                  : "Cuando los jugadores se registren y sean aprobados por el admin, aparecerán en esta clasificación."}
+              </p>
+            </div>
+          )}
+
+          {ranking.length > 0 && (
+            <>
+              <div className="table-wrapper ranking-desktop-table">
+                <table className="ranking-table ranking-table-premium">
+                  <thead>
+                    <tr>
+                      <th>Pos</th>
+                      <th>Jugador</th>
+                      <th>Nivel</th>
+                      <th>PJ</th>
+                      <th>PG</th>
+                      <th>PP</th>
+                      <th>% Victorias</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {ranking.map((player, index) => (
+                      <tr key={`${player.id}-${player.profile_id || index}`}>
+                        <td>
+                          <span className="ranking-position">
+                            {isHistoricalSeason && player.final_position
+                              ? player.final_position
+                              : index < 3
+                              ? getPositionLabel(index)
+                              : index + 1}
+                          </span>
+                        </td>
+
+                        <td>
+                          <div className="ranking-player-cell">
+                            <div className="ranking-avatar">
+                              {player.profile_image ? (
+                                <img
+                                  src={player.profile_image}
+                                  alt={player.nickname || "Jugador"}
+                                />
+                              ) : (
+                                player.nickname?.charAt(0)?.toUpperCase() ||
+                                "J"
+                              )}
+                            </div>
+
+                            <strong>{player.nickname}</strong>
+                          </div>
+                        </td>
+
+                        <td>
+                          <span className="ranking-level-pill">
+                            {player.level}
+                          </span>
+                        </td>
+
+                        <td>{player.matches_played}</td>
+                        <td>{player.wins}</td>
+                        <td>{player.losses}</td>
+                        <td>{player.win_percentage}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="ranking-mobile-cards">
                 {ranking.map((player, index) => (
-                  <tr key={`${player.id}-${player.profile_id || index}`}>
-                    <td>
-                      <span className="ranking-position">
-                        {isHistoricalSeason && player.final_position
-                          ? player.final_position
-                          : index < 3
-                          ? getPositionLabel(index)
-                          : index + 1}
-                      </span>
-                    </td>
-
-                    <td>
+                  <article
+                    key={`mobile-${player.id}-${player.profile_id || index}`}
+                    className={`ranking-mobile-card ${
+                      index === 0 ? "ranking-mobile-card-first" : ""
+                    }`}
+                  >
+                    <div className="ranking-mobile-card-top">
                       <div className="ranking-player-cell">
-                        <div className="ranking-avatar">
+                        <div className="ranking-avatar ranking-mobile-avatar">
                           {player.profile_image ? (
                             <img
                               src={player.profile_image}
@@ -271,84 +316,47 @@ export const Ranking = () => {
                           )}
                         </div>
 
-                        <strong>{player.nickname}</strong>
+                        <div>
+                          <strong>{player.nickname}</strong>
+                          <span className="ranking-mobile-subtitle">
+                            {player.level}
+                          </span>
+                        </div>
                       </div>
-                    </td>
 
-                    <td>
-                      <span className="ranking-level-pill">{player.level}</span>
-                    </td>
+                      <div className="ranking-mobile-position">
+                        {index < 3 && !isHistoricalSeason
+                          ? getPositionLabel(index)
+                          : getMobilePositionLabel(player, index)}
+                      </div>
+                    </div>
 
-                    <td>{player.matches_played}</td>
-                    <td>{player.wins}</td>
-                    <td>{player.losses}</td>
-                    <td>{player.win_percentage}%</td>
-                  </tr>
+                    <div className="ranking-mobile-stats">
+                      <div>
+                        <span>PJ</span>
+                        <strong>{player.matches_played}</strong>
+                      </div>
+
+                      <div>
+                        <span>PG</span>
+                        <strong>{player.wins}</strong>
+                      </div>
+
+                      <div>
+                        <span>PP</span>
+                        <strong>{player.losses}</strong>
+                      </div>
+
+                      <div>
+                        <span>%</span>
+                        <strong>{player.win_percentage}%</strong>
+                      </div>
+                    </div>
+                  </article>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="ranking-mobile-cards">
-            {ranking.map((player, index) => (
-              <article
-                key={`mobile-${player.id}-${player.profile_id || index}`}
-                className={`ranking-mobile-card ${
-                  index === 0 ? "ranking-mobile-card-first" : ""
-                }`}
-              >
-                <div className="ranking-mobile-card-top">
-                  <div className="ranking-player-cell">
-                    <div className="ranking-avatar ranking-mobile-avatar">
-                      {player.profile_image ? (
-                        <img
-                          src={player.profile_image}
-                          alt={player.nickname || "Jugador"}
-                        />
-                      ) : (
-                        player.nickname?.charAt(0)?.toUpperCase() || "J"
-                      )}
-                    </div>
-
-                    <div>
-                      <strong>{player.nickname}</strong>
-                      <span className="ranking-mobile-subtitle">
-                        {player.level}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="ranking-mobile-position">
-                    {index < 3 && !isHistoricalSeason
-                      ? getPositionLabel(index)
-                      : getMobilePositionLabel(player, index)}
-                  </div>
-                </div>
-
-                <div className="ranking-mobile-stats">
-                  <div>
-                    <span>PJ</span>
-                    <strong>{player.matches_played}</strong>
-                  </div>
-
-                  <div>
-                    <span>PG</span>
-                    <strong>{player.wins}</strong>
-                  </div>
-
-                  <div>
-                    <span>PP</span>
-                    <strong>{player.losses}</strong>
-                  </div>
-
-                  <div>
-                    <span>%</span>
-                    <strong>{player.win_percentage}%</strong>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </section>

@@ -94,46 +94,58 @@ export const Matches = () => {
   const getWinnerText = (winnerTeam) => {
     if (winnerTeam === "A") return "Equipo A";
     if (winnerTeam === "B") return "Equipo B";
+
     return "-";
   };
 
   const renderTeam = (team) => {
-    if (!team || team.length === 0) return "-";
+    if (!team || team.length === 0) return ["-"];
 
     const names = team
       .filter(Boolean)
-      .map((player) => player.nickname)
+      .map((player) => {
+        return (
+          player.nickname ||
+          `${player.name || ""} ${player.last_name || ""}`.trim()
+        );
+      })
       .filter(Boolean);
 
-    return names.length > 0 ? names.join(" / ") : "-";
+    return names.length > 0 ? names : ["-"];
   };
 
   const selectedSeason = seasons.find(
     (season) => String(season.id) === String(selectedSeasonId)
   );
 
+  const totalMatches = matches.length;
+
   return (
     <section className="matches-page">
       <div className="matches-hero">
         <div>
           <span>Fuera de Pista</span>
+
           <h1>Partidos</h1>
+
           <p>
-            Consulta los resultados registrados en el ranking y el historial de
-            partidos de cada temporada.
+            Consulta el historial de partidos jugados, resultados registrados,
+            parejas, ganadores y temporada correspondiente.
           </p>
         </div>
 
         <div className="matches-hero-card">
-          <strong>{matches.length}</strong>
-          <span>Partidos registrados</span>
+          <strong>{totalMatches}</strong>
+          <span>{totalMatches === 1 ? "Partido registrado" : "Partidos registrados"}</span>
         </div>
       </div>
 
       <div className="matches-season-card">
         <div>
           <span>Temporada</span>
+
           <h2>{selectedSeason?.name || "Temporada actual"}</h2>
+
           <p>
             {selectedSeason?.is_closed
               ? "Estás viendo partidos de una temporada cerrada."
@@ -157,85 +169,105 @@ export const Matches = () => {
         </div>
       </div>
 
+      {error && <div className="error-message">{error}</div>}
+
       {loading && (
         <div className="matches-state">
           <p>Cargando partidos...</p>
         </div>
       )}
 
-      {error && <div className="error-message">{error}</div>}
-
       {!loading && !error && matches.length === 0 && (
         <div className="matches-empty">
+          <div className="matches-empty-icon">🎾</div>
+
+          <span>Sin partidos todavía</span>
+
           <h2>No hay partidos registrados</h2>
+
           <p>
-            Cuando los jugadores suban resultados, aparecerán aquí dentro de su
-            temporada correspondiente.
+            Cuando los jugadores suban resultados, aparecerán aquí con sus
+            equipos, marcador, ganador y temporada.
           </p>
         </div>
       )}
 
       {!loading && !error && matches.length > 0 && (
         <div className="matches-list">
-          {matches.map((match) => (
-            <article className="match-card" key={match.id}>
-              <div className="match-card-header">
-                <div>
-                  <span>{formatDate(match.played_at)}</span>
-                  <h2>{match.level || "Nivel no indicado"}</h2>
+          {matches.map((match) => {
+            const teamAPlayers = renderTeam(match.team_a);
+            const teamBPlayers = renderTeam(match.team_b);
+            const teamAWon = match.winner_team === "A";
+            const teamBWon = match.winner_team === "B";
+
+            return (
+              <article className="match-card" key={match.id}>
+                <div className="match-card-header">
+                  <div>
+                    <span>{formatDate(match.played_at)}</span>
+
+                    <h2>{match.level || "Nivel no indicado"}</h2>
+
+                    <p>{match.club || "Club no indicado"}</p>
+                  </div>
+
+                  <div className="match-score-box">
+                    <span>Resultado</span>
+                    <strong>{match.score || "-"}</strong>
+                  </div>
                 </div>
 
-                <div className="match-score">{match.score || "-"}</div>
-              </div>
+                <div className="match-status-row">
+                  <span className="match-status-badge confirmed">
+                    Resultado registrado
+                  </span>
 
-              <div className="match-status-row">
-                <span className="match-status-badge confirmed">
-                  Confirmado
-                </span>
-
-                <span>
-                  Ganador: <strong>{getWinnerText(match.winner_team)}</strong>
-                </span>
-              </div>
-
-              <div className="match-teams">
-                <div
-                  className={`match-team ${
-                    match.winner_team === "A" ? "winner" : ""
-                  }`}
-                >
-                  <span>Equipo A</span>
-                  <strong>{renderTeam(match.team_a)}</strong>
+                  <span>
+                    Ganador: <strong>{getWinnerText(match.winner_team)}</strong>
+                  </span>
                 </div>
 
-                <div className="match-vs">vs</div>
+                <div className="match-teams">
+                  <div className={`match-team ${teamAWon ? "winner" : ""}`}>
+                    <span>Equipo A</span>
 
-                <div
-                  className={`match-team ${
-                    match.winner_team === "B" ? "winner" : ""
-                  }`}
-                >
-                  <span>Equipo B</span>
-                  <strong>{renderTeam(match.team_b)}</strong>
+                    {teamAPlayers.map((playerName, index) => (
+                      <strong key={`${match.id}-team-a-${index}`}>
+                        {playerName}
+                      </strong>
+                    ))}
+
+                    {teamAWon && <small>Ganador</small>}
+                  </div>
+
+                  <div className="match-vs">VS</div>
+
+                  <div className={`match-team ${teamBWon ? "winner" : ""}`}>
+                    <span>Equipo B</span>
+
+                    {teamBPlayers.map((playerName, index) => (
+                      <strong key={`${match.id}-team-b-${index}`}>
+                        {playerName}
+                      </strong>
+                    ))}
+
+                    {teamBWon && <small>Ganador</small>}
+                  </div>
                 </div>
-              </div>
 
-              <div className="match-card-footer">
-                <span>
-                  Club: <strong>{match.club || "-"}</strong>
-                </span>
+                <div className="match-card-footer">
+                  <span>
+                    Temporada:{" "}
+                    <strong>{match.season || selectedSeason?.name || "-"}</strong>
+                  </span>
 
-                <span>
-                  Temporada:{" "}
-                  <strong>{match.season || selectedSeason?.name || "-"}</strong>
-                </span>
-
-                <span>
-                  Subido por: <strong>{match.submitted_by || "-"}</strong>
-                </span>
-              </div>
-            </article>
-          ))}
+                  <span>
+                    Subido por: <strong>{match.submitted_by || "-"}</strong>
+                  </span>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

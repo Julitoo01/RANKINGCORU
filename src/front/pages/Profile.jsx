@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
 
 export const Profile = () => {
@@ -103,6 +103,14 @@ export const Profile = () => {
     reader.readAsDataURL(file);
   };
 
+  const getProfileStatusText = (status) => {
+    if (status === "approved") return "Perfil aprobado";
+    if (status === "pending") return "Pendiente de aprobación";
+    if (status === "rejected") return "Perfil rechazado";
+
+    return "Estado pendiente";
+  };
+
   if (error) {
     return (
       <section className="profile-page">
@@ -126,6 +134,8 @@ export const Profile = () => {
   }
 
   const { user, profile } = profileData;
+  const profileStatus = profile?.status || "pending";
+  const isApproved = profileStatus === "approved";
 
   return (
     <section className="profile-page">
@@ -155,11 +165,20 @@ export const Profile = () => {
 
           <div>
             <span className="profile-kicker">Perfil de jugador</span>
+
             <h1>{user?.nickname || "Jugador"}</h1>
 
             <p>
               {user?.name || "-"} {user?.last_name || ""}
             </p>
+
+            <div
+              className={`profile-status-pill ${
+                isApproved ? "approved" : "pending"
+              }`}
+            >
+              {getProfileStatusText(profileStatus)}
+            </div>
           </div>
         </div>
       </div>
@@ -222,6 +241,36 @@ export const Profile = () => {
               <span>% Victorias</span>
               <strong>{profile?.win_percentage ?? 0}%</strong>
             </div>
+          </div>
+
+          <div className="profile-info-card">
+            <span>Tu actividad</span>
+
+            <h2>
+              {isApproved
+                ? "Ya formas parte del ranking"
+                : "Tu perfil está casi listo"}
+            </h2>
+
+            <p>
+              {isApproved
+                ? "Apúntate a partidos abiertos, juega con otros jugadores de tu nivel y sube resultados para mejorar tu posición."
+                : "Cuando el admin apruebe tu inscripción, podrás apuntarte a partidos abiertos y empezar a competir en el ranking."}
+            </p>
+
+            {isApproved ? (
+              <Link to="/open-matches" className="primary-button profile-info-action">
+                Ir a jugar
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="secondary-button profile-info-action"
+                disabled
+              >
+                Esperando aprobación
+              </button>
+            )}
           </div>
         </main>
       </div>

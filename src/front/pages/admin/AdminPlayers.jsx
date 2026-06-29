@@ -34,6 +34,7 @@ export const AdminPlayers = () => {
     pending: "Pendiente",
     approved: "Aprobado",
     rejected: "Rechazado",
+    payment_pending: "Pendiente de pago",
   };
 
   const loadPlayers = async () => {
@@ -80,6 +81,13 @@ export const AdminPlayers = () => {
     setFilters((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const setStatusFilter = (status) => {
+    setFilters((prev) => ({
+      ...prev,
+      status,
     }));
   };
 
@@ -200,7 +208,13 @@ export const AdminPlayers = () => {
   const getStatusClass = (status) => {
     if (status === "approved") return "approved";
     if (status === "rejected") return "rejected";
+    if (status === "payment_pending") return "payment-pending";
+
     return "pending";
+  };
+
+  const getStatusLabel = (status) => {
+    return statusLabels[status] || "Pendiente";
   };
 
   const getFullName = (player) => {
@@ -209,15 +223,23 @@ export const AdminPlayers = () => {
     return fullName || "-";
   };
 
+  const getCounter = (status) => {
+    if (status === "Todos") return players.length;
+
+    return players.filter((player) => player.status === status).length;
+  };
+
   return (
     <section className="admin-players-page">
       <div className="admin-players-hero">
         <div>
           <span>Panel admin</span>
+
           <h1>Gestión de jugadores</h1>
+
           <p>
-            Revisa jugadores por nickname. Al editar podrás ver toda la ficha y
-            modificar nivel, posición o estado.
+            Revisa solicitudes, aprueba jugadores, ajusta nivel y posición, o
+            rechaza perfiles que no deban entrar al ranking.
           </p>
         </div>
 
@@ -230,10 +252,59 @@ export const AdminPlayers = () => {
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
 
+      <div className="admin-players-summary-grid">
+        <button
+          type="button"
+          className={`admin-players-summary-card ${
+            filters.status === "Todos" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("Todos")}
+        >
+          <span>Total visible</span>
+          <strong>{getCounter("Todos")}</strong>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-players-summary-card pending ${
+            filters.status === "pending" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("pending")}
+        >
+          <span>Pendientes</span>
+          <strong>{getCounter("pending")}</strong>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-players-summary-card approved ${
+            filters.status === "approved" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("approved")}
+        >
+          <span>Aprobados</span>
+          <strong>{getCounter("approved")}</strong>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-players-summary-card rejected ${
+            filters.status === "rejected" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("rejected")}
+        >
+          <span>Rechazados</span>
+          <strong>{getCounter("rejected")}</strong>
+        </button>
+      </div>
+
       <div className="admin-players-filters-card">
         <div>
           <h2>Filtros</h2>
-          <p>Filtra por estado o nivel para gestionar mejor los registros.</p>
+
+          <p>
+            Filtra por estado o nivel para encontrar más rápido a cada jugador.
+          </p>
         </div>
 
         <div className="admin-players-filters">
@@ -247,7 +318,7 @@ export const AdminPlayers = () => {
             >
               {statuses.map((status) => (
                 <option key={status} value={status}>
-                  {status === "Todos" ? "Todos" : statusLabels[status]}
+                  {status === "Todos" ? "Todos" : getStatusLabel(status)}
                 </option>
               ))}
             </select>
@@ -280,6 +351,7 @@ export const AdminPlayers = () => {
       {!loading && players.length === 0 && (
         <div className="admin-players-empty">
           <h2>No hay jugadores</h2>
+
           <p>No hay jugadores que coincidan con los filtros seleccionados.</p>
         </div>
       )}
@@ -289,9 +361,10 @@ export const AdminPlayers = () => {
           <div className="admin-players-table-header">
             <div>
               <h2>Listado de jugadores</h2>
+
               <p>
-                Cada jugador aparece en una card simple. Pulsa editar para ver
-                toda la información.
+                Pulsa editar para ver la ficha completa, cambiar nivel, posición
+                o estado.
               </p>
             </div>
           </div>
@@ -305,22 +378,28 @@ export const AdminPlayers = () => {
                 <article key={player.id} className="admin-player-simple-card">
                   <div className="admin-player-simple-main">
                     <div>
-                      <h3>{player.nickname}</h3>
+                      <h3>{player.nickname || "Jugador"}</h3>
 
                       {!isEditing && (
-                        <div className="admin-player-simple-meta">
-                          <span className="admin-player-level-pill">
-                            {player.level}
-                          </span>
+                        <>
+                          <p className="admin-player-simple-name">
+                            {getFullName(player)}
+                          </p>
 
-                          <span
-                            className={`status-badge ${getStatusClass(
-                              player.status
-                            )}`}
-                          >
-                            {statusLabels[player.status] || "Pendiente"}
-                          </span>
-                        </div>
+                          <div className="admin-player-simple-meta">
+                            <span className="admin-player-level-pill">
+                              {player.level || "-"}
+                            </span>
+
+                            <span
+                              className={`status-badge ${getStatusClass(
+                                player.status
+                              )}`}
+                            >
+                              {getStatusLabel(player.status)}
+                            </span>
+                          </div>
+                        </>
                       )}
                     </div>
 
@@ -379,11 +458,6 @@ export const AdminPlayers = () => {
                           <span>Teléfono</span>
                           <strong>{player.phone || "-"}</strong>
                         </div>
-
-                        <div>
-                          <span>Instagram</span>
-                          <strong>{player.instagram || "-"}</strong>
-                        </div>
                       </div>
 
                       <div className="admin-player-edit-form">
@@ -429,7 +503,7 @@ export const AdminPlayers = () => {
                           >
                             {playerStatuses.map((status) => (
                               <option key={status} value={status}>
-                                {statusLabels[status]}
+                                {getStatusLabel(status)}
                               </option>
                             ))}
                           </select>
@@ -482,7 +556,9 @@ export const AdminPlayers = () => {
                           }
                           disabled={isActionLoading}
                         >
-                          {isActionLoading ? "Eliminando..." : "Eliminar jugador"}
+                          {isActionLoading
+                            ? "Eliminando..."
+                            : "Eliminar jugador"}
                         </button>
                       </div>
                     </div>
