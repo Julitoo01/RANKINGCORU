@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
 
 export const Notifications = () => {
@@ -18,7 +17,10 @@ export const Notifications = () => {
 
       const data = await authFetch(`${backendUrl}/api/notifications`);
 
-      if (!data) return;
+      if (!data) {
+        setNotifications([]);
+        return;
+      }
 
       setNotifications(data);
     } catch (error) {
@@ -87,7 +89,6 @@ export const Notifications = () => {
 
       if (!data) return;
 
-      // Marcamos también la notificación como leída después de apuntarse.
       await authFetch(
         `${backendUrl}/api/notifications/${notification.id}/read`,
         {
@@ -110,43 +111,34 @@ export const Notifications = () => {
     }
   };
 
-  const getNotificationLabel = (notificationType) => {
-    if (notificationType === "open_match_created") {
-      return "Nuevo partido";
-    }
+  const getNotificationIcon = (notificationType) => {
+    if (notificationType === "open_match_created") return "🎾";
+    if (notificationType === "open_match_joined") return "👥";
+    if (notificationType === "open_match_closed") return "✅";
 
-    if (notificationType === "open_match_joined") {
-      return "Jugador apuntado";
-    }
-
-    if (notificationType === "open_match_closed") {
-      return "Partido cerrado";
-    }
-
-    return "Notificación";
+    return "🔔";
   };
 
   const formatOpenMatchDate = (openMatch) => {
     if (!openMatch?.match_date) return "-";
 
-    const date = new Date(openMatch.match_date);
+    const date = new Date(`${openMatch.match_date}T00:00:00`);
 
     if (Number.isNaN(date.getTime())) {
       return openMatch.match_date;
     }
 
-    return date.toLocaleDateString("es-ES");
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "short",
+    });
   };
 
-  const renderTeams = (team) => {
-    if (!team || team.length === 0) return "-";
+  const getPlayersText = (openMatch) => {
+    const playersCount = openMatch?.players_count ?? 0;
+    const maxPlayers = openMatch?.max_players ?? 4;
 
-    const names = team
-      .filter(Boolean)
-      .map((player) => player.nickname)
-      .filter(Boolean);
-
-    return names.length > 0 ? names.join(" / ") : "-";
+    return `${playersCount}/${maxPlayers}`;
   };
 
   const canJoinFromNotification = (notification) => {
@@ -164,14 +156,13 @@ export const Notifications = () => {
 
   return (
     <section className="notifications-page">
-      <div className="notifications-hero">
+      <div className="notifications-hero minimal">
         <div>
-          <span className="notifications-kicker">Avisos de partidos</span>
+          <span className="section-kicker">Avisos</span>
+
           <h1>Notificaciones</h1>
-          <p>
-            Aquí verás avisos cuando se abra un partido de tu nivel, cuando
-            alguien se apunte o cuando el partido se cierre con 4 jugadores.
-          </p>
+
+          <p>Partidos nuevos y avisos importantes de tu ranking.</p>
         </div>
 
         <div className="notifications-counter-card">
@@ -181,95 +172,65 @@ export const Notifications = () => {
       </div>
 
       {message && <div className="success-message">{message}</div>}
-
       {error && <div className="error-message">{error}</div>}
 
       {loading && (
-        <div className="notifications-empty">
+        <div className="notifications-empty minimal">
           <h2>Cargando notificaciones...</h2>
         </div>
       )}
 
       {!loading && notifications.length === 0 && (
-        <div className="notifications-empty">
-          <h2>No tienes notificaciones pendientes</h2>
-          <p>
-            Cuando haya movimientos en partidos de tu nivel, aparecerán aquí.
-          </p>
+        <div className="notifications-empty minimal">
+          <div className="notifications-empty-icon">🔔</div>
+
+          <h2>No tienes avisos pendientes</h2>
+
+          <p>Cuando haya nuevos partidos, aparecerán aquí.</p>
         </div>
       )}
 
       {!loading && notifications.length > 0 && (
-        <div className="notifications-list">
+        <div className="notifications-minimal-list">
           {notifications.map((notification) => {
             const openMatch = notification.open_match;
             const canJoin = canJoinFromNotification(notification);
 
             return (
-              <article key={notification.id} className="notification-card">
-                <div className="notification-card-header">
-                  <div>
-                    <span>
-                      {getNotificationLabel(notification.notification_type)}
-                    </span>
-
-                    <h2>{notification.title}</h2>
+              <article
+                key={notification.id}
+                className="notification-minimal-card"
+              >
+                <div className="notification-minimal-content">
+                  <div className="notification-minimal-icon">
+                    {getNotificationIcon(notification.notification_type)}
                   </div>
 
-                  {openMatch?.level && (
-                    <strong className="notification-score">
-                      {openMatch.level}
-                    </strong>
-                  )}
+                  <div>
+                    {openMatch ? (
+                      <p className="notification-main-text">
+                        Partido en{" "}
+                        <strong>
+                          {openMatch.club || "club no indicado"}
+                        </strong>
+                        . Día{" "}
+                        <strong>{formatOpenMatchDate(openMatch)}</strong> a las{" "}
+                        <strong>{openMatch.match_time || "-"}</strong>. Apuntados{" "}
+                        <strong>{getPlayersText(openMatch)}</strong>.
+                      </p>
+                    ) : (
+                      <p className="notification-main-text">
+                        {notification.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <p className="notification-message">
-                  {notification.message}
-                </p>
-
-                {openMatch && (
-                  <div className="notification-meta">
-                    <span>
-                      Club: <strong>{openMatch.club || "-"}</strong>
-                    </span>
-
-                    <span>
-                      Fecha:{" "}
-                      <strong>{formatOpenMatchDate(openMatch)}</strong>
-                    </span>
-
-                    <span>
-                      Hora: <strong>{openMatch.match_time || "-"}</strong>
-                    </span>
-
-                    <span>
-                      Jugadores:{" "}
-                      <strong>
-                        {openMatch.players_count || 0}/
-                        {openMatch.max_players || 4}
-                      </strong>
-                    </span>
-                  </div>
-                )}
-
-                {openMatch?.status === "closed" && (
-                  <div className="notification-match-teams">
-                    <div className="notification-team">
-                      <span>Equipo A</span>
-                      <strong>{renderTeams(openMatch.team_a)}</strong>
-                    </div>
-
-                    <div className="notification-team">
-                      <span>Equipo B</span>
-                      <strong>{renderTeams(openMatch.team_b)}</strong>
-                    </div>
-                  </div>
-                )}
-
-                <div className="notification-actions">
-                  {canJoin ? (
+                <div className="notification-minimal-actions">
+                  {canJoin && (
                     <button
-                      className="notification-btn confirm"
+                      className="notification-main-btn"
+                      type="button"
                       onClick={() => handleJoinOpenMatch(notification)}
                       disabled={actionLoadingId === notification.id}
                     >
@@ -277,24 +238,31 @@ export const Notifications = () => {
                         ? "Apuntando..."
                         : "Apuntarme"}
                     </button>
-                  ) : (
-                    <Link
-                      to="/open-matches"
-                      className="notification-btn confirm"
-                    >
-                      Ver partidos
-                    </Link>
                   )}
 
-                  <button
-                    className="notification-btn reject"
-                    onClick={() => handleMarkAsRead(notification.id)}
-                    disabled={actionLoadingId === notification.id}
-                  >
-                    {actionLoadingId === notification.id
-                      ? "Procesando..."
-                      : "Marcar como leída"}
-                  </button>
+                  {!canJoin && (
+                    <button
+                      className="notification-main-btn"
+                      type="button"
+                      onClick={() => handleMarkAsRead(notification.id)}
+                      disabled={actionLoadingId === notification.id}
+                    >
+                      {actionLoadingId === notification.id
+                        ? "Procesando..."
+                        : "Entendido"}
+                    </button>
+                  )}
+
+                  {canJoin && (
+                    <button
+                      className="notification-light-btn"
+                      type="button"
+                      onClick={() => handleMarkAsRead(notification.id)}
+                      disabled={actionLoadingId === notification.id}
+                    >
+                      Marcar como leída
+                    </button>
+                  )}
                 </div>
               </article>
             );

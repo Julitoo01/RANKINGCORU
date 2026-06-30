@@ -40,7 +40,10 @@ export const Navbar = () => {
 
       const data = await authFetch(`${backendUrl}/api/notifications`);
 
-      if (!data) return;
+      if (!data) {
+        setNotificationsCount(0);
+        return;
+      }
 
       setNotificationsCount(data.length);
     } catch (error) {
@@ -74,10 +77,7 @@ export const Navbar = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        moreMenuRef.current &&
-        !moreMenuRef.current.contains(event.target)
-      ) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target)) {
         setIsMoreOpen(false);
       }
     };
@@ -91,52 +91,60 @@ export const Navbar = () => {
     };
   }, []);
 
-  const closeMoreMenu = () => {
-    setIsMoreOpen(false);
-  };
-useEffect(() => {
-  const updateMobileNavbarPosition = () => {
-    const navbar = document.querySelector(".navbar");
+  useEffect(() => {
+    const updateMobileNavbarPosition = () => {
+      const navbar = document.querySelector(".navbar");
 
-    if (!navbar || !window.visualViewport) return;
+      if (!navbar || !window.visualViewport) return;
 
-    const viewport = window.visualViewport;
-    const scale = viewport.scale || 1;
+      const viewport = window.visualViewport;
+      const scale = viewport.scale || 1;
 
-    navbar.style.setProperty("--vv-left", `${viewport.offsetLeft}px`);
-    navbar.style.setProperty("--vv-top", `${viewport.offsetTop}px`);
-    navbar.style.setProperty("--vv-width", `${viewport.width}px`);
-    navbar.style.setProperty("--vv-height", `${viewport.height}px`);
-    navbar.style.setProperty("--vv-scale", `${scale}`);
-    navbar.style.setProperty("--vv-inverse-scale", `${1 / scale}`);
-  };
+      navbar.style.setProperty("--vv-left", `${viewport.offsetLeft}px`);
+      navbar.style.setProperty("--vv-top", `${viewport.offsetTop}px`);
+      navbar.style.setProperty("--vv-width", `${viewport.width}px`);
+      navbar.style.setProperty("--vv-height", `${viewport.height}px`);
+      navbar.style.setProperty("--vv-scale", `${scale}`);
+      navbar.style.setProperty("--vv-inverse-scale", `${1 / scale}`);
+    };
 
-  updateMobileNavbarPosition();
+    updateMobileNavbarPosition();
 
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", updateMobileNavbarPosition);
-    window.visualViewport.addEventListener("scroll", updateMobileNavbarPosition);
-  }
-
-  window.addEventListener("resize", updateMobileNavbarPosition);
-  window.addEventListener("scroll", updateMobileNavbarPosition);
-
-  return () => {
     if (window.visualViewport) {
-      window.visualViewport.removeEventListener(
+      window.visualViewport.addEventListener(
         "resize",
         updateMobileNavbarPosition
       );
-      window.visualViewport.removeEventListener(
+      window.visualViewport.addEventListener(
         "scroll",
         updateMobileNavbarPosition
       );
     }
 
-    window.removeEventListener("resize", updateMobileNavbarPosition);
-    window.removeEventListener("scroll", updateMobileNavbarPosition);
+    window.addEventListener("resize", updateMobileNavbarPosition);
+    window.addEventListener("scroll", updateMobileNavbarPosition);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener(
+          "resize",
+          updateMobileNavbarPosition
+        );
+        window.visualViewport.removeEventListener(
+          "scroll",
+          updateMobileNavbarPosition
+        );
+      }
+
+      window.removeEventListener("resize", updateMobileNavbarPosition);
+      window.removeEventListener("scroll", updateMobileNavbarPosition);
+    };
+  }, []);
+
+  const closeMoreMenu = () => {
+    setIsMoreOpen(false);
   };
-}, []);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -229,7 +237,7 @@ useEffect(() => {
           {isMoreOpen && (
             <div className="navbar-more-menu">
               <Link to="/matches" onClick={closeMoreMenu}>
-                Historial Partidos
+                Historial de partidos
               </Link>
 
               <Link to="/rules" onClick={closeMoreMenu}>
@@ -238,21 +246,19 @@ useEffect(() => {
 
               {isAdmin && (
                 <Link to="/admin" onClick={closeMoreMenu}>
-                  Admin
+                  Panel admin
                 </Link>
               )}
 
-              {isAdmin && (
-                <Link to="/admin/open-matches" onClick={closeMoreMenu}>
-                  Abrir partidos
-                </Link>
-              )}
+              <button type="button" onClick={handleLogout}>
+                Cerrar sesión
+              </button>
             </div>
           )}
         </div>
 
         <Link to="/matches" className="navbar-desktop-only">
-          Historial Partidos
+          Historial
         </Link>
 
         <Link to="/rules" className="navbar-desktop-only">
@@ -262,12 +268,6 @@ useEffect(() => {
         {isAdmin && (
           <Link to="/admin" className="navbar-desktop-only">
             Admin
-          </Link>
-        )}
-
-        {isAdmin && (
-          <Link to="/admin/open-matches" className="navbar-desktop-only">
-            Abrir partidos
           </Link>
         )}
 

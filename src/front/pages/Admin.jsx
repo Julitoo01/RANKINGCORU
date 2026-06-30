@@ -77,17 +77,19 @@ export const Admin = () => {
     <section className="admin-page">
       <div className="admin-hero">
         <div>
-          <span>Fuera de Pista</span>
+          <span className="section-kicker">Fuera de Pista</span>
+
           <h1>Panel admin</h1>
+
           <p>
-            Gestiona jugadores, partidos abiertos, resultados, normas y
-            temporadas del ranking.
+            Controla el funcionamiento del ranking desde un único sitio:
+            jugadores, partidos abiertos, resultados, normas y temporadas.
           </p>
         </div>
 
         <div className="admin-hero-card">
-          <strong>{user?.nickname || "Admin"}</strong>
           <span>Administrador</span>
+          <strong>{user?.nickname || user?.name || "Admin"}</strong>
         </div>
       </div>
 
@@ -96,105 +98,116 @@ export const Admin = () => {
 
       <div className="admin-dashboard-grid">
         <Link to="/admin/players" className="admin-dashboard-card">
-          <div className="admin-card-icon">👥</div>
-
-          <div>
+          <div className="admin-card-top">
+            <div className="admin-card-icon">👥</div>
             <span>Jugadores</span>
-            <h2>Gestionar jugadores</h2>
-            <p>
-              Aprueba nuevos usuarios, cambia niveles, revisa estados y controla
-              quién aparece en el ranking.
-            </p>
           </div>
+
+          <h2>Gestionar jugadores</h2>
+
+          <p>
+            Aprueba nuevos usuarios, cambia niveles, revisa estados y controla
+            quién puede participar en el ranking.
+          </p>
 
           <strong>Entrar →</strong>
         </Link>
 
         <Link to="/admin/open-matches" className="admin-dashboard-card">
-          <div className="admin-card-icon">📅</div>
-
-          <div>
+          <div className="admin-card-top">
+            <div className="admin-card-icon">📅</div>
             <span>Partidos abiertos</span>
-            <h2>Abrir partidos</h2>
-            <p>
-              Crea partidos por nivel, revisa los partidos disponibles y elimina
-              partidos abiertos si hay algún error.
-            </p>
           </div>
+
+          <h2>Abrir partidos</h2>
+
+          <p>
+            Crea partidos por nivel, revisa jugadores apuntados y gestiona los
+            partidos disponibles para la comunidad.
+          </p>
 
           <strong>Entrar →</strong>
         </Link>
 
         <Link to="/admin/matches" className="admin-dashboard-card">
-          <div className="admin-card-icon">🎾</div>
-
-          <div>
+          <div className="admin-card-top">
+            <div className="admin-card-icon">🎾</div>
             <span>Resultados</span>
-            <h2>Gestionar resultados</h2>
-            <p>
-              Revisa partidos subidos, elimina resultados incorrectos y recalcula
-              el ranking cuando sea necesario.
-            </p>
           </div>
+
+          <h2>Gestionar resultados</h2>
+
+          <p>
+            Revisa resultados subidos, elimina partidos incorrectos y recalcula
+            el ranking cuando sea necesario.
+          </p>
 
           <strong>Entrar →</strong>
         </Link>
 
         <Link to="/admin/rules" className="admin-dashboard-card">
-          <div className="admin-card-icon">📋</div>
-
-          <div>
+          <div className="admin-card-top">
+            <div className="admin-card-icon">📋</div>
             <span>Normas</span>
-            <h2>Editar normas</h2>
-            <p>
-              Actualiza el texto de las normas públicas, el funcionamiento del
-              ranking y la información para jugadores.
-            </p>
           </div>
+
+          <h2>Editar normas</h2>
+
+          <p>
+            Actualiza las normas públicas, el funcionamiento del ranking y la
+            información que ven los jugadores.
+          </p>
 
           <strong>Entrar →</strong>
         </Link>
       </div>
 
-      <div className="admin-season-card">
-        <div className="admin-season-content">
-          <div className="admin-season-icon">🏆</div>
+      <div className="admin-control-grid">
+        <div className="admin-season-card">
+          <div className="admin-season-content">
+            <div className="admin-season-icon">🏆</div>
 
-          <div>
-            <span>Temporadas</span>
-            <h2>Cerrar cuatrimestre</h2>
-            <p>
-              Guarda el ranking actual como histórico, crea una nueva temporada
-              y reinicia las estadísticas para empezar el siguiente cuatrimestre.
-            </p>
+            <div>
+              <span className="section-kicker">Temporadas</span>
+
+              <h2>Cerrar cuatrimestre</h2>
+
+              <p>
+                Guarda el ranking actual como histórico, crea una nueva
+                temporada y reinicia las estadísticas para empezar el siguiente
+                cuatrimestre.
+              </p>
+            </div>
           </div>
+
+          <form className="admin-season-form" onSubmit={closeSeason}>
+            <label>Nombre de la nueva temporada</label>
+
+            <input
+              type="text"
+              value={nextSeasonName}
+              onChange={(event) => setNextSeasonName(event.target.value)}
+              placeholder="Ej: Mayo - Agosto 2026"
+            />
+
+            <button type="submit" disabled={closingSeason}>
+              {closingSeason ? "Cerrando..." : "Cerrar temporada"}
+            </button>
+          </form>
         </div>
 
-        <form className="admin-season-form" onSubmit={closeSeason}>
-          <label>Nombre de la nueva temporada</label>
+        <div className="admin-help-card">
+          <span className="section-kicker">Checklist MVP</span>
 
-          <input
-            type="text"
-            value={nextSeasonName}
-            onChange={(event) => setNextSeasonName(event.target.value)}
-            placeholder="Ej: Mayo - Agosto 2026"
-          />
-
-          <button type="submit" disabled={closingSeason}>
-            {closingSeason ? "Cerrando..." : "Cerrar temporada"}
-          </button>
-        </form>
-      </div>
-
-      <div className="admin-help-card">
-        <div>
-          <span>Checklist MVP</span>
           <h2>Qué revisar cada semana</h2>
-          <p>
-            Aprueba jugadores pendientes, abre partidos por nivel, revisa
-            resultados subidos y elimina cualquier partido incorrecto antes de
-            que afecte al ranking.
-          </p>
+
+          <div className="admin-checklist">
+            <p>✅ Aprobar jugadores pendientes</p>
+            <p>✅ Abrir partidos por nivel</p>
+            <p>✅ Revisar resultados subidos</p>
+            <p>✅ Eliminar partidos incorrectos</p>
+            <p>✅ Comprobar que el ranking se actualiza bien</p>
+          </div>
         </div>
       </div>
     </section>

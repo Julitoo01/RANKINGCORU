@@ -31,12 +31,15 @@ export const AdminMatches = () => {
 
       const data = await authFetch(url);
 
-      if (!data) return;
+      if (!data) {
+        setMatches([]);
+        return;
+      }
 
       setMatches(data);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar partidos");
+      setError(error.message || "Error al cargar resultados");
     } finally {
       setLoading(false);
     }
@@ -65,6 +68,7 @@ export const AdminMatches = () => {
   const getWinnerText = (winnerTeam) => {
     if (winnerTeam === "A") return "Equipo A";
     if (winnerTeam === "B") return "Equipo B";
+
     return "-";
   };
 
@@ -72,23 +76,45 @@ export const AdminMatches = () => {
     if (status === "confirmed") return "Confirmado";
     if (status === "pending") return "Pendiente";
     if (status === "rejected") return "Rechazado";
+
     return status || "-";
   };
 
+  const getPlayerName = (player) => {
+    if (!player) return "Jugador";
+
+    return (
+      player.nickname ||
+      `${player.name || ""} ${player.last_name || ""}`.trim() ||
+      "Jugador"
+    );
+  };
+
   const renderTeam = (team) => {
-    if (!team || team.length === 0) return "-";
+    if (!team || team.length === 0) {
+      return <span className="admin-team-empty">Sin jugadores</span>;
+    }
 
-    const names = team
-      .filter(Boolean)
-      .map((player) => player.nickname)
-      .filter(Boolean);
+    return (
+      <div className="admin-team-list">
+        {team.filter(Boolean).map((player, index) => (
+          <span key={`${player?.id || index}-${index}`}>
+            {getPlayerName(player)}
+          </span>
+        ))}
+      </div>
+    );
+  };
 
-    return names.length > 0 ? names.join(" / ") : "-";
+  const getCounter = (status) => {
+    if (status === "Todos") return matches.length;
+
+    return matches.filter((match) => match.status === status).length;
   };
 
   const deleteMatch = async (matchId) => {
     const confirmDelete = window.confirm(
-      "¿Seguro que quieres eliminar este partido? El ranking se recalculará automáticamente."
+      "¿Seguro que quieres eliminar este resultado? El ranking se recalculará automáticamente."
     );
 
     if (!confirmDelete) return;
@@ -105,11 +131,11 @@ export const AdminMatches = () => {
 
       if (!data) return;
 
-      setMessage("Partido eliminado correctamente. Ranking recalculado.");
+      setMessage("Resultado eliminado correctamente. Ranking recalculado.");
       await loadMatches();
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al eliminar partido");
+      setError(error.message || "Error al eliminar resultado");
     } finally {
       setActionLoadingId(null);
     }
@@ -151,8 +177,10 @@ export const AdminMatches = () => {
     <section className="admin-matches-page">
       <div className="admin-matches-hero">
         <div>
-          <span>Panel admin</span>
+          <span className="section-kicker">Panel admin</span>
+
           <h1>Gestión de resultados</h1>
+
           <p>
             Revisa los resultados subidos, elimina partidos incorrectos y
             recalcula el ranking cuando sea necesario.
@@ -161,19 +189,68 @@ export const AdminMatches = () => {
 
         <div className="admin-matches-hero-card">
           <strong>{matches.length}</strong>
-          <span>Resultados</span>
+          <span>Resultados visibles</span>
         </div>
       </div>
 
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
 
+      <div className="admin-matches-summary-grid">
+        <button
+          type="button"
+          className={`admin-matches-summary-card ${
+            statusFilter === "Todos" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("Todos")}
+        >
+          <span>Total</span>
+          <strong>{getCounter("Todos")}</strong>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-matches-summary-card confirmed ${
+            statusFilter === "confirmed" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("confirmed")}
+        >
+          <span>Confirmados</span>
+          <strong>{getCounter("confirmed")}</strong>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-matches-summary-card pending ${
+            statusFilter === "pending" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("pending")}
+        >
+          <span>Pendientes</span>
+          <strong>{getCounter("pending")}</strong>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-matches-summary-card rejected ${
+            statusFilter === "rejected" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("rejected")}
+        >
+          <span>Rechazados</span>
+          <strong>{getCounter("rejected")}</strong>
+        </button>
+      </div>
+
       <div className="admin-matches-actions-card">
         <div>
+          <span className="section-kicker">Acciones</span>
+
           <h2>Acciones rápidas</h2>
+
           <p>
-            Usa estas acciones para mantener limpio el ranking si hay un
-            resultado mal subido.
+            Usa estas acciones solo cuando haya un resultado incorrecto o quieras
+            forzar el recálculo completo del ranking.
           </p>
         </div>
 
@@ -194,6 +271,15 @@ export const AdminMatches = () => {
 
           <button
             type="button"
+            className="secondary-button"
+            onClick={loadMatches}
+            disabled={loading}
+          >
+            {loading ? "Actualizando..." : "Actualizar"}
+          </button>
+
+          <button
+            type="button"
             className="admin-recalculate-btn"
             onClick={recalculateRanking}
             disabled={recalculating}
@@ -205,7 +291,7 @@ export const AdminMatches = () => {
 
       {loading && (
         <div className="admin-matches-state">
-          <p>Cargando partidos...</p>
+          <p>Cargando resultados...</p>
         </div>
       )}
 
@@ -223,156 +309,100 @@ export const AdminMatches = () => {
         <div className="admin-matches-table-card">
           <div className="admin-matches-table-header">
             <div>
-              <h2>Historial de resultados</h2>
+              <span className="section-kicker">Historial</span>
+
+              <h2>Resultados registrados</h2>
+
               <p>
-                Elimina cualquier resultado incorrecto para mantener limpio el
-                ranking.
+                Cada resultado afecta directamente al ranking. Elimina solo los
+                que estén mal subidos.
               </p>
             </div>
           </div>
 
-          <div className="table-wrapper admin-matches-desktop-table">
-            <table className="ranking-table admin-matches-table">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Estado</th>
-                  <th>Nivel</th>
-                  <th>Equipo A</th>
-                  <th>Equipo B</th>
-                  <th>Resultado</th>
-                  <th>Ganador</th>
-                  <th>Club</th>
-                  <th>Subido por</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
+          <div className="admin-matches-grid">
+            {matches.map((match) => {
+              const teamAWon = match.winner_team === "A";
+              const teamBWon = match.winner_team === "B";
 
-              <tbody>
-                {matches.map((match) => (
-                  <tr key={match.id}>
-                    <td>{formatDate(match.played_at)}</td>
-
-                    <td>
-                      <span className={`admin-match-status ${match.status}`}>
-                        {getStatusText(match.status)}
+              return (
+                <article key={match.id} className="admin-result-card">
+                  <div className="admin-result-card-header">
+                    <div>
+                      <span className="admin-result-date">
+                        {formatDate(match.played_at)}
                       </span>
-                    </td>
 
-                    <td>
-                      <span className="admin-match-level-pill">
-                        {match.level}
-                      </span>
-                    </td>
+                      <h3>{match.level || "Nivel no indicado"}</h3>
 
-                    <td>
-                      <div className="admin-match-team">
-                        <strong>{renderTeam(match.team_a)}</strong>
+                      <p>{match.club || "Club no indicado"}</p>
+                    </div>
+
+                    <span className={`admin-match-status ${match.status}`}>
+                      {getStatusText(match.status)}
+                    </span>
+                  </div>
+
+                  <div className="admin-result-score-box">
+                    <span>Resultado</span>
+                    <strong>{match.score || "-"}</strong>
+                  </div>
+
+                  <div className="admin-result-teams">
+                    <div
+                      className={`admin-result-team ${
+                        teamAWon ? "winner" : ""
+                      }`}
+                    >
+                      <div className="admin-result-team-title">
+                        <span>Equipo A</span>
+                        {teamAWon && <small>Ganador</small>}
                       </div>
-                    </td>
 
-                    <td>
-                      <div className="admin-match-team">
-                        <strong>{renderTeam(match.team_b)}</strong>
+                      {renderTeam(match.team_a)}
+                    </div>
+
+                    <div className="admin-result-vs">VS</div>
+
+                    <div
+                      className={`admin-result-team ${
+                        teamBWon ? "winner" : ""
+                      }`}
+                    >
+                      <div className="admin-result-team-title">
+                        <span>Equipo B</span>
+                        {teamBWon && <small>Ganador</small>}
                       </div>
-                    </td>
 
-                    <td>
-                      <span className="admin-match-score">
-                        {match.score || "-"}
-                      </span>
-                    </td>
-
-                    <td>{getWinnerText(match.winner_team)}</td>
-
-                    <td>{match.club || "-"}</td>
-
-                    <td>{match.submitted_by || "-"}</td>
-
-                    <td>
-                      <button
-                        className="admin-delete-match-btn"
-                        onClick={() => deleteMatch(match.id)}
-                        disabled={actionLoadingId === match.id}
-                      >
-                        {actionLoadingId === match.id
-                          ? "Eliminando..."
-                          : "Eliminar"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="admin-matches-mobile-cards">
-            {matches.map((match) => (
-              <article key={`mobile-${match.id}`} className="admin-match-card">
-                <div className="admin-match-card-header">
-                  <div>
-                    <span>{formatDate(match.played_at)}</span>
-                    <h3>{match.level}</h3>
+                      {renderTeam(match.team_b)}
+                    </div>
                   </div>
 
-                  <span className={`admin-match-status ${match.status}`}>
-                    {getStatusText(match.status)}
-                  </span>
-                </div>
+                  <div className="admin-result-meta">
+                    <span>
+                      Ganador: <strong>{getWinnerText(match.winner_team)}</strong>
+                    </span>
 
-                <div className="admin-match-card-score">
-                  {match.score || "-"}
-                </div>
-
-                <div className="admin-match-card-teams">
-                  <div
-                    className={
-                      match.winner_team === "A"
-                        ? "admin-match-card-team winner"
-                        : "admin-match-card-team"
-                    }
-                  >
-                    <span>Equipo A</span>
-                    <strong>{renderTeam(match.team_a)}</strong>
+                    <span>
+                      Subido por: <strong>{match.submitted_by || "-"}</strong>
+                    </span>
                   </div>
 
-                  <div
-                    className={
-                      match.winner_team === "B"
-                        ? "admin-match-card-team winner"
-                        : "admin-match-card-team"
-                    }
-                  >
-                    <span>Equipo B</span>
-                    <strong>{renderTeam(match.team_b)}</strong>
+                  <div className="admin-result-actions">
+                    <button
+                      className="admin-delete-match-btn"
+                      type="button"
+                      onClick={() => deleteMatch(match.id)}
+                      disabled={actionLoadingId === match.id}
+                    >
+                      {actionLoadingId === match.id
+                        ? "Eliminando..."
+                        : "Eliminar resultado"}
+                    </button>
                   </div>
-                </div>
-
-                <div className="admin-match-card-meta">
-                  <span>
-                    Ganador: <strong>{getWinnerText(match.winner_team)}</strong>
-                  </span>
-
-                  <span>
-                    Club: <strong>{match.club || "-"}</strong>
-                  </span>
-
-                  <span>
-                    Subido por: <strong>{match.submitted_by || "-"}</strong>
-                  </span>
-                </div>
-
-                <button
-                  className="admin-delete-match-btn"
-                  onClick={() => deleteMatch(match.id)}
-                  disabled={actionLoadingId === match.id}
-                >
-                  {actionLoadingId === match.id
-                    ? "Eliminando..."
-                    : "Eliminar resultado"}
-                </button>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </div>
       )}

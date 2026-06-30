@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { authFetch } from "../../utils/authFetch";
 
 export const AdminRules = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
-    title: "Normas de Fuera de Pista",
+    title: "",
     content: "",
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -20,22 +19,17 @@ export const AdminRules = () => {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${backendUrl}/api/rules`);
-      const data = await response.json();
+      const data = await authFetch(`${backendUrl}/api/rules`);
 
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudieron cargar las normas");
-      }
+      if (!data) return;
 
       setFormData({
-        title: data.title || "Normas de Fuera de Pista",
+        title: data.title || "",
         content: data.content || "",
       });
     } catch (error) {
       console.error(error);
-      setError(
-        "No se pudieron cargar las normas actuales, pero puedes escribir unas nuevas."
-      );
+      setError(error.message || "Error al cargar normas");
     } finally {
       setLoading(false);
     }
@@ -48,34 +42,43 @@ export const AdminRules = () => {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setFormData((prev) => ({
-      ...prev,
+    setFormData({
+      ...formData,
       [name]: value,
-    }));
+    });
   };
 
-  const handleSave = async (event) => {
+  const saveRules = async (event) => {
     event.preventDefault();
 
-    setSaving(true);
     setMessage("");
     setError("");
 
+    if (!formData.title.trim()) {
+      setError("El título de las normas es obligatorio.");
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      setError("El contenido de las normas es obligatorio.");
+      return;
+    }
+
     try {
-      const response = await fetch(`${backendUrl}/api/admin/rules`, {
+      setSaving(true);
+
+      const data = await authFetch(`${backendUrl}/api/admin/rules`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          title: formData.title.trim(),
+          content: formData.content.trim(),
+        }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.msg || "No se pudieron guardar las normas");
-      }
+      if (!data) return;
 
       setMessage("Normas actualizadas correctamente.");
     } catch (error) {
@@ -87,101 +90,91 @@ export const AdminRules = () => {
   };
 
   return (
-    <section className="admin-rules-page">
-      <div className="admin-rules-hero">
+    <section className="admin-page">
+      <div className="admin-hero">
         <div>
           <span>Panel admin</span>
-          <h1>Editar normas</h1>
+
+          <h1>Normas</h1>
+
           <p>
-            Escribe y actualiza las normas públicas del ranking. Este contenido
-            aparecerá en la página de normas.
+            Escribe las normas que verán los jugadores en la sección de
+            normativa.
           </p>
         </div>
 
-        <div className="admin-rules-hero-card">
-          <strong>Rules</strong>
-          <span>Contenido público</span>
+        <div className="admin-hero-card">
+          <strong>📋</strong>
+          <span>Normativa</span>
         </div>
       </div>
 
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
 
-      <div className="admin-rules-layout">
-        <aside className="admin-rules-info-card">
-          <h2>Guía rápida</h2>
-
-          <div className="admin-rules-info-list">
-            <div>
-              <strong>Formato</strong>
-              <span>Explica cómo se juegan los partidos y cómo funciona el ranking.</span>
-            </div>
-
-            <div>
-              <strong>Comunidad</strong>
-              <span>Añade normas de respeto, puntualidad y comportamiento.</span>
-            </div>
-          </div>
-
-          <div className="admin-rules-preview-link">
-            <Link to="/rules">Ver página pública →</Link>
-          </div>
-        </aside>
-
-        <form className="admin-rules-form-card" onSubmit={handleSave}>
+      {loading ? (
+        <div className="admin-state">
+          <p>Cargando normas...</p>
+        </div>
+      ) : (
+        <form className="admin-rules-form-card" onSubmit={saveRules}>
           <div className="admin-rules-form-header">
-            <h2>Contenido de las normas</h2>
-            <p>
-              Puedes escribir libremente. Cada salto de línea se mostrará como
-              un párrafo separado.
-            </p>
+            <div>
+              <h2>Editar normativa</h2>
+
+              <p>
+                Escribe cada norma empezando por un número: 1., 2., 3. Cada
+                punto aparecerá como una card independiente para los jugadores.
+              </p>
+            </div>
           </div>
 
-          {loading && (
-            <div className="info-message">
-              Cargando normas actuales...
-            </div>
-          )}
-
-          <div className="admin-rules-form-group">
+          <div className="form-group">
             <label>Título</label>
+
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
-              placeholder="Normas de Fuera de Pista"
-              required
+              placeholder="Ej: Normas de Fuera de Pista"
             />
           </div>
 
-          <div className="admin-rules-form-group">
+          <div className="form-group">
             <label>Contenido</label>
+
             <textarea
               name="content"
               value={formData.content}
               onChange={handleChange}
-              rows="18"
               placeholder={`Ejemplo:
 
-1. Los partidos se juegan en formato 2 vs 2.
-2. El ranking es individual.
-3. Los jugadores deben respetar horarios, rivales y normas del club.`}
-              required
+1. Los jugadores deberán apuntarse desde la sección Jugar.
+
+2. Cuando haya 4 jugadores, el partido se cerrará automáticamente.
+
+3. Uno de los jugadores deberá subir el resultado al terminar.`}
+              rows="18"
             />
           </div>
 
-          <div className="admin-rules-actions">
-            <button className="admin-rules-save-btn" disabled={saving}>
-              {saving ? "Guardando..." : "Guardar normas"}
-            </button>
+          <div className="admin-rules-help-card">
+            <h3>Formato recomendado</h3>
 
-            <Link to="/rules" className="admin-rules-secondary-btn">
-              Ver normas
-            </Link>
+            <div>
+              <span>1. Primera norma</span>
+              <span>2. Segunda norma</span>
+              <span>3. Tercera norma</span>
+              <span>Cada punto será una card</span>
+            </div>
           </div>
+
+          <button className="upload-result-submit-btn" disabled={saving}>
+            {saving ? "Guardando normas..." : "Guardar normas"}
+          </button>
         </form>
-      </div>
+      )}
     </section>
   );
 };

@@ -48,6 +48,15 @@ export const AdminRules = () => {
     });
   };
 
+  const getRulesPreview = () => {
+    if (!formData.content.trim()) return [];
+
+    return formData.content
+      .split(/\n\s*\n/)
+      .map((rule) => rule.trim())
+      .filter(Boolean);
+  };
+
   const saveRules = async (event) => {
     event.preventDefault();
 
@@ -89,21 +98,25 @@ export const AdminRules = () => {
     }
   };
 
+  const rulesPreview = getRulesPreview();
+
   return (
     <section className="admin-page">
       <div className="admin-hero">
         <div>
-          <span>Panel admin</span>
+          <span className="section-kicker">Panel admin</span>
+
           <h1>Normas</h1>
+
           <p>
-            Escribe las normas que verán los jugadores en la sección de
-            normativa.
+            Edita las normas que verán los jugadores en la sección pública de
+            normativa. Mantén el texto claro, directo y fácil de entender.
           </p>
         </div>
 
         <div className="admin-hero-card">
-          <strong>📋</strong>
           <span>Normativa</span>
+          <strong>📋</strong>
         </div>
       </div>
 
@@ -115,62 +128,110 @@ export const AdminRules = () => {
           <p>Cargando normas...</p>
         </div>
       ) : (
-        <form className="admin-rules-form-card" onSubmit={saveRules}>
-          <div className="admin-rules-form-header">
-            <div>
-              <h2>Editar normativa</h2>
-              <p>
-                Escribe cada norma empezando por un número: 1., 2., 3. Cada
-                punto aparecerá como una card independiente para los jugadores.
-              </p>
+        <div className="admin-rules-layout">
+          <form className="admin-rules-form-card" onSubmit={saveRules}>
+            <div className="admin-rules-form-header">
+              <div>
+                <span className="section-kicker">Editar</span>
+
+                <h2>Editar normativa</h2>
+
+                <p>
+                  Escribe cada norma separada por un espacio en blanco. Cada
+                  bloque aparecerá como una card independiente para los
+                  jugadores.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label>Título</label>
+            <div className="form-group">
+              <label>Título</label>
 
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="Ej: Normas de Fuera de Pista"
-            />
-          </div>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Ej: Normas de Fuera de Pista"
+              />
+            </div>
 
-          <div className="form-group">
-            <label>Contenido</label>
+            <div className="form-group">
+              <label>Contenido</label>
 
-            <textarea
-              name="content"
-              value={formData.content}
-              onChange={handleChange}
-              placeholder={`Ejemplo:
+              <textarea
+                name="content"
+                value={formData.content}
+                onChange={handleChange}
+                placeholder={`Ejemplo:
 
 1. Los jugadores deberán apuntarse desde la sección Jugar.
 
 2. Cuando haya 4 jugadores, el partido se cerrará automáticamente.
 
 3. Uno de los jugadores deberá subir el resultado al terminar.`}
-              rows="18"
-            />
-          </div>
-
-          <div className="admin-rules-help-card">
-            <h3>Formato recomendado</h3>
-
-            <div>
-              <span>1. Primera norma</span>
-              <span>2. Segunda norma</span>
-              <span>3. Tercera norma</span>
-              <span>Cada punto será una card</span>
+                rows="18"
+              />
             </div>
-          </div>
 
-          <button className="upload-result-submit-btn" disabled={saving}>
-            {saving ? "Guardando normas..." : "Guardar normas"}
-          </button>
-        </form>
+            <div className="admin-rules-footer">
+              <div>
+                <span>{formData.content.length} caracteres</span>
+                <span>{rulesPreview.length} bloques detectados</span>
+              </div>
+
+              <button
+                className="upload-result-submit-btn"
+                type="submit"
+                disabled={saving}
+              >
+                {saving ? "Guardando normas..." : "Guardar normas"}
+              </button>
+            </div>
+          </form>
+
+          <aside className="admin-rules-side-panel">
+            <div className="admin-rules-help-card">
+              <span className="section-kicker">Formato</span>
+
+              <h3>Formato recomendado</h3>
+
+              <div>
+                <span>1. Primera norma</span>
+                <span>2. Segunda norma</span>
+                <span>3. Tercera norma</span>
+                <span>Deja una línea en blanco entre normas</span>
+              </div>
+            </div>
+
+            <div className="admin-rules-preview-card">
+              <span className="section-kicker">Vista previa</span>
+
+              <h3>{formData.title || "Título de las normas"}</h3>
+
+              {rulesPreview.length === 0 ? (
+                <p className="admin-rules-preview-empty">
+                  Escribe normas para ver una vista previa.
+                </p>
+              ) : (
+                <div className="admin-rules-preview-list">
+                  {rulesPreview.slice(0, 5).map((rule, index) => (
+                    <div key={`${rule}-${index}`}>
+                      <strong>{index + 1}</strong>
+                      <p>{rule}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {rulesPreview.length > 5 && (
+                <p className="admin-rules-preview-more">
+                  + {rulesPreview.length - 5} normas más
+                </p>
+              )}
+            </div>
+          </aside>
+        </div>
       )}
     </section>
   );

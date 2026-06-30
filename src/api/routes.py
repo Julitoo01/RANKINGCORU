@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, timedelta
 from sqlalchemy import or_
 
 from api.models import (
@@ -43,7 +43,6 @@ def get_current_profile():
     return user.profile
 
 
-
 def create_notification(user_id, title, message, notification_type, open_match_id=None):
     notification = Notification(
         user_id=user_id,
@@ -56,6 +55,7 @@ def create_notification(user_id, title, message, notification_type, open_match_i
 
     db.session.add(notification)
     return notification
+
 
 def expire_old_open_matches():
     now = datetime.utcnow()
@@ -85,6 +85,7 @@ def expire_old_open_matches():
 
     return expired_count
 
+
 def get_ranking_sorted_players():
     players = PlayerProfile.query.filter_by(status="approved").all()
 
@@ -111,12 +112,12 @@ def get_profile_ranking_index(profile_id):
 
 def close_open_match_if_full(open_match):
     if open_match.status != "open":
-        return
+        return False
 
     joined_players = [item.player_profile for item in open_match.players]
 
     if len(joined_players) < open_match.max_players:
-        return
+        return False
 
     ranked_players = sorted(
         joined_players,
@@ -124,7 +125,7 @@ def close_open_match_if_full(open_match):
     )
 
     if len(ranked_players) != 4:
-        return
+        return False
 
     open_match.team_a_player_1_id = ranked_players[0].id
     open_match.team_a_player_2_id = ranked_players[2].id
@@ -139,16 +140,18 @@ def close_open_match_if_full(open_match):
         if player and player.user_id:
             create_notification(
                 user_id=player.user_id,
-                title="Partido cerrado",
+                title="Partido completo",
                 message=(
-                    f"Ya están los 4 jugadores para el partido de {open_match.level} "
-                    f"en {open_match.club}. Las parejas se han creado automáticamente."
+                    f"El partido en {open_match.club} ya está completo. "
+                    f"Sois {len(ranked_players)}/{open_match.max_players} jugadores. "
+                    f"Las parejas se han creado automáticamente."
                 ),
                 notification_type="open_match_closed",
                 open_match_id=open_match.id,
             )
 
-    db.session.commit()
+    return True
+
 
 def get_match_validation_team_ids(match):
     team_a_ids = [
@@ -660,8 +663,6 @@ def create_match():
     if len(player_ids) != len(set(player_ids)):
         return jsonify({"msg": "No puedes repetir jugadores en el mismo partido"}), 400
 
-    # Seguridad principal:
-    # Solo uno de los 4 jugadores del partido puede subir el resultado.
     if current_profile.id not in player_ids:
         return jsonify(
             {
@@ -693,8 +694,6 @@ def create_match():
         if None in open_match_player_ids:
             return jsonify({"msg": "El partido abierto no tiene parejas creadas"}), 400
 
-        # Seguridad extra:
-        # Si viene de partido abierto, los jugadores tienen que ser exactamente los 4 apuntados.
         if set(player_ids) != set(open_match_player_ids):
             return jsonify(
                 {"msg": "Los jugadores no coinciden con el partido abierto"}
@@ -729,9 +728,6 @@ def create_match():
         winner_team=winner_team,
         club=data.get("club", "").strip(),
         played_at=played_at,
-
-        # Ya no queda pendiente.
-        # Se confirma automáticamente al subirlo uno de los 4 jugadores.
         status="confirmed",
         submitted_by_id=current_user.id,
         submitted_by_profile_id=current_profile.id,
@@ -742,7 +738,6 @@ def create_match():
     db.session.add(match)
     db.session.flush()
 
-    # Si viene de partido abierto, lo marcamos como resultado subido.
     if open_match:
         open_match.result_match_id = match.id
 
@@ -756,7 +751,6 @@ def create_match():
         winner_ids = team_b_ids
         loser_ids = team_a_ids
 
-    # Actualizamos estadísticas al momento.
     for player_id in player_ids:
         player = players_by_id[player_id]
         player.matches_played = (player.matches_played or 0) + 1
@@ -775,6 +769,12 @@ def create_match():
             "open_match": open_match.serialize() if open_match else None,
         }
     ), 201
+
+
+# =========================
+# NOTIFICATIONS
+# =========================
+
 @api.route("/notifications", methods=["GET"])
 @jwt_required()
 def get_notifications():
@@ -820,6 +820,7 @@ def mark_notification_as_read(notification_id):
             "notification": notification.serialize(),
         }
     ), 200
+
 
 @api.route("/matches/<int:match_id>/confirm", methods=["POST"])
 @jwt_required()
@@ -900,6 +901,7 @@ def reject_match(match_id):
 # =========================
 # OPEN MATCHES
 # =========================
+
 @api.route("/open-matches", methods=["GET"])
 @jwt_required()
 def get_open_matches():
@@ -912,14 +914,9 @@ def get_open_matches():
 
     query = OpenMatch.query
 
-    # En la pantalla "Jugar" nunca queremos mostrar partidos que ya tienen resultado.
-    # Si ya se subió resultado, ese partido debe pasar a "Partidos".
     query = query.filter(OpenMatch.result_match_id.is_(None))
-
-    # Tampoco mostramos partidos cancelados o caducados en "Jugar".
     query = query.filter(OpenMatch.status != "cancelled")
 
-    # Si NO es admin, solo ve partidos de su nivel.
     if not current_user.is_admin:
         if not current_user.profile:
             return jsonify({"msg": "Perfil no encontrado"}), 404
@@ -1011,6 +1008,7 @@ def admin_create_open_match():
         }
     ), 201
 
+
 @api.route("/open-matches/<int:open_match_id>/join", methods=["POST"])
 @jwt_required()
 def join_open_match(open_match_id):
@@ -1088,6 +1086,8 @@ def join_open_match(open_match_id):
     db.session.add(open_match_player)
     db.session.flush()
 
+    updated_players_count = current_players_count + 1
+
     player_name = (
         current_profile.user.nickname
         if current_profile.user and current_profile.user.nickname
@@ -1102,25 +1102,33 @@ def join_open_match(open_match_id):
                 user_id=player_profile.user_id,
                 title="Nuevo jugador apuntado",
                 message=(
-                    f"{player_name} se ha unido al partido de {open_match.level} "
-                    f"en {open_match.club}. Ya sois {current_players_count + 1}/4 jugadores."
+                    f"{player_name} se ha unido al partido en {open_match.club}. "
+                    f"Ya sois {updated_players_count}/{open_match.max_players} jugadores."
                 ),
                 notification_type="open_match_joined",
                 open_match_id=open_match.id,
             )
 
-    db.session.commit()
+    was_closed = close_open_match_if_full(open_match)
 
+    db.session.commit()
     db.session.refresh(open_match)
 
-    close_open_match_if_full(open_match)
+    if was_closed:
+        response_message = (
+            "Te has unido al partido correctamente. "
+            "El partido ya está completo y las parejas se han creado automáticamente."
+        )
+    else:
+        response_message = "Te has unido al partido correctamente"
 
     return jsonify(
         {
-            "msg": "Te has unido al partido correctamente",
+            "msg": response_message,
             "open_match": open_match.serialize(),
         }
     ), 200
+
 
 @api.route("/open-matches/<int:open_match_id>/leave", methods=["DELETE"])
 @jwt_required()
@@ -1170,6 +1178,7 @@ def leave_open_match(open_match_id):
             "open_match": open_match.serialize(),
         }
     ), 200
+
 
 @api.route("/admin/open-matches/<int:open_match_id>", methods=["DELETE"])
 @jwt_required()
