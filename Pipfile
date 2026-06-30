@@ -18,8 +18,8 @@ flask-admin = "==2.0.0"
 typing-extensions = "*"
 wtforms = "==3.1.2"
 sqlalchemy = "*"
-flask-cors = "*"
 flask-jwt-extended = "*"
+flask-cors = "*"
 
 [requires]
 python_version = "3.13"

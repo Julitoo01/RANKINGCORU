@@ -30,15 +30,13 @@ app.config["JWT_SECRET_KEY"] = os.getenv("FLASK_APP_KEY", "super-secret-key")
 jwt = JWTManager(app)
 
 # CORS
+# En desarrollo lo dejamos abierto para evitar problemas cada vez que Codespaces cambia la URL.
+# Cuando publiques la app, lo cerramos a la URL final real.
 CORS(
     app,
     resources={
         r"/api/*": {
-            "origins": [
-                "https://crispy-sniffle-g4v474jpxp7g2v9v4-3000.app.github.dev",
-                "http://localhost:3000",
-                "http://localhost:5173",
-            ],
+            "origins": "*",
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
         }
