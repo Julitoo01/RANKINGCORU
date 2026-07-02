@@ -362,12 +362,18 @@ def register():
     nickname = data.get("nickname").strip()
 
     existing_email = User.query.filter_by(email=email).first()
+
     if existing_email:
         return jsonify({"msg": "Ya existe un usuario con este email"}), 400
 
-    existing_nickname = User.query.filter_by(nickname=nickname).first()
+    existing_nickname = User.query.filter(
+        db.func.lower(User.nickname) == nickname.lower()
+    ).first()
+
     if existing_nickname:
-        return jsonify({"msg": "Ya existe un usuario con este nickname"}), 400
+        return jsonify(
+            {"msg": "Este nickname ya está en uso. Elige otro."}
+        ), 400
 
     now = datetime.utcnow()
 

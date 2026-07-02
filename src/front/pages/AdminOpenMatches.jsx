@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
+import { getMatchTimeRange } from "../utils/time";
 
 export const AdminOpenMatches = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -113,7 +114,9 @@ export const AdminOpenMatches = () => {
 
       if (!data) return;
 
-      setMessage("Partido abierto creado correctamente. Se ha notificado a los jugadores de ese nivel.");
+      setMessage(
+        "Partido abierto creado correctamente. Se ha notificado a los jugadores de ese nivel."
+      );
 
       setForm({
         level: "Bronce",
@@ -252,9 +255,9 @@ export const AdminOpenMatches = () => {
           <span className="section-kicker">Admin</span>
           <h1>Partidos abiertos</h1>
           <p>
-            Crea partidos para que los jugadores se apunten. Cuando se llenen con
-            4 jugadores, se cerrarán automáticamente y se crearán las parejas por
-            ranking: 1 + 3 vs 2 + 4.
+            Crea partidos para que los jugadores se apunten. Cada pista dura 1
+            hora y 30 minutos. Cuando se llenen con 4 jugadores, se cerrarán
+            automáticamente y se crearán las parejas por ranking: 1 + 3 vs 2 + 4.
           </p>
         </div>
       </section>
@@ -296,13 +299,19 @@ export const AdminOpenMatches = () => {
           </div>
 
           <div className="form-group">
-            <label>Hora</label>
+            <label>Hora de inicio</label>
             <input
               type="time"
               name="match_time"
               value={form.match_time}
               onChange={handleChange}
             />
+
+            {form.match_time ? (
+              <small>Horario de pista: {getMatchTimeRange(form.match_time)}</small>
+            ) : (
+              <small>La pista durará siempre 1 hora y 30 minutos.</small>
+            )}
           </div>
 
           <div className="form-group admin-open-matches-description">
@@ -390,7 +399,7 @@ export const AdminOpenMatches = () => {
 
                     <p>
                       {formatDate(openMatch.match_date)} ·{" "}
-                      {openMatch.match_time}
+                      {getMatchTimeRange(openMatch.match_time)}
                     </p>
                   </div>
 

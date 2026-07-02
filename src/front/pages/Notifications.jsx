@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
+import { getMatchTimeRange } from "../utils/time";
 
 export const Notifications = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -214,8 +215,11 @@ export const Notifications = () => {
                           {openMatch.club || "club no indicado"}
                         </strong>
                         . Día{" "}
-                        <strong>{formatOpenMatchDate(openMatch)}</strong> a las{" "}
-                        <strong>{openMatch.match_time || "-"}</strong>. Apuntados{" "}
+                        <strong>{formatOpenMatchDate(openMatch)}</strong> de{" "}
+                        <strong>
+                          {getMatchTimeRange(openMatch.match_time)}
+                        </strong>
+                        . Apuntados{" "}
                         <strong>{getPlayersText(openMatch)}</strong>.
                       </p>
                     ) : (

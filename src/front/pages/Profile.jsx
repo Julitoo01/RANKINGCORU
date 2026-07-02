@@ -7,15 +7,23 @@ export const Profile = () => {
   const navigate = useNavigate();
 
   const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const loadProfile = async () => {
     try {
+      setLoading(true);
       setError("");
+      setMessage("");
 
       const data = await authFetch(`${backendUrl}/api/profile`);
 
-      if (!data) return;
+      if (!data) {
+        setProfileData(null);
+        return;
+      }
 
       const userData = data.user || data;
       const playerProfile = data.profile || data.user?.profile || null;
@@ -33,6 +41,8 @@ export const Profile = () => {
     } catch (error) {
       console.error(error);
       setError(error.message || "Error al cargar el perfil");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,6 +63,9 @@ export const Profile = () => {
 
     if (!file) return;
 
+    setMessage("");
+    setError("");
+
     if (!file.type.startsWith("image/")) {
       setError("El archivo tiene que ser una imagen.");
       return;
@@ -67,7 +80,9 @@ export const Profile = () => {
 
     reader.onloadend = async () => {
       try {
+        setPhotoLoading(true);
         setError("");
+        setMessage("");
 
         const data = await authFetch(`${backendUrl}/api/profile/photo`, {
           method: "PUT",
@@ -82,7 +97,7 @@ export const Profile = () => {
         if (!data) return;
 
         const updatedUser = data.user;
-        const updatedProfile = updatedUser.profile || profileData.profile;
+        const updatedProfile = updatedUser.profile || profileData?.profile;
 
         setProfileData({
           user: updatedUser,
@@ -94,9 +109,14 @@ export const Profile = () => {
         if (updatedProfile) {
           localStorage.setItem("profile", JSON.stringify(updatedProfile));
         }
+
+        setMessage("Foto de perfil actualizada correctamente.");
       } catch (error) {
         console.error(error);
         setError(error.message || "Error al subir la foto de perfil");
+      } finally {
+        setPhotoLoading(false);
+        event.target.value = "";
       }
     };
 
@@ -111,12 +131,38 @@ export const Profile = () => {
     return "Estado pendiente";
   };
 
-  if (error) {
+  const getProfileStatusClass = (status) => {
+    if (status === "approved") return "approved";
+    if (status === "rejected") return "rejected";
+
+    return "pending";
+  };
+
+  if (loading) {
+    return (
+      <section className="profile-page">
+        <div className="profile-loading-card">
+          <h1>Mi perfil</h1>
+          <p>Cargando perfil...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (error && !profileData) {
     return (
       <section className="profile-page">
         <div className="profile-error-card">
           <h1>Mi perfil</h1>
           <div className="error-message">{error}</div>
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={loadProfile}
+          >
+            Volver a intentar
+          </button>
         </div>
       </section>
     );
@@ -125,9 +171,20 @@ export const Profile = () => {
   if (!profileData) {
     return (
       <section className="profile-page">
-        <div className="profile-loading-card">
+        <div className="profile-error-card">
           <h1>Mi perfil</h1>
-          <p>Cargando perfil...</p>
+
+          <div className="error-message">
+            No hemos podido encontrar tu perfil.
+          </div>
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={handleLogout}
+          >
+            Volver a iniciar sesión
+          </button>
         </div>
       </section>
     );
@@ -139,6 +196,9 @@ export const Profile = () => {
 
   return (
     <section className="profile-page">
+      {message && <div className="success-message">{message}</div>}
+      {error && <div className="error-message">{error}</div>}
+
       <div className="profile-hero">
         <div className="profile-main-info">
           <div>
@@ -154,11 +214,12 @@ export const Profile = () => {
             </div>
 
             <label className="profile-photo-upload-btn">
-              Cambiar foto
+              {photoLoading ? "Subiendo..." : "Cambiar foto"}
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleProfileImageChange}
+                disabled={photoLoading}
               />
             </label>
           </div>
@@ -173,9 +234,9 @@ export const Profile = () => {
             </p>
 
             <div
-              className={`profile-status-pill ${
-                isApproved ? "approved" : "pending"
-              }`}
+              className={`profile-status-pill ${getProfileStatusClass(
+                profileStatus
+              )}`}
             >
               {getProfileStatusText(profileStatus)}
             </div>
@@ -259,7 +320,10 @@ export const Profile = () => {
             </p>
 
             {isApproved ? (
-              <Link to="/open-matches" className="primary-button profile-info-action">
+              <Link
+                to="/open-matches"
+                className="primary-button profile-info-action"
+              >
                 Ir a jugar
               </Link>
             ) : (

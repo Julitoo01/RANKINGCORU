@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
+import { getMatchTimeRange } from "../utils/time";
 
 export const UploadResult = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const openMatchId = searchParams.get("open_match_id");
 
@@ -204,6 +206,12 @@ export const UploadResult = () => {
         "Resultado enviado correctamente. El ranking se actualizará automáticamente."
       );
 
+      window.dispatchEvent(new Event("notificationsUpdated"));
+
+      setTimeout(() => {
+        navigate("/matches");
+      }, 1200);
+
       if (!isAutoFilled) {
         setFormData({
           team_a_player_1_id: "",
@@ -279,7 +287,7 @@ export const UploadResult = () => {
       {isAutoFilled && openMatch && (
         <div className="success-message">
           Partido cargado automáticamente: {openMatch.level} · {openMatch.club} ·{" "}
-          {openMatch.match_date} · {openMatch.match_time}
+          {openMatch.match_date} · {getMatchTimeRange(openMatch.match_time)}
         </div>
       )}
 
@@ -301,7 +309,7 @@ export const UploadResult = () => {
               </h2>
 
               <p>
-                {openMatch.match_date} · {openMatch.match_time}
+                {openMatch.match_date} · {getMatchTimeRange(openMatch.match_time)}
               </p>
             </div>
           )}

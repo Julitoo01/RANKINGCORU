@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
+import { getMatchTimeRange } from "../utils/time";
 
 export const OpenMatches = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -328,7 +329,7 @@ export const OpenMatches = () => {
 
                         <p>
                           {openMatch.club} · {formatDate(openMatch.match_date)} ·{" "}
-                          {openMatch.match_time}
+                          {getMatchTimeRange(openMatch.match_time)}
                         </p>
                       </div>
 
@@ -473,14 +474,15 @@ export const OpenMatches = () => {
               </div>
 
               <div>
-                <strong>Hora</strong>
-                <span>{selectedMatchToJoin.match_time}</span>
+                <strong>Horario</strong>
+                <span>{getMatchTimeRange(selectedMatchToJoin.match_time)}</span>
               </div>
             </div>
 
             <p>
-              Si confirmas, quedarás apuntado a este partido. Cuando haya 4
-              jugadores, se cerrará automáticamente y se crearán las parejas.
+              Si confirmas, quedarás apuntado a este partido. La pista dura
+              1 hora y 30 minutos. Cuando haya 4 jugadores, se cerrará
+              automáticamente y se crearán las parejas.
             </p>
 
             <div className="join-modal-actions">
@@ -534,8 +536,8 @@ export const OpenMatches = () => {
               </div>
 
               <div>
-                <strong>Hora</strong>
-                <span>{selectedMatchToLeave.match_time}</span>
+                <strong>Horario</strong>
+                <span>{getMatchTimeRange(selectedMatchToLeave.match_time)}</span>
               </div>
             </div>
 
