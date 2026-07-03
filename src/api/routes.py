@@ -451,7 +451,7 @@ def login():
 # =========================
 
 @api.route("/profile", methods=["GET"])
-@jwt_required()
+@jwt_required
 def get_profile():
     user = get_current_user()
 
@@ -462,7 +462,7 @@ def get_profile():
 
 
 @api.route("/profile/photo", methods=["PUT"])
-@jwt_required()
+@jwt_required
 def update_profile_photo():
     user = get_current_user()
 
@@ -500,7 +500,7 @@ def update_profile_photo():
 # =========================
 
 @api.route("/seasons", methods=["GET"])
-@jwt_required()
+@jwt_required
 def get_seasons():
     assign_old_matches_to_active_season()
 
@@ -510,7 +510,7 @@ def get_seasons():
 
 
 @api.route("/ranking", methods=["GET"])
-@jwt_required()
+@jwt_required
 def get_ranking():
     assign_old_matches_to_active_season()
 
@@ -562,7 +562,7 @@ def get_ranking():
 
 
 @api.route("/players", methods=["GET"])
-@jwt_required()
+@jwt_required
 def get_players():
     players = (
         PlayerProfile.query.filter_by(status="approved")
@@ -578,7 +578,7 @@ def get_players():
 # =========================
 
 @api.route("/matches", methods=["GET"])
-@jwt_required()
+@jwt_required
 def get_matches():
     assign_old_matches_to_active_season()
 
@@ -598,7 +598,7 @@ def get_matches():
 
 
 @api.route("/matches", methods=["POST"])
-@jwt_required()
+@jwt_required
 def create_match():
     active_season = assign_old_matches_to_active_season()
 
@@ -782,7 +782,7 @@ def create_match():
 # =========================
 
 @api.route("/notifications", methods=["GET"])
-@jwt_required()
+@jwt_required
 def get_notifications():
     current_user = get_current_user()
 
@@ -802,7 +802,7 @@ def get_notifications():
 
 
 @api.route("/notifications/<int:notification_id>/read", methods=["PUT"])
-@jwt_required()
+@jwt_required
 def mark_notification_as_read(notification_id):
     current_user = get_current_user()
 
@@ -829,7 +829,7 @@ def mark_notification_as_read(notification_id):
 
 
 @api.route("/matches/<int:match_id>/confirm", methods=["POST"])
-@jwt_required()
+@jwt_required
 def confirm_match(match_id):
     current_profile = get_current_profile()
 
@@ -868,7 +868,7 @@ def confirm_match(match_id):
 
 
 @api.route("/matches/<int:match_id>/reject", methods=["POST"])
-@jwt_required()
+@jwt_required
 def reject_match(match_id):
     current_profile = get_current_profile()
 
@@ -909,7 +909,7 @@ def reject_match(match_id):
 # =========================
 
 @api.route("/open-matches", methods=["GET"])
-@jwt_required()
+@jwt_required
 def get_open_matches():
     expire_old_open_matches()
 
@@ -938,7 +938,7 @@ def get_open_matches():
 
 
 @api.route("/admin/open-matches", methods=["POST"])
-@jwt_required()
+@jwt_required
 def admin_create_open_match():
     expire_old_open_matches()
 
@@ -1016,7 +1016,7 @@ def admin_create_open_match():
 
 
 @api.route("/open-matches/<int:open_match_id>/join", methods=["POST"])
-@jwt_required()
+@jwt_required
 def join_open_match(open_match_id):
     expire_old_open_matches()
 
@@ -1137,7 +1137,7 @@ def join_open_match(open_match_id):
 
 
 @api.route("/open-matches/<int:open_match_id>/leave", methods=["DELETE"])
-@jwt_required()
+@jwt_required
 def leave_open_match(open_match_id):
     current_profile = get_current_profile()
 
@@ -1187,7 +1187,7 @@ def leave_open_match(open_match_id):
 
 
 @api.route("/admin/open-matches/<int:open_match_id>", methods=["DELETE"])
-@jwt_required()
+@jwt_required
 def admin_delete_open_match(open_match_id):
     current_user_id = get_jwt_identity()
 
@@ -1210,7 +1210,7 @@ def admin_delete_open_match(open_match_id):
 # =========================
 
 @api.route("/rules", methods=["GET"])
-@jwt_required()
+@jwt_required
 def get_rules():
     rules = Rules.query.first()
 
@@ -1226,7 +1226,7 @@ def get_rules():
 
 
 @api.route("/admin/rules", methods=["PUT"])
-@jwt_required()
+@jwt_required
 def update_rules():
     current_user_id = get_jwt_identity()
 
@@ -1268,7 +1268,7 @@ def update_rules():
 # =========================
 
 @api.route("/admin/players", methods=["GET"])
-@jwt_required()
+@jwt_required
 def admin_get_players():
     current_user_id = get_jwt_identity()
 
@@ -1292,7 +1292,7 @@ def admin_get_players():
 
 
 @api.route("/admin/players/<int:profile_id>", methods=["PUT"])
-@jwt_required()
+@jwt_required
 def admin_update_player(profile_id):
     current_user_id = get_jwt_identity()
 
@@ -1393,7 +1393,7 @@ def admin_update_player(profile_id):
 
 
 @api.route("/admin/players/<int:profile_id>", methods=["DELETE"])
-@jwt_required()
+@jwt_required
 def admin_delete_player(profile_id):
     current_user_id = get_jwt_identity()
 
@@ -1440,7 +1440,7 @@ def admin_delete_player(profile_id):
 # =========================
 
 @api.route("/admin/matches", methods=["GET"])
-@jwt_required()
+@jwt_required
 def admin_get_matches():
     current_user_id = get_jwt_identity()
 
@@ -1466,7 +1466,7 @@ def admin_get_matches():
 
 
 @api.route("/admin/matches/<int:match_id>", methods=["DELETE"])
-@jwt_required()
+@jwt_required
 def admin_delete_match(match_id):
     current_user_id = get_jwt_identity()
 
@@ -1489,7 +1489,7 @@ def admin_delete_match(match_id):
 
 
 @api.route("/admin/recalculate-ranking", methods=["POST"])
-@jwt_required()
+@jwt_required
 def admin_recalculate_ranking():
     current_user_id = get_jwt_identity()
 
@@ -1507,7 +1507,7 @@ def admin_recalculate_ranking():
 # =========================
 
 @api.route("/admin/seasons/create", methods=["POST"])
-@jwt_required()
+@jwt_required
 def admin_create_season():
     current_user_id = get_jwt_identity()
 
@@ -1549,7 +1549,7 @@ def admin_create_season():
 
 
 @api.route("/admin/seasons/close", methods=["POST"])
-@jwt_required()
+@jwt_required
 def admin_close_current_season():
     current_user_id = get_jwt_identity()
 
