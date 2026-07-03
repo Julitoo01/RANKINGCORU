@@ -1,12 +1,25 @@
+const API_URL = "https://rankingcoru.onrender.com";
+
 export const authFetch = async (url, options = {}) => {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(url, {
+  const finalUrl = url.startsWith("http") ? url : `${API_URL}${url}`;
+
+  const headers = {
+    ...(options.headers || {}),
+  };
+
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(finalUrl, {
     ...options,
-    headers: {
-      ...(options.headers || {}),
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
   });
 
   const contentType = response.headers.get("content-type");
