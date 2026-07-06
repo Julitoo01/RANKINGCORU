@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required as _jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from sqlalchemy import or_
@@ -18,6 +18,22 @@ from api.models import (
 )
 
 api = Blueprint("api", __name__)
+
+
+def jwt_required(fn):
+    """
+    Compatibilidad entre Flask-JWT-Extended v3 y v4.
+
+    Permite usar siempre:
+        @jwt_required
+
+    Evita errores de endpoints repetidos tipo:
+        api.wrapper
+    """
+    try:
+        return _jwt_required()(fn)
+    except TypeError:
+        return _jwt_required(fn)
 
 
 # =========================
