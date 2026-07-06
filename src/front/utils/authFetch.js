@@ -1,4 +1,7 @@
-const API_URL = "https://rankingcoru.onrender.com";
+const API_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_URL ||
+  "https://rankingcoru.onrender.com";
 
 export const authFetch = async (url, options = {}) => {
   const token = localStorage.getItem("token");
