@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const backendUrl =
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_URL ||
+  "https://rankingcoru.onrender.com";
+
 export const Login = () => {
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const [formData, setFormData] = useState({
     email: "",
@@ -37,7 +41,19 @@ export const Login = () => {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+
+      let data = null;
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        await response.text();
+
+        throw new Error(
+          `El servidor no devolvió JSON. URL llamada: ${backendUrl}/api/login. Status: ${response.status}.`
+        );
+      }
 
       if (!response.ok) {
         throw new Error(data.msg || "No se pudo iniciar sesión");
@@ -45,7 +61,10 @@ export const Login = () => {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("profile", JSON.stringify(data.profile));
+
+      if (data.user?.profile) {
+        localStorage.setItem("profile", JSON.stringify(data.user.profile));
+      }
 
       navigate("/profile");
     } catch (error) {

@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const backendUrl =
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_URL ||
+  "https://rankingcoru.onrender.com";
+
 export const Register = () => {
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -68,7 +72,19 @@ export const Register = () => {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+
+      let data = null;
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+
+        throw new Error(
+          `El servidor no devolvió JSON. URL llamada: ${backendUrl}/api/register. Status: ${response.status}.`
+        );
+      }
 
       if (!response.ok) {
         throw new Error(data.msg || "No se pudo completar el registro");
