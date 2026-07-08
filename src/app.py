@@ -31,7 +31,7 @@ jwt = JWTManager(app)
 
 # CORS
 # En desarrollo lo dejamos abierto para evitar problemas cada vez que Codespaces cambia la URL.
-# Cuando publiques la app, lo cerramos a la URL final real.
+# Cuando quieras cerrar seguridad, cambiamos "*" por la URL final de tu frontend.
 CORS(
     app,
     resources={
@@ -74,22 +74,32 @@ def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
 
-@app.route("/")
-def sitemap():
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>", methods=["GET"])
+def serve_react_app(path):
+    """
+    Serves the React app in production.
+
+    This fixes the Render refresh problem:
+    /profile, /admin, /ranking, /login, etc.
+    should all return index.html so React Router can handle them.
+    """
     if ENV == "development":
         return generate_sitemap(app)
 
-    return send_from_directory(static_file_dir, "index.html")
+    file_path = os.path.join(static_file_dir, path)
 
+    # If the requested file exists in dist, serve it.
+    # Example: JS, CSS, images, favicon, etc.
+    if path != "" and os.path.isfile(file_path):
+        response = send_from_directory(static_file_dir, path)
+        response.cache_control.max_age = 0
+        return response
 
-@app.route("/<path:path>", methods=["GET"])
-def serve_any_other_file(path):
-    if not os.path.isfile(os.path.join(static_file_dir, path)):
-        path = "index.html"
-
-    response = send_from_directory(static_file_dir, path)
+    # Otherwise, always return index.html.
+    # This is what fixes page refresh on React routes.
+    response = send_from_directory(static_file_dir, "index.html")
     response.cache_control.max_age = 0
-
     return response
 
 
