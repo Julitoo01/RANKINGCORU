@@ -1,5 +1,5 @@
 import {
-  createBrowserRouter,
+  createHashRouter,
   createRoutesFromElements,
   Route,
   Navigate,
@@ -65,7 +65,7 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-export const router = createBrowserRouter(
+export const router = createHashRouter(
   createRoutesFromElements(
     <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>
       <Route index element={<Home />} />
@@ -108,19 +108,30 @@ export const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
-<Route
-  path="notifications"
-  element={
-    <ProtectedRoute>
-      <Notifications />
-    </ProtectedRoute>
-  }
-/>
+
+      <Route
+        path="notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="profile"
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="open-matches"
+        element={
+          <ProtectedRoute>
+            <OpenMatches />
           </ProtectedRoute>
         }
       />
@@ -160,25 +171,17 @@ export const router = createBrowserRouter(
           </AdminRoute>
         }
       />
-      <Route
-  path="/open-matches"
-  element={
-    <ProtectedRoute>
-      <OpenMatches />
-    </ProtectedRoute>
-  }
-/>
 
-<Route
-  path="/admin/open-matches"
-  element={
-    <ProtectedRoute>
-      <AdminOpenMatches />
-    </ProtectedRoute>
-  }
-/>
+      <Route
+        path="admin/open-matches"
+        element={
+          <AdminRoute>
+            <AdminOpenMatches />
+          </AdminRoute>
+        }
+      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Route>
   )
-);
+)

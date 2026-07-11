@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 
 import { Navbar } from "./components/Navbar.jsx";
 import { Footer } from "./components/Footer.jsx";
@@ -29,25 +29,30 @@ import "./styles.css";
 
 export const App = () => {
   return (
-    <BrowserRouter>
+   <HashRouter>
       <Navbar />
 
       <main className="main-container">
         <Routes>
           <Route path="/" element={<Home />} />
+
           <Route path="/register" element={<Register />} />
+
           <Route path="/login" element={<Login />} />
 
           <Route path="/terms" element={<Terms />} />
+
           <Route path="/privacy" element={<Privacy />} />
-<Route
-  path="/register-success"
-  element={
-    <ProtectedRoute>
-      <RegisterSuccess />
-    </ProtectedRoute>
-  }
-/>
+
+          <Route
+            path="/register-success"
+            element={
+              <ProtectedRoute>
+                <RegisterSuccess />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/ranking"
             element={
@@ -168,6 +173,8 @@ export const App = () => {
       </main>
 
       <Footer />
-    </BrowserRouter>
+    </HashRouter>
   );
 };
+
+export default App;

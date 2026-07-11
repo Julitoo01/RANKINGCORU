@@ -18,13 +18,12 @@ export const authFetch = async (url, options = {}) => {
   } else {
     const text = await response.text();
 
-    if (!response.ok) {
-      throw new Error(
-        `Error del servidor (${response.status}). Revisa que el backend esté encendido y que la ruta exista.`
-      );
-    }
-
-    return text;
+    throw new Error(
+      `El servidor no devolvió JSON. URL llamada: ${finalUrl}. Status: ${response.status}. Respuesta: ${text.slice(
+        0,
+        120
+      )}`
+    );
   }
 
   if (!response.ok) {
