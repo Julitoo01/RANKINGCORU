@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 export const Login = () => {
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
 
   const [formData, setFormData] = useState({
     email: "",

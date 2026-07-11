@@ -4,7 +4,7 @@ import { authFetch } from "../utils/authFetch";
 
 export const Navbar = () => {
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
 
   const storedUser = localStorage.getItem("user");
   const storedToken = localStorage.getItem("token");

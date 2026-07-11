@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
 
 export const Ranking = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
 
   const [ranking, setRanking] = useState([]);
   const [seasons, setSeasons] = useState([]);

@@ -4,7 +4,7 @@ import { authFetch } from "../utils/authFetch";
 import { getMatchTimeRange } from "../utils/time";
 
 export const UploadResult = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 

@@ -4,7 +4,7 @@ import { authFetch } from "../utils/authFetch";
 import { getMatchTimeRange } from "../utils/time";
 
 export const OpenMatches = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
 
   const [user, setUser] = useState(null);
   const [playerProfile, setPlayerProfile] = useState(null);

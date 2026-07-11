@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { authFetch } from "../../utils/authFetch";
 
 export const AdminPlayers = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
 
   const [players, setPlayers] = useState([]);
   const [editingPlayerId, setEditingPlayerId] = useState(null);
