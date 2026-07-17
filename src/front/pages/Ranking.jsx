@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
+import { translations } from "../i18n/translations";
 
 export const Ranking = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language];
 
   const [ranking, setRanking] = useState([]);
   const [seasons, setSeasons] = useState([]);
@@ -13,7 +24,14 @@ export const Ranking = () => {
   const [seasonsLoading, setSeasonsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const levels = ["", "Iniciación", "Bronce", "Plata", "Oro", "Diamante"];
+  const levels = [
+    { value: "", label: t.allLevels },
+    { value: "Iniciación", label: t.levelBeginner },
+    { value: "Bronce", label: t.levelBronze },
+    { value: "Plata", label: t.levelSilver },
+    { value: "Oro", label: t.levelGold },
+    { value: "Diamante", label: t.levelDiamond },
+  ];
 
   const selectedSeason = seasons.find(
     (season) => String(season.id) === String(selectedSeasonId)
@@ -21,6 +39,18 @@ export const Ranking = () => {
 
   const activeSeason = seasons.find((season) => season.is_active);
   const isHistoricalSeason = selectedSeason?.is_closed === true;
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   const loadSeasons = async () => {
     try {
@@ -112,31 +142,32 @@ export const Ranking = () => {
     }
 
     if (!selectedSeason) {
-      return "Temporada actual";
+      return t.currentSeason;
     }
 
     return selectedSeason.name;
+  };
+
+  const getSelectedLevelLabel = () => {
+    const selectedLevel = levels.find((item) => item.value === level);
+    return selectedLevel?.label || level;
   };
 
   return (
     <section className="ranking-page">
       <div className="ranking-hero">
         <div>
-          <span className="ranking-kicker">Fuera de Pista</span>
-          <h1>Ranking</h1>
-          <p>
-            Clasificación individual por temporadas cuatrimestrales. Los
-            partidos se juegan por parejas, pero las estadísticas son
-            individuales para cada jugador.
-          </p>
+          <span className="ranking-kicker">{t.rankingKicker}</span>
+          <h1>{t.rankingTitle}</h1>
+
+          <p className="desktop-text">{t.rankingHeroText}</p>
+          <p className="mobile-text">{t.rankingHeroTextMobile}</p>
         </div>
 
         <div className="ranking-hero-card">
           <strong>{ranking.length}</strong>
           <span>
-            {isHistoricalSeason
-              ? "Jugadores en histórico"
-              : "Jugadores en ranking"}
+            {isHistoricalSeason ? t.playersInHistorical : t.playersInRanking}
           </span>
         </div>
       </div>
@@ -145,7 +176,7 @@ export const Ranking = () => {
 
       {loading && (
         <div className="ranking-state">
-          <p>Cargando ranking...</p>
+          <p>{t.loadingRanking}</p>
         </div>
       )}
 
@@ -153,18 +184,19 @@ export const Ranking = () => {
         <div className="ranking-table-card ranking-combined-card">
           <div className="ranking-season-card ranking-season-card-inside">
             <div>
-              <span>Temporada</span>
+              <span>{t.season}</span>
               <h2>{getSeasonLabel()}</h2>
-              <p>
+
+              <p className="desktop-text">
                 {isHistoricalSeason
-                  ? "Estás viendo una clasificación histórica cerrada."
-                  : "Estás viendo la temporada activa actual."}
+                  ? t.historicalSeasonText
+                  : t.activeSeasonText}
               </p>
             </div>
 
             <div className="ranking-selects-row">
               <div className="ranking-season-select-box">
-                <label>Ver temporada</label>
+                <label>{t.viewSeason}</label>
 
                 <select
                   value={selectedSeasonId}
@@ -173,22 +205,22 @@ export const Ranking = () => {
                   {seasons.map((season) => (
                     <option key={season.id} value={season.id}>
                       {season.name}{" "}
-                      {season.is_active ? "· Actual" : "· Histórico"}
+                      {season.is_active ? `· ${t.current}` : `· ${t.historical}`}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="ranking-season-select-box">
-                <label>Ver nivel</label>
+                <label>{t.viewLevel}</label>
 
                 <select
                   value={level}
                   onChange={(event) => setLevel(event.target.value)}
                 >
                   {levels.map((item) => (
-                    <option key={item || "Todos"} value={item}>
-                      {item || "Todos"}
+                    <option key={item.value || "all"} value={item.value}>
+                      {item.label}
                     </option>
                   ))}
                 </select>
@@ -199,20 +231,20 @@ export const Ranking = () => {
           <div className="ranking-table-header ranking-table-header-inside">
             <div>
               <h2>
-                {isHistoricalSeason
-                  ? "Clasificación histórica"
-                  : "Clasificación actual"}
+                {isHistoricalSeason ? t.historicalRanking : t.currentRanking}
               </h2>
 
               <p>
                 {level
-                  ? `Mostrando jugadores de nivel ${level}`
-                  : "Mostrando todos los niveles"}
+                  ? `${t.showingLevel} ${getSelectedLevelLabel()}`
+                  : t.showingAllLevels}
               </p>
             </div>
 
             {isHistoricalSeason && (
-              <div className="ranking-history-badge">Histórico cerrado</div>
+              <div className="ranking-history-badge">
+                {t.closedHistorical}
+              </div>
             )}
           </div>
 
@@ -220,14 +252,14 @@ export const Ranking = () => {
             <div className="ranking-empty ranking-empty-inside">
               <h2>
                 {isHistoricalSeason
-                  ? "No hay histórico guardado para esta temporada"
-                  : "Todavía no hay jugadores aprobados"}
+                  ? t.noHistoricalRanking
+                  : t.noApprovedPlayers}
               </h2>
 
               <p>
                 {isHistoricalSeason
-                  ? "Cuando se cierre una temporada con jugadores aprobados, se guardará aquí su clasificación final."
-                  : "Cuando los jugadores se registren y sean aprobados por el admin, aparecerán en esta clasificación."}
+                  ? t.noHistoricalRankingText
+                  : t.noApprovedPlayersText}
               </p>
             </div>
           )}
@@ -238,13 +270,13 @@ export const Ranking = () => {
                 <table className="ranking-table ranking-table-premium">
                   <thead>
                     <tr>
-                      <th>Pos</th>
-                      <th>Jugador</th>
-                      <th>Nivel</th>
-                      <th>PJ</th>
-                      <th>PG</th>
-                      <th>PP</th>
-                      <th>% Victorias</th>
+                      <th>{t.positionShort}</th>
+                      <th>{t.player}</th>
+                      <th>{t.level}</th>
+                      <th>{t.matchesPlayedShort}</th>
+                      <th>{t.winsShort}</th>
+                      <th>{t.lossesShort}</th>
+                      <th>{t.winPercentage}</th>
                     </tr>
                   </thead>
 
@@ -267,11 +299,11 @@ export const Ranking = () => {
                               {player.profile_image ? (
                                 <img
                                   src={player.profile_image}
-                                  alt={player.nickname || "Jugador"}
+                                  alt={player.nickname || t.playerFallback}
                                 />
                               ) : (
                                 player.nickname?.charAt(0)?.toUpperCase() ||
-                                "J"
+                                t.playerFallback.charAt(0)
                               )}
                             </div>
 
@@ -309,10 +341,11 @@ export const Ranking = () => {
                           {player.profile_image ? (
                             <img
                               src={player.profile_image}
-                              alt={player.nickname || "Jugador"}
+                              alt={player.nickname || t.playerFallback}
                             />
                           ) : (
-                            player.nickname?.charAt(0)?.toUpperCase() || "J"
+                            player.nickname?.charAt(0)?.toUpperCase() ||
+                            t.playerFallback.charAt(0)
                           )}
                         </div>
 
@@ -333,17 +366,17 @@ export const Ranking = () => {
 
                     <div className="ranking-mobile-stats">
                       <div>
-                        <span>PJ</span>
+                        <span>{t.matchesPlayedShort}</span>
                         <strong>{player.matches_played}</strong>
                       </div>
 
                       <div>
-                        <span>PG</span>
+                        <span>{t.winsShort}</span>
                         <strong>{player.wins}</strong>
                       </div>
 
                       <div>
-                        <span>PP</span>
+                        <span>{t.lossesShort}</span>
                         <strong>{player.losses}</strong>
                       </div>
 
