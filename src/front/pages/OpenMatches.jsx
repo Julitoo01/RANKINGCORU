@@ -2,9 +2,20 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
 import { getMatchTimeRange } from "../utils/time";
+import { translations } from "../i18n/translations";
 
 export const OpenMatches = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language];
 
   const [user, setUser] = useState(null);
   const [playerProfile, setPlayerProfile] = useState(null);
@@ -15,6 +26,18 @@ export const OpenMatches = () => {
   const [selectedMatchToLeave, setSelectedMatchToLeave] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   const loadProfile = async () => {
     try {
@@ -53,7 +76,7 @@ export const OpenMatches = () => {
       setOpenMatches(data);
     } catch (error) {
       console.error("Error cargando partidos abiertos:", error);
-      setError("No se pudieron cargar los partidos abiertos.");
+      setError(t.openMatchesLoadError);
     } finally {
       setLoading(false);
     }
@@ -77,9 +100,7 @@ export const OpenMatches = () => {
 
   const handleJoin = async (openMatchId) => {
     if (!playerProfile || playerProfile.status !== "approved") {
-      setError(
-        "Tu perfil todavía no está aprobado. Podrás apuntarte a partidos cuando el admin apruebe tu inscripción."
-      );
+      setError(t.profilePendingJoinError);
       return;
     }
 
@@ -92,7 +113,7 @@ export const OpenMatches = () => {
         method: "POST",
       });
 
-      setMessage("Te has unido al partido correctamente.");
+      setMessage(t.joinedOpenMatchSuccess);
       setSelectedMatchToJoin(null);
 
       window.dispatchEvent(new Event("notificationsUpdated"));
@@ -100,7 +121,7 @@ export const OpenMatches = () => {
       await loadOpenMatches();
     } catch (error) {
       console.error("Error uniéndose al partido:", error);
-      setError(error.message || "No se pudo unir al partido.");
+      setError(error.message || t.joinOpenMatchError);
     } finally {
       setActionLoadingId(null);
     }
@@ -122,7 +143,7 @@ export const OpenMatches = () => {
         method: "DELETE",
       });
 
-      setMessage("Has salido del partido correctamente.");
+      setMessage(t.leftOpenMatchSuccess);
       setSelectedMatchToLeave(null);
 
       window.dispatchEvent(new Event("notificationsUpdated"));
@@ -130,7 +151,7 @@ export const OpenMatches = () => {
       await loadOpenMatches();
     } catch (error) {
       console.error("Error saliendo del partido:", error);
-      setError(error.message || "No se pudo salir del partido.");
+      setError(error.message || t.leaveOpenMatchError);
     } finally {
       setActionLoadingId(null);
     }
@@ -145,22 +166,22 @@ export const OpenMatches = () => {
   const getPlayerName = (playerItem) => {
     const player = playerItem?.player;
 
-    if (!player) return "Jugador";
+    if (!player) return t.playerFallback;
 
     return (
       player.nickname ||
       `${player.name || ""} ${player.last_name || ""}`.trim() ||
-      "Jugador"
+      t.playerFallback
     );
   };
 
   const getTeamPlayerName = (player) => {
-    if (!player) return "Jugador";
+    if (!player) return t.playerFallback;
 
     return (
       player.nickname ||
       `${player.name || ""} ${player.last_name || ""}`.trim() ||
-      "Jugador"
+      t.playerFallback
     );
   };
 
@@ -192,7 +213,7 @@ export const OpenMatches = () => {
       return date;
     }
 
-    return dateObject.toLocaleDateString("es-ES", {
+    return dateObject.toLocaleDateString(language === "es" ? "es-ES" : "en-GB", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -200,9 +221,9 @@ export const OpenMatches = () => {
   };
 
   const getStatusText = (status) => {
-    if (status === "open") return "Abierto";
-    if (status === "closed") return "Cerrado";
-    if (status === "cancelled") return "Cancelado";
+    if (status === "open") return t.statusOpen;
+    if (status === "closed") return t.statusClosed;
+    if (status === "cancelled") return t.statusCancelled;
 
     return status;
   };
@@ -213,15 +234,12 @@ export const OpenMatches = () => {
   return (
     <section className="open-matches-page">
       <div className="open-matches-hero">
-        <span className="section-kicker">Jugar</span>
+        <span className="section-kicker">{t.openMatchesKicker}</span>
 
-        <h1>Partidos abiertos</h1>
+        <h1>{t.openMatchesTitle}</h1>
 
-        <p>
-          Apúntate a partidos de tu nivel. Cuando haya 4 jugadores, el partido
-          se cierra automáticamente, se crean las parejas y uno de los jugadores
-          podrá subir el resultado.
-        </p>
+        <p className="desktop-text">{t.openMatchesHeroText}</p>
+        <p className="mobile-text">{t.openMatchesHeroTextMobile}</p>
       </div>
 
       {message && <div className="success-message">{message}</div>}
@@ -229,7 +247,7 @@ export const OpenMatches = () => {
 
       {loading && (
         <div className="open-matches-list">
-          <p className="open-match-empty">Cargando partidos abiertos...</p>
+          <p className="open-match-empty">{t.loadingOpenMatches}</p>
         </div>
       )}
 
@@ -237,17 +255,14 @@ export const OpenMatches = () => {
         <div className="open-matches-pending-card">
           <div className="open-matches-pending-icon">!</div>
 
-          <span>Perfil no encontrado</span>
+          <span>{t.profileNotFound}</span>
 
-          <h2>No hemos podido cargar tu perfil de jugador</h2>
+          <h2>{t.profileNotFoundTitle}</h2>
 
-          <p>
-            Vuelve a iniciar sesión o revisa tu cuenta para poder acceder a los
-            partidos abiertos.
-          </p>
+          <p>{t.profileNotFoundText}</p>
 
           <Link to="/profile" className="primary-button">
-            Ir a mi perfil
+            {t.goToProfile}
           </Link>
         </div>
       )}
@@ -256,33 +271,31 @@ export const OpenMatches = () => {
         <div className="open-matches-pending-card">
           <div className="open-matches-pending-icon">⏳</div>
 
-          <span>Inscripción pendiente</span>
+          <span>{t.pendingRegistration}</span>
 
-          <h2>Tu perfil todavía no está aprobado</h2>
+          <h2>{t.profileStillPending}</h2>
 
-          <p>
-            Podrás apuntarte a partidos cuando el admin apruebe tu inscripción.
-          </p>
+          <p>{t.profilePendingText}</p>
 
           <div className="open-matches-pending-steps">
             <div>
               <strong>1</strong>
-              <span>Registro enviado</span>
+              <span>{t.registrationSentStep}</span>
             </div>
 
             <div>
               <strong>2</strong>
-              <span>Revisión del admin</span>
+              <span>{t.adminReviewStep}</span>
             </div>
 
             <div>
               <strong>3</strong>
-              <span>Acceso a partidos</span>
+              <span>{t.matchAccessStep}</span>
             </div>
           </div>
 
           <Link to="/profile" className="primary-button">
-            Ver mi perfil
+            {t.viewMyProfile}
           </Link>
         </div>
       )}
@@ -291,8 +304,8 @@ export const OpenMatches = () => {
         <div className="open-matches-list">
           <div className="open-matches-list-header">
             <div>
-              <span className="section-kicker">Disponibles</span>
-              <h2>Partidos para jugar</h2>
+              <span className="section-kicker">{t.available}</span>
+              <h2>{t.matchesToPlay}</h2>
             </div>
           </div>
 
@@ -300,14 +313,11 @@ export const OpenMatches = () => {
             <div className="open-matches-empty-card">
               <div className="open-matches-pending-icon">🎾</div>
 
-              <span>Sin partidos ahora mismo</span>
+              <span>{t.noMatchesNow}</span>
 
-              <h2>No hay partidos disponibles para tu nivel</h2>
+              <h2>{t.noMatchesForLevel}</h2>
 
-              <p>
-                Cuando el admin abra un partido de tu nivel, aparecerá aquí y te
-                llegará un aviso.
-              </p>
+              <p>{t.noMatchesForLevelText}</p>
             </div>
           )}
 
@@ -345,7 +355,8 @@ export const OpenMatches = () => {
                     )}
 
                     <div className="open-match-count">
-                      {openMatch.players_count}/{openMatch.max_players} jugadores
+                      {openMatch.players_count}/{openMatch.max_players}{" "}
+                      {t.players}
                     </div>
 
                     <div className="open-match-players">
@@ -365,7 +376,7 @@ export const OpenMatches = () => {
                         ))
                       ) : (
                         <p className="open-match-empty">
-                          Todavía no hay jugadores apuntados.
+                          {t.noPlayersJoined}
                         </p>
                       )}
                     </div>
@@ -373,7 +384,7 @@ export const OpenMatches = () => {
                     {isClosed && (
                       <div className="open-match-teams">
                         <div className="open-match-team-card">
-                          <h4>Equipo A</h4>
+                          <h4>{t.teamA}</h4>
 
                           <p>{getTeamPlayerName(openMatch.team_a?.[0])}</p>
                           <p>{getTeamPlayerName(openMatch.team_a?.[1])}</p>
@@ -382,7 +393,7 @@ export const OpenMatches = () => {
                         <div className="open-match-vs">VS</div>
 
                         <div className="open-match-team-card">
-                          <h4>Equipo B</h4>
+                          <h4>{t.teamB}</h4>
 
                           <p>{getTeamPlayerName(openMatch.team_b?.[0])}</p>
                           <p>{getTeamPlayerName(openMatch.team_b?.[1])}</p>
@@ -398,7 +409,7 @@ export const OpenMatches = () => {
                           onClick={() => setSelectedMatchToJoin(openMatch)}
                           disabled={isActionLoading}
                         >
-                          Apuntarme
+                          {t.joinMatch}
                         </button>
                       )}
 
@@ -409,7 +420,7 @@ export const OpenMatches = () => {
                           onClick={() => setSelectedMatchToLeave(openMatch)}
                           disabled={isActionLoading}
                         >
-                          {isActionLoading ? "Saliendo..." : "Salir del partido"}
+                          {isActionLoading ? t.leaving : t.leaveMatch}
                         </button>
                       )}
 
@@ -418,25 +429,25 @@ export const OpenMatches = () => {
                           to={`/upload-result?open_match_id=${openMatch.id}`}
                           className="primary-button"
                         >
-                          Subir resultado
+                          {t.uploadResult}
                         </Link>
                       )}
 
                       {isClosed && !joined && !openMatch.has_result && (
                         <span className="open-match-closed-text">
-                          Partido completo
+                          {t.matchFull}
                         </span>
                       )}
 
                       {isClosed && joined && openMatch.has_result && (
                         <span className="open-match-closed-text">
-                          Resultado enviado
+                          {t.resultSent}
                         </span>
                       )}
 
                       {isOpen && isFull && !joined && (
                         <span className="open-match-closed-text">
-                          Partido completo
+                          {t.matchFull}
                         </span>
                       )}
                     </div>
@@ -453,37 +464,33 @@ export const OpenMatches = () => {
           <div className="join-modal-card">
             <div className="join-modal-icon">🎾</div>
 
-            <span>Confirmar inscripción</span>
+            <span>{t.confirmJoin}</span>
 
-            <h2>¿Quieres apuntarte a este partido?</h2>
+            <h2>{t.joinQuestion}</h2>
 
             <div className="join-modal-details">
               <div>
-                <strong>Nivel</strong>
+                <strong>{t.levelLabelShort}</strong>
                 <span>{selectedMatchToJoin.level}</span>
               </div>
 
               <div>
-                <strong>Club</strong>
+                <strong>{t.clubLabel}</strong>
                 <span>{selectedMatchToJoin.club}</span>
               </div>
 
               <div>
-                <strong>Fecha</strong>
+                <strong>{t.dateLabel}</strong>
                 <span>{formatDate(selectedMatchToJoin.match_date)}</span>
               </div>
 
               <div>
-                <strong>Horario</strong>
+                <strong>{t.timeLabel}</strong>
                 <span>{getMatchTimeRange(selectedMatchToJoin.match_time)}</span>
               </div>
             </div>
 
-            <p>
-              Si confirmas, quedarás apuntado a este partido. La pista dura
-              1 hora y 30 minutos. Cuando haya 4 jugadores, se cerrará
-              automáticamente y se crearán las parejas.
-            </p>
+            <p>{t.joinModalText}</p>
 
             <div className="join-modal-actions">
               <button
@@ -492,7 +499,7 @@ export const OpenMatches = () => {
                 onClick={() => setSelectedMatchToJoin(null)}
                 disabled={actionLoadingId === selectedMatchToJoin.id}
               >
-                Cancelar
+                {t.cancel}
               </button>
 
               <button
@@ -502,8 +509,8 @@ export const OpenMatches = () => {
                 disabled={actionLoadingId === selectedMatchToJoin.id}
               >
                 {actionLoadingId === selectedMatchToJoin.id
-                  ? "Apuntando..."
-                  : "Sí, apuntarme"}
+                  ? t.joining
+                  : t.yesJoin}
               </button>
             </div>
           </div>
@@ -515,37 +522,33 @@ export const OpenMatches = () => {
           <div className="join-modal-card leave-modal-card">
             <div className="join-modal-icon leave-modal-icon">⚠️</div>
 
-            <span>Confirmar salida</span>
+            <span>{t.confirmLeave}</span>
 
-            <h2>¿Seguro que quieres salirte de este partido?</h2>
+            <h2>{t.leaveQuestion}</h2>
 
             <div className="join-modal-details">
               <div>
-                <strong>Nivel</strong>
+                <strong>{t.levelLabelShort}</strong>
                 <span>{selectedMatchToLeave.level}</span>
               </div>
 
               <div>
-                <strong>Club</strong>
+                <strong>{t.clubLabel}</strong>
                 <span>{selectedMatchToLeave.club}</span>
               </div>
 
               <div>
-                <strong>Fecha</strong>
+                <strong>{t.dateLabel}</strong>
                 <span>{formatDate(selectedMatchToLeave.match_date)}</span>
               </div>
 
               <div>
-                <strong>Horario</strong>
+                <strong>{t.timeLabel}</strong>
                 <span>{getMatchTimeRange(selectedMatchToLeave.match_time)}</span>
               </div>
             </div>
 
-            <p>
-              Recuerda que solo puedes salirte si faltan más de 24 horas para el
-              inicio del partido. Si faltan 24 horas o menos, la app no permitirá
-              abandonar el partido.
-            </p>
+            <p>{t.leaveModalText}</p>
 
             <div className="join-modal-actions">
               <button
@@ -554,7 +557,7 @@ export const OpenMatches = () => {
                 onClick={() => setSelectedMatchToLeave(null)}
                 disabled={actionLoadingId === selectedMatchToLeave.id}
               >
-                Cancelar
+                {t.cancel}
               </button>
 
               <button
@@ -564,8 +567,8 @@ export const OpenMatches = () => {
                 disabled={actionLoadingId === selectedMatchToLeave.id}
               >
                 {actionLoadingId === selectedMatchToLeave.id
-                  ? "Saliendo..."
-                  : "Sí, salir del partido"}
+                  ? t.leaving
+                  : t.yesLeave}
               </button>
             </div>
           </div>
