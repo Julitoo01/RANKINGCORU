@@ -1,12 +1,35 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
+import { translations } from "../i18n/translations";
 
 export const Rules = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language];
 
   const [rules, setRules] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   const loadRules = async () => {
     try {
@@ -20,7 +43,7 @@ export const Rules = () => {
       setRules(data);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar normas");
+      setError(error.message || t.rulesLoadError);
     } finally {
       setLoading(false);
     }
@@ -51,7 +74,7 @@ export const Rules = () => {
 
         currentCard = {
           number: numberedMatch[1],
-          title: numberedMatch[2] || `Norma ${numberedMatch[1]}`,
+          title: numberedMatch[2] || `${t.ruleFallbackTitle} ${numberedMatch[1]}`,
           content: [],
         };
       } else if (currentCard) {
@@ -81,7 +104,7 @@ export const Rules = () => {
       return null;
     }
 
-    return parsedDate.toLocaleDateString("es-ES", {
+    return parsedDate.toLocaleDateString(language === "es" ? "es-ES" : "en-GB", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -95,23 +118,22 @@ export const Rules = () => {
     <section className="rules-page">
       <div className="rules-hero">
         <div>
-          <span>Fuera de Pista</span>
-          <h1>Normativa</h1>
-          <p>
-            Consulta las reglas principales del ranking y el funcionamiento de
-            los partidos.
-          </p>
+          <span>{t.appName}</span>
+          <h1>{t.rulesTitle}</h1>
+
+          <p className="desktop-text">{t.rulesHeroText}</p>
+          <p className="mobile-text">{t.rulesHeroTextMobile}</p>
         </div>
 
         <div className="rules-hero-card">
-          <strong>Ranking</strong>
-          <span>Social de pádel</span>
+          <strong>{t.rulesHeroCardTitle}</strong>
+          <span>{t.rulesHeroCardText}</span>
         </div>
       </div>
 
       {loading && (
         <div className="rules-state">
-          <p>Cargando normas...</p>
+          <p>{t.loadingRules}</p>
         </div>
       )}
 
@@ -121,10 +143,14 @@ export const Rules = () => {
         <div className="rules-content-card">
           <div className="rules-content-header">
             <div>
-              <span>Normas oficiales</span>
-              <h2>{rules.title || "Normas de Fuera de Pista"}</h2>
+              <span>{t.officialRules}</span>
+              <h2>{rules.title || t.rulesDefaultTitle}</h2>
 
-              {updatedAt && <p>Última actualización: {updatedAt}</p>}
+              {updatedAt && (
+                <p>
+                  {t.lastUpdate}: {updatedAt}
+                </p>
+              )}
             </div>
           </div>
 
@@ -150,10 +176,8 @@ export const Rules = () => {
             </div>
           ) : (
             <div className="rules-empty">
-              <h2>Todavía no hay normas publicadas</h2>
-              <p>
-                Cuando el admin escriba las normas del ranking, aparecerán aquí.
-              </p>
+              <h2>{t.noRulesYet}</h2>
+              <p>{t.noRulesYetText}</p>
             </div>
           )}
         </div>

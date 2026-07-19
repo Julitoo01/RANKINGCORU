@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
+import { translations } from "../i18n/translations";
 
 export const Matches = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language];
 
   const [matches, setMatches] = useState([]);
   const [seasons, setSeasons] = useState([]);
@@ -10,6 +21,18 @@ export const Matches = () => {
   const [loading, setLoading] = useState(true);
   const [seasonsLoading, setSeasonsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   const loadSeasons = async () => {
     try {
@@ -29,7 +52,7 @@ export const Matches = () => {
       }
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar temporadas");
+      setError(error.message || t.seasonsLoadError);
     } finally {
       setSeasonsLoading(false);
     }
@@ -59,7 +82,7 @@ export const Matches = () => {
       setMatches(data);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar partidos");
+      setError(error.message || t.matchesLoadError);
     } finally {
       setLoading(false);
     }
@@ -84,7 +107,7 @@ export const Matches = () => {
       return "-";
     }
 
-    return parsedDate.toLocaleDateString("es-ES", {
+    return parsedDate.toLocaleDateString(language === "es" ? "es-ES" : "en-GB", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -92,8 +115,8 @@ export const Matches = () => {
   };
 
   const getWinnerText = (winnerTeam) => {
-    if (winnerTeam === "A") return "Equipo A";
-    if (winnerTeam === "B") return "Equipo B";
+    if (winnerTeam === "A") return t.teamA;
+    if (winnerTeam === "B") return t.teamB;
 
     return "-";
   };
@@ -124,37 +147,37 @@ export const Matches = () => {
     <section className="matches-page">
       <div className="matches-hero">
         <div>
-          <span>Fuera de Pista</span>
+          <span>{t.appName}</span>
 
-          <h1>Partidos</h1>
+          <h1>{t.matchesTitle}</h1>
 
-          <p>
-            Consulta el historial de partidos jugados, resultados registrados,
-            parejas, ganadores y temporada correspondiente.
-          </p>
+          <p className="desktop-text">{t.matchesHeroText}</p>
+          <p className="mobile-text">{t.matchesHeroTextMobile}</p>
         </div>
 
         <div className="matches-hero-card">
           <strong>{totalMatches}</strong>
-          <span>{totalMatches === 1 ? "Partido registrado" : "Partidos registrados"}</span>
+          <span>
+            {totalMatches === 1 ? t.registeredMatch : t.registeredMatches}
+          </span>
         </div>
       </div>
 
       <div className="matches-season-card">
         <div>
-          <span>Temporada</span>
+          <span>{t.season}</span>
 
-          <h2>{selectedSeason?.name || "Temporada actual"}</h2>
+          <h2>{selectedSeason?.name || t.currentSeason}</h2>
 
-          <p>
+          <p className="desktop-text">
             {selectedSeason?.is_closed
-              ? "Estás viendo partidos de una temporada cerrada."
-              : "Estás viendo los partidos de la temporada activa."}
+              ? t.seasonClosedMatchesText
+              : t.seasonActiveMatchesText}
           </p>
         </div>
 
         <div className="matches-season-select-box">
-          <label>Ver temporada</label>
+          <label>{t.viewSeason}</label>
 
           <select
             value={selectedSeasonId}
@@ -162,7 +185,7 @@ export const Matches = () => {
           >
             {seasons.map((season) => (
               <option key={season.id} value={season.id}>
-                {season.name} {season.is_active ? "· Actual" : "· Histórico"}
+                {season.name} {season.is_active ? `· ${t.current}` : `· ${t.historical}`}
               </option>
             ))}
           </select>
@@ -173,7 +196,7 @@ export const Matches = () => {
 
       {loading && (
         <div className="matches-state">
-          <p>Cargando partidos...</p>
+          <p>{t.loadingMatches}</p>
         </div>
       )}
 
@@ -181,14 +204,11 @@ export const Matches = () => {
         <div className="matches-empty">
           <div className="matches-empty-icon">🎾</div>
 
-          <span>Sin partidos todavía</span>
+          <span>{t.noMatchesYet}</span>
 
-          <h2>No hay partidos registrados</h2>
+          <h2>{t.noRegisteredMatches}</h2>
 
-          <p>
-            Cuando los jugadores suban resultados, aparecerán aquí con sus
-            equipos, marcador, ganador y temporada.
-          </p>
+          <p>{t.noRegisteredMatchesText}</p>
         </div>
       )}
 
@@ -206,30 +226,31 @@ export const Matches = () => {
                   <div>
                     <span>{formatDate(match.played_at)}</span>
 
-                    <h2>{match.level || "Nivel no indicado"}</h2>
+                    <h2>{match.level || t.levelNotProvided}</h2>
 
-                    <p>{match.club || "Club no indicado"}</p>
+                    <p>{match.club || t.clubNotProvidedResult}</p>
                   </div>
 
                   <div className="match-score-box">
-                    <span>Resultado</span>
+                    <span>{t.resultLabel}</span>
                     <strong>{match.score || "-"}</strong>
                   </div>
                 </div>
 
                 <div className="match-status-row">
                   <span className="match-status-badge confirmed">
-                    Resultado registrado
+                    {t.registeredResult}
                   </span>
 
                   <span>
-                    Ganador: <strong>{getWinnerText(match.winner_team)}</strong>
+                    {t.winner}:{" "}
+                    <strong>{getWinnerText(match.winner_team)}</strong>
                   </span>
                 </div>
 
                 <div className="match-teams">
                   <div className={`match-team ${teamAWon ? "winner" : ""}`}>
-                    <span>Equipo A</span>
+                    <span>{t.teamA}</span>
 
                     {teamAPlayers.map((playerName, index) => (
                       <strong key={`${match.id}-team-a-${index}`}>
@@ -237,13 +258,13 @@ export const Matches = () => {
                       </strong>
                     ))}
 
-                    {teamAWon && <small>Ganador</small>}
+                    {teamAWon && <small>{t.winner}</small>}
                   </div>
 
                   <div className="match-vs">VS</div>
 
                   <div className={`match-team ${teamBWon ? "winner" : ""}`}>
-                    <span>Equipo B</span>
+                    <span>{t.teamB}</span>
 
                     {teamBPlayers.map((playerName, index) => (
                       <strong key={`${match.id}-team-b-${index}`}>
@@ -251,18 +272,18 @@ export const Matches = () => {
                       </strong>
                     ))}
 
-                    {teamBWon && <small>Ganador</small>}
+                    {teamBWon && <small>{t.winner}</small>}
                   </div>
                 </div>
 
                 <div className="match-card-footer">
                   <span>
-                    Temporada:{" "}
+                    {t.seasonFooter}:{" "}
                     <strong>{match.season || selectedSeason?.name || "-"}</strong>
                   </span>
 
                   <span>
-                    Subido por: <strong>{match.submitted_by || "-"}</strong>
+                    {t.submittedBy}: <strong>{match.submitted_by || "-"}</strong>
                   </span>
                 </div>
               </article>
