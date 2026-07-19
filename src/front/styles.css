@@ -6201,3 +6201,72 @@ button:disabled {
     width: 100%;
   }
 }
+.navbar-language-button {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.navbar-language-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.mobile-text {
+  display: none;
+}
+
+.desktop-text {
+  display: block;
+}
+
+.fdp-language-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(0, 0, 0, 0.25);
+  color: white;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.fdp-language-toggle:hover {
+  background: rgba(0, 0, 0, 0.38);
+}
+
+@media (max-width: 768px) {
+  .desktop-text {
+    display: none;
+  }
+
+  .mobile-text {
+    display: block;
+  }
+
+  .fdp-language-toggle {
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.7rem;
+  }
+
+  .fdp-hero-content p {
+    max-width: 320px;
+  }
+
+  .fdp-intro p,
+  .fdp-card p,
+  .fdp-extra-card p,
+  .fdp-final p {
+    line-height: 1.45;
+  }
+}

@@ -1,9 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { translations } from "../i18n/translations";
 
 export const Register = () => {
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language];
 
   const [formData, setFormData] = useState({
     name: "",
@@ -24,16 +36,36 @@ export const Register = () => {
   const [error, setError] = useState("");
   const [showPendingModal, setShowPendingModal] = useState(false);
 
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
+
   const levels = [
-    "Iniciación",
-    "Bronce",
-    "Plata",
-    "Oro",
-    "Diamante",
-    "No lo sé / quiero que me valoréis",
+    { value: "Iniciación", label: t.levelBeginner },
+    { value: "Bronce", label: t.levelBronze },
+    { value: "Plata", label: t.levelSilver },
+    { value: "Oro", label: t.levelGold },
+    { value: "Diamante", label: t.levelDiamond },
+    {
+      value: "No lo sé / quiero que me valoréis",
+      label: t.levelUnknown,
+    },
   ];
 
-  const positions = ["Derecha", "Revés", "Ambas", "No lo sé"];
+  const positions = [
+    { value: "Derecha", label: t.positionRight },
+    { value: "Revés", label: t.positionLeft },
+    { value: "Ambas", label: t.positionBoth },
+    { value: "No lo sé", label: t.positionUnknown },
+  ];
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -52,9 +84,7 @@ export const Register = () => {
     setError("");
 
     if (!formData.terms_accepted || !formData.privacy_accepted) {
-      setError(
-        "Debes aceptar los Términos y Condiciones y la Política de Privacidad para registrarte."
-      );
+      setError(t.termsRequired);
       setLoading(false);
       return;
     }
@@ -68,10 +98,16 @@ export const Register = () => {
         body: JSON.stringify(formData),
       });
 
+      const contentType = response.headers.get("content-type");
+
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error(t.registerGenericError);
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.msg || "No se pudo completar el registro");
+        throw new Error(data.msg || t.registerError);
       }
 
       localStorage.setItem("token", data.token);
@@ -81,11 +117,11 @@ export const Register = () => {
         localStorage.setItem("profile", JSON.stringify(data.user.profile));
       }
 
-      setMessage("Registro completado correctamente.");
+      setMessage(t.registerSuccess);
       setShowPendingModal(true);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al registrarse");
+      setError(error.message || t.registerGenericError);
     } finally {
       setLoading(false);
     }
@@ -100,53 +136,46 @@ export const Register = () => {
     <>
       <section className="register-page">
         <div className="register-hero">
-          <span>Fuera de Pista · A Coruña</span>
-          <h1>Únete al ranking</h1>
-          <p>
-            Crea tu perfil, entra en la comunidad y empieza a competir en
-            partidos de pádel por niveles.
-          </p>
+          <span>{t.registerKicker}</span>
+          <h1>{t.registerTitle}</h1>
+
+          <p className="desktop-text">{t.registerText}</p>
+          <p className="mobile-text">{t.registerTextMobile}</p>
         </div>
 
         <div className="register-layout">
           <aside className="register-info">
-            <h2>Tu perfil de jugador</h2>
+            <h2>{t.playerProfileTitle}</h2>
 
-            <p>
-              Estos datos nos ayudan a organizar partidos equilibrados y a
-              mostrar tu perfil correctamente dentro del ranking.
-            </p>
+            <p className="desktop-text">{t.playerProfileText}</p>
+            <p className="mobile-text">{t.playerProfileTextMobile}</p>
 
             <div className="register-info-list">
               <div>
-                <strong>Ranking individual</strong>
-                <span>
-                  Tu nickname será el nombre público en la clasificación.
-                </span>
+                <strong>{t.registerInfoRankingTitle}</strong>
+                <span>{t.registerInfoRankingText}</span>
               </div>
 
               <div>
-                <strong>Partidos por nivel</strong>
-                <span>El nivel ayuda a crear partidos más igualados.</span>
+                <strong>{t.registerInfoLevelTitle}</strong>
+                <span>{t.registerInfoLevelText}</span>
               </div>
 
               <div>
-                <strong>Aprobación admin</strong>
-                <span>
-                  El perfil podrá ser revisado antes de aparecer en el ranking.
-                </span>
+                <strong>{t.registerInfoApprovalTitle}</strong>
+                <span>{t.registerInfoApprovalText}</span>
               </div>
             </div>
 
             <p className="register-login-text">
-              ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+              {t.alreadyRegistered} <Link to="/login">{t.loginHere}</Link>
             </p>
           </aside>
 
           <form className="register-form" onSubmit={handleRegister}>
             <div className="register-form-header">
-              <h2>Inscripción</h2>
-              <p>Rellena tus datos para crear tu cuenta.</p>
+              <h2>{t.registerFormTitle}</h2>
+              <p>{t.registerFormSubtitle}</p>
             </div>
 
             {message && <div className="success-message">{message}</div>}
@@ -154,107 +183,107 @@ export const Register = () => {
 
             <div className="register-form-grid">
               <div className="form-group">
-                <label>Nombre real</label>
+                <label>{t.nameLabel}</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="Ej. Julio"
+                  placeholder={t.namePlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Apellidos</label>
+                <label>{t.lastNameLabel}</label>
                 <input
                   type="text"
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleChange}
-                  placeholder="Ej. Lapuente"
+                  placeholder={t.lastNamePlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Nickname</label>
+                <label>{t.nicknameLabel}</label>
                 <input
                   type="text"
                   name="nickname"
                   value={formData.nickname}
                   onChange={handleChange}
-                  placeholder="Ej. Julito10"
+                  placeholder={t.nicknamePlaceholder}
                   required
                 />
-                <small>Este será tu nombre público en el ranking.</small>
+                <small>{t.nicknameHelp}</small>
               </div>
 
               <div className="form-group">
-                <label>Email</label>
+                <label>{t.emailLabel}</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="tuemail@gmail.com"
+                  placeholder={t.emailPlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Contraseña</label>
+                <label>{t.passwordLabel}</label>
                 <input
                   type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Crea una contraseña"
+                  placeholder={t.passwordPlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Teléfono</label>
+                <label>{t.phoneLabel}</label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="Ej. 600 000 000"
+                  placeholder={t.phonePlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Nivel aproximado</label>
+                <label>{t.levelLabel}</label>
                 <select
                   name="level"
                   value={formData.level}
                   onChange={handleChange}
                   required
                 >
-                  <option value="">Selecciona tu nivel</option>
+                  <option value="">{t.selectLevel}</option>
                   {levels.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
+                    <option key={level.value} value={level.value}>
+                      {level.label}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Posición</label>
+                <label>{t.positionLabel}</label>
                 <select
                   name="position"
                   value={formData.position}
                   onChange={handleChange}
                   required
                 >
-                  <option value="">Selecciona tu posición</option>
+                  <option value="">{t.selectPosition}</option>
                   {positions.map((position) => (
-                    <option key={position} value={position}>
-                      {position}
+                    <option key={position.value} value={position.value}>
+                      {position.label}
                     </option>
                   ))}
                 </select>
@@ -271,9 +300,9 @@ export const Register = () => {
                   required
                 />
                 <span>
-                  He leído y acepto los{" "}
+                  {t.termsText}{" "}
                   <Link to="/terms" target="_blank">
-                    Términos y Condiciones
+                    {t.termsLink}
                   </Link>
                   .
                 </span>
@@ -288,9 +317,9 @@ export const Register = () => {
                   required
                 />
                 <span>
-                  He leído y acepto la{" "}
+                  {t.privacyText}{" "}
                   <Link to="/privacy" target="_blank">
-                    Política de Privacidad
+                    {t.privacyLink}
                   </Link>
                   .
                 </span>
@@ -305,7 +334,7 @@ export const Register = () => {
                 !formData.privacy_accepted
               }
             >
-              {loading ? "Creando cuenta..." : "Enviar inscripción"}
+              {loading ? t.creatingAccount : t.sendRegistration}
             </button>
           </form>
         </div>
@@ -316,21 +345,18 @@ export const Register = () => {
           <div className="register-modal-card">
             <div className="register-modal-icon">✓</div>
 
-            <span>Inscripción enviada</span>
+            <span>{t.registrationSent}</span>
 
-            <h2>Tu perfil todavía no está aprobado</h2>
+            <h2>{t.profilePendingTitle}</h2>
 
-            <p>
-              Podrás apuntarte a partidos cuando el admin apruebe tu
-              inscripción.
-            </p>
+            <p>{t.profilePendingText}</p>
 
             <button
               type="button"
               className="register-modal-btn"
               onClick={handleGoToProfile}
             >
-              Entendido
+              {t.understood}
             </button>
           </div>
         </div>

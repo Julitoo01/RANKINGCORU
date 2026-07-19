@@ -1,9 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { translations } from "../i18n/translations";
 
 export const Login = () => {
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language];
 
   const [formData, setFormData] = useState({
     email: "",
@@ -12,6 +24,18 @@ export const Login = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -37,10 +61,16 @@ export const Login = () => {
         body: JSON.stringify(formData),
       });
 
+      const contentType = response.headers.get("content-type");
+
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error(t.loginGenericError);
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.msg || "No se pudo iniciar sesión");
+        throw new Error(data.msg || t.loginError);
       }
 
       localStorage.setItem("token", data.token);
@@ -50,7 +80,7 @@ export const Login = () => {
       navigate("/profile");
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al iniciar sesión");
+      setError(error.message || t.loginGenericError);
     } finally {
       setLoading(false);
     }
@@ -60,62 +90,56 @@ export const Login = () => {
     <section className="login-page">
       <div className="login-card">
         <div className="login-info">
-          <span>Fuera de Pista</span>
+          <span>{t.appName}</span>
 
-          <h1>Bienvenido de nuevo</h1>
+          <h1>{t.loginPageTitle}</h1>
 
-          <p>
-            Accede a tu cuenta para ver tu perfil, subir resultados y seguir tu
-            posición dentro del ranking.
-          </p>
+          <p>{t.loginPageText}</p>
 
           <div className="login-info-box">
-            <strong>Ranking individual</strong>
-            <small>
-              Los partidos se juegan por parejas, pero cada jugador suma sus
-              propios puntos.
-            </small>
+            <strong>{t.loginInfoTitle}</strong>
+            <small>{t.loginInfoText}</small>
           </div>
         </div>
 
         <form className="login-form" onSubmit={handleLogin}>
           <div className="login-form-header">
-            <h2>Iniciar sesión</h2>
-            <p>Introduce tus datos para acceder.</p>
+            <h2>{t.loginFormTitle}</h2>
+            <p>{t.loginFormSubtitle}</p>
           </div>
 
           {error && <div className="error-message">{error}</div>}
 
           <div className="form-group">
-            <label>Email</label>
+            <label>{t.emailLabel}</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="tuemail@gmail.com"
+              placeholder={t.emailPlaceholder}
               required
             />
           </div>
 
           <div className="form-group">
-            <label>Contraseña</label>
+            <label>{t.passwordLabel}</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Tu contraseña"
+              placeholder={t.passwordPlaceholder}
               required
             />
           </div>
 
           <button className="login-submit" disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
+            {loading ? t.loginLoading : t.loginButton}
           </button>
 
           <p className="login-register-link">
-            ¿No tienes cuenta? <Link to="/register">Inscríbete aquí</Link>
+            {t.noAccount} <Link to="/register">{t.signUpHere}</Link>
           </p>
         </form>
       </div>

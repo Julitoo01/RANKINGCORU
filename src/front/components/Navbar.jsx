@@ -1,18 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
+import { translations } from "../i18n/translations";
 
 export const Navbar = () => {
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
 
   const storedUser = localStorage.getItem("user");
   const storedToken = localStorage.getItem("token");
 
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
 
   const moreMenuRef = useRef(null);
+  const t = translations[language];
 
   let user = null;
 
@@ -30,6 +40,13 @@ export const Navbar = () => {
 
   const isLogged = Boolean(storedToken) && Boolean(user);
   const isAdmin = user?.is_admin === true;
+
+  const toggleLanguage = () => {
+    const nextLanguage = language === "es" ? "en" : "es";
+    setLanguage(nextLanguage);
+    localStorage.setItem("language", nextLanguage);
+    window.dispatchEvent(new Event("languageChanged"));
+  };
 
   const loadNotificationsCount = async () => {
     try {
@@ -160,15 +177,15 @@ export const Navbar = () => {
   return (
     <nav className="navbar">
       <Link to="/ranking" className="navbar-logo">
-        Fuera de Pista
+        {t.appName}
       </Link>
 
       <div className="navbar-links">
         <Link
           to="/notifications"
           className="navbar-item navbar-notification-icon-link"
-          title="Notificaciones"
-          aria-label="Notificaciones"
+          title={t.notifications}
+          aria-label={t.notifications}
         >
           <span className="navbar-icon-wrapper">
             <span className="navbar-bell-wrapper">
@@ -201,25 +218,25 @@ export const Navbar = () => {
             </span>
           </span>
 
-          <span className="navbar-mobile-label">Avisos</span>
+          <span className="navbar-mobile-label">{t.notices}</span>
         </Link>
 
         <Link to="/ranking" className="navbar-item">
           <span className="navbar-mobile-icon">🏆</span>
-          <span className="navbar-mobile-label">Ranking</span>
-          <span className="navbar-desktop-label">Ranking</span>
+          <span className="navbar-mobile-label">{t.ranking}</span>
+          <span className="navbar-desktop-label">{t.ranking}</span>
         </Link>
 
         <Link to="/open-matches" className="navbar-item">
           <span className="navbar-mobile-icon">🎾</span>
-          <span className="navbar-mobile-label">Jugar</span>
-          <span className="navbar-desktop-label">Jugar</span>
+          <span className="navbar-mobile-label">{t.play}</span>
+          <span className="navbar-desktop-label">{t.play}</span>
         </Link>
 
         <Link to="/profile" className="navbar-item">
           <span className="navbar-mobile-icon">👤</span>
-          <span className="navbar-mobile-label">Perfil</span>
-          <span className="navbar-desktop-label">Mi perfil</span>
+          <span className="navbar-mobile-label">{t.profile}</span>
+          <span className="navbar-desktop-label">{t.myProfile}</span>
         </Link>
 
         <div className="navbar-more-wrapper" ref={moreMenuRef}>
@@ -227,55 +244,69 @@ export const Navbar = () => {
             type="button"
             className="navbar-more-button"
             onClick={() => setIsMoreOpen(!isMoreOpen)}
-            aria-label="Abrir menú"
-            title="Más opciones"
+            aria-label={t.openMenu}
+            title={t.moreOptions}
           >
             <span className="navbar-mobile-icon">☰</span>
-            <span className="navbar-mobile-label">Más</span>
+            <span className="navbar-mobile-label">{t.more}</span>
           </button>
 
           {isMoreOpen && (
             <div className="navbar-more-menu">
               <Link to="/matches" onClick={closeMoreMenu}>
-                Historial de partidos
+                {t.matchHistory}
               </Link>
 
               <Link to="/rules" onClick={closeMoreMenu}>
-                Normas
+                {t.rules}
               </Link>
 
               {isAdmin && (
                 <Link to="/admin" onClick={closeMoreMenu}>
-                  Panel admin
+                  {t.adminPanel}
                 </Link>
               )}
 
+              <button type="button" onClick={toggleLanguage}>
+                {language === "es" ? "English" : "Español"}
+              </button>
+
               <button type="button" onClick={handleLogout}>
-                Cerrar sesión
+                {t.logout}
               </button>
             </div>
           )}
         </div>
 
         <Link to="/matches" className="navbar-desktop-only">
-          Historial
+          {t.history}
         </Link>
 
         <Link to="/rules" className="navbar-desktop-only">
-          Normas
+          {t.rules}
         </Link>
 
         {isAdmin && (
           <Link to="/admin" className="navbar-desktop-only">
-            Admin
+            {t.admin}
           </Link>
         )}
 
         <button
+          type="button"
+          onClick={toggleLanguage}
+          className="navbar-desktop-only navbar-language-button"
+          title="Change language"
+          aria-label="Change language"
+        >
+          {language === "es" ? "EN" : "ES"}
+        </button>
+
+        <button
           onClick={handleLogout}
           className="navbar-logout-icon-btn navbar-desktop-only"
-          title="Cerrar sesión"
-          aria-label="Cerrar sesión"
+          title={t.logout}
+          aria-label={t.logout}
         >
           <svg
             className="navbar-logout-icon"

@@ -1,15 +1,38 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
 import { getMatchTimeRange } from "../utils/time";
+import { translations } from "../i18n/translations";
 
 export const Notifications = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language];
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   const loadNotifications = async () => {
     try {
@@ -26,7 +49,7 @@ export const Notifications = () => {
       setNotifications(data);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar notificaciones");
+      setError(error.message || t.notificationReadError);
     } finally {
       setLoading(false);
     }
@@ -59,10 +82,10 @@ export const Notifications = () => {
 
       window.dispatchEvent(new Event("notificationsUpdated"));
 
-      setMessage("Notificación marcada como leída.");
+      setMessage(t.notificationMarkedRead);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al marcar la notificación como leída");
+      setError(error.message || t.notificationReadError);
     } finally {
       setActionLoadingId(null);
     }
@@ -73,7 +96,7 @@ export const Notifications = () => {
       const openMatchId = notification.open_match_id;
 
       if (!openMatchId) {
-        setError("No se ha encontrado el partido asociado a esta notificación.");
+        setError(t.notificationMatchNotFound);
         return;
       }
 
@@ -103,10 +126,10 @@ export const Notifications = () => {
 
       window.dispatchEvent(new Event("notificationsUpdated"));
 
-      setMessage("Te has apuntado al partido correctamente.");
+      setMessage(t.joinedMatchSuccess);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al apuntarte al partido");
+      setError(error.message || t.joinMatchError);
     } finally {
       setActionLoadingId(null);
     }
@@ -129,7 +152,7 @@ export const Notifications = () => {
       return openMatch.match_date;
     }
 
-    return date.toLocaleDateString("es-ES", {
+    return date.toLocaleDateString(language === "es" ? "es-ES" : "en-GB", {
       day: "2-digit",
       month: "short",
     });
@@ -159,16 +182,17 @@ export const Notifications = () => {
     <section className="notifications-page">
       <div className="notifications-hero minimal">
         <div>
-          <span className="section-kicker">Avisos</span>
+          <span className="section-kicker">{t.notificationsKicker}</span>
 
-          <h1>Notificaciones</h1>
+          <h1>{t.notificationsTitle}</h1>
 
-          <p>Partidos nuevos y avisos importantes de tu ranking.</p>
+          <p className="desktop-text">{t.notificationsHeroText}</p>
+          <p className="mobile-text">{t.notificationsHeroTextMobile}</p>
         </div>
 
         <div className="notifications-counter-card">
           <strong>{notifications.length}</strong>
-          <span>Pendientes</span>
+          <span>{t.pending}</span>
         </div>
       </div>
 
@@ -177,7 +201,7 @@ export const Notifications = () => {
 
       {loading && (
         <div className="notifications-empty minimal">
-          <h2>Cargando notificaciones...</h2>
+          <h2>{t.loadingNotifications}</h2>
         </div>
       )}
 
@@ -185,9 +209,9 @@ export const Notifications = () => {
         <div className="notifications-empty minimal">
           <div className="notifications-empty-icon">🔔</div>
 
-          <h2>No tienes avisos pendientes</h2>
+          <h2>{t.noPendingNotifications}</h2>
 
-          <p>Cuando haya nuevos partidos, aparecerán aquí.</p>
+          <p>{t.noPendingNotificationsText}</p>
         </div>
       )}
 
@@ -210,16 +234,17 @@ export const Notifications = () => {
                   <div>
                     {openMatch ? (
                       <p className="notification-main-text">
-                        Partido en{" "}
+                        {t.matchAt}{" "}
                         <strong>
-                          {openMatch.club || "club no indicado"}
+                          {openMatch.club || t.clubNotProvided}
                         </strong>
-                        . Día{" "}
-                        <strong>{formatOpenMatchDate(openMatch)}</strong> de{" "}
+                        . {t.day}{" "}
+                        <strong>{formatOpenMatchDate(openMatch)}</strong>{" "}
+                        {t.from}{" "}
                         <strong>
                           {getMatchTimeRange(openMatch.match_time)}
                         </strong>
-                        . Apuntados{" "}
+                        . {t.playersJoined}{" "}
                         <strong>{getPlayersText(openMatch)}</strong>.
                       </p>
                     ) : (
@@ -239,8 +264,8 @@ export const Notifications = () => {
                       disabled={actionLoadingId === notification.id}
                     >
                       {actionLoadingId === notification.id
-                        ? "Apuntando..."
-                        : "Apuntarme"}
+                        ? t.joining
+                        : t.joinMe}
                     </button>
                   )}
 
@@ -252,8 +277,8 @@ export const Notifications = () => {
                       disabled={actionLoadingId === notification.id}
                     >
                       {actionLoadingId === notification.id
-                        ? "Procesando..."
-                        : "Entendido"}
+                        ? t.processing
+                        : t.gotIt}
                     </button>
                   )}
 
@@ -264,7 +289,7 @@ export const Notifications = () => {
                       onClick={() => handleMarkAsRead(notification.id)}
                       disabled={actionLoadingId === notification.id}
                     >
-                      Marcar como leída
+                      {t.markAsRead}
                     </button>
                   )}
                 </div>

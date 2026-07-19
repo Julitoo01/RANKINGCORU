@@ -1,8 +1,35 @@
+import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+import { translations } from "../i18n/translations";
 
 export const Home = () => {
   const storedUser = localStorage.getItem("user");
   const storedToken = localStorage.getItem("token");
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language];
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
+
+  const toggleLanguage = () => {
+    const nextLanguage = language === "es" ? "en" : "es";
+    setLanguage(nextLanguage);
+    localStorage.setItem("language", nextLanguage);
+    window.dispatchEvent(new Event("languageChanged"));
+  };
 
   let user = null;
 
@@ -25,28 +52,36 @@ export const Home = () => {
 
   return (
     <section className="fdp-home">
+      <button
+        type="button"
+        className="fdp-language-toggle"
+        onClick={toggleLanguage}
+        aria-label={t.changeLanguage}
+        title={t.changeLanguage}
+      >
+        {language === "es" ? "EN" : "ES"}
+      </button>
+
       <div className="fdp-hero">
         <div className="fdp-hero-overlay"></div>
         <div className="fdp-shape fdp-shape-left"></div>
         <div className="fdp-shape fdp-shape-right"></div>
 
         <div className="fdp-hero-content">
-          <span className="fdp-kicker">Ranking social de pádel · A Coruña</span>
+          <span className="fdp-kicker">{t.homeKicker}</span>
 
-          <h1>FUERA DE PISTA</h1>
+          <h1>{t.homeTitle}</h1>
 
-          <p>
-            Juega partidos por parejas, compite de forma individual y sube en
-            el ranking contra jugadores de tu nivel.
-          </p>
+          <p className="desktop-text">{t.homeHeroText}</p>
+          <p className="mobile-text">{t.homeHeroTextMobile}</p>
 
           <div className="fdp-hero-buttons">
             <Link to="/register" className="fdp-btn fdp-btn-primary">
-              Crear cuenta
+              {t.createAccount}
             </Link>
 
             <Link to="/login" className="home-premium-btn secondary">
-              Iniciar sesión
+              {t.login}
             </Link>
           </div>
         </div>
@@ -54,124 +89,111 @@ export const Home = () => {
 
       <div className="fdp-content">
         <section className="fdp-intro">
-          <span>¿Qué es Fuera de Pista?</span>
+          <span>{t.whatIsTitle}</span>
 
-          <h2>Una forma fácil de jugar más, competir mejor y conocer gente.</h2>
+          <h2>{t.whatIsSubtitle}</h2>
 
-          <p>
-            Fuera de Pista organiza partidos de pádel por niveles. Te apuntas a
-            partidos abiertos, juegas con otros jugadores de la comunidad y cada
-            resultado actualiza tu posición en el ranking individual.
-          </p>
+          <p className="desktop-text">{t.whatIsText}</p>
+          <p className="mobile-text">{t.whatIsTextMobile}</p>
         </section>
 
         <section className="fdp-cards">
           <article className="fdp-card">
             <div className="fdp-card-number">01</div>
 
-            <h3>Partidos por nivel</h3>
+            <h3>{t.homeCard1Title}</h3>
 
-            <p>
-              Entra en partidos abiertos de tu categoría para que cada encuentro
-              sea equilibrado, competitivo y divertido.
-            </p>
+            <p className="desktop-text">{t.homeCard1Text}</p>
+            <p className="mobile-text">{t.homeCard1TextMobile}</p>
           </article>
 
           <article className="fdp-card">
             <div className="fdp-card-number">02</div>
 
-            <h3>Ranking individual</h3>
+            <h3>{t.homeCard2Title}</h3>
 
-            <p>
-              Aunque los partidos se juegan por parejas, cada jugador suma sus
-              propias estadísticas: partidos, victorias, derrotas y porcentaje.
-            </p>
+            <p className="desktop-text">{t.homeCard2Text}</p>
+            <p className="mobile-text">{t.homeCard2TextMobile}</p>
           </article>
 
           <article className="fdp-card">
             <div className="fdp-card-number">03</div>
 
-            <h3>Resultados automáticos</h3>
+            <h3>{t.homeCard3Title}</h3>
 
-            <p>
-              Al terminar, uno de los jugadores sube el resultado y el ranking se
-              actualiza automáticamente.
-            </p>
+            <p className="desktop-text">{t.homeCard3Text}</p>
+            <p className="mobile-text">{t.homeCard3TextMobile}</p>
           </article>
         </section>
 
         <section className="fdp-how">
           <div className="fdp-how-title">
-            <span>Cómo funciona</span>
+            <span>{t.howItWorks}</span>
 
-            <h2>Del registro al ranking en pocos pasos.</h2>
+            <h2>{t.howItWorksTitle}</h2>
           </div>
 
           <div className="fdp-steps">
             <div className="fdp-step">
               <strong>1</strong>
-              <p>Te registras con tu nombre, nickname, nivel y posición.</p>
+              <p>{t.step1}</p>
             </div>
 
             <div className="fdp-step">
               <strong>2</strong>
-              <p>El admin revisa y aprueba tu inscripción.</p>
+              <p>{t.step2}</p>
             </div>
 
             <div className="fdp-step">
               <strong>3</strong>
-              <p>Te apuntas a partidos abiertos de tu nivel.</p>
+              <p>{t.step3}</p>
             </div>
 
             <div className="fdp-step">
               <strong>4</strong>
-              <p>Cuando hay 4 jugadores, se crean las parejas.</p>
+              <p>{t.step4}</p>
             </div>
 
             <div className="fdp-step">
               <strong>5</strong>
-              <p>Subes el resultado y el ranking se actualiza.</p>
+              <p>{t.step5}</p>
             </div>
           </div>
         </section>
 
         <section className="fdp-extra">
           <div className="fdp-extra-card">
-            <span>Para jugadores</span>
-            <h3>Juega más partidos sin depender siempre del mismo grupo.</h3>
-            <p>
-              Encuentra jugadores de tu nivel, apúntate cuando te venga bien y
-              compite dentro de una comunidad organizada.
-            </p>
+            <span>{t.forPlayers}</span>
+            <h3>{t.forPlayersTitle}</h3>
+
+            <p className="desktop-text">{t.forPlayersText}</p>
+            <p className="mobile-text">{t.forPlayersTextMobile}</p>
           </div>
 
           <div className="fdp-extra-card">
-            <span>Para competir</span>
-            <h3>Cada partido cuenta.</h3>
-            <p>
-              Cada resultado suma a tu historial y te ayuda a escalar posiciones
-              dentro de la clasificación.
-            </p>
+            <span>{t.forCompeting}</span>
+            <h3>{t.forCompetingTitle}</h3>
+
+            <p className="desktop-text">{t.forCompetingText}</p>
+            <p className="mobile-text">{t.forCompetingTextMobile}</p>
           </div>
         </section>
 
         <section className="fdp-final">
-          <span>Empieza ahora</span>
+          <span>{t.startNow}</span>
 
-          <h2>Únete al ranking y vive el pádel también fuera de la pista.</h2>
+          <h2>{t.finalTitle}</h2>
 
-          <p>
-            Crea tu cuenta, espera la aprobación del admin y empieza a apuntarte
-            a partidos de tu nivel.
-          </p>
+          <p className="desktop-text">{t.finalText}</p>
+          <p className="mobile-text">{t.finalTextMobile}</p>
 
           <div className="fdp-final-actions">
             <Link to="/register" className="fdp-btn fdp-btn-primary">
-              Crear cuenta
+              {t.createAccount}
             </Link>
 
             <Link to="/login" className="fdp-btn fdp-btn-secondary">
-              Ya tengo cuenta
+              {t.alreadyHaveAccount}
             </Link>
           </div>
         </section>
