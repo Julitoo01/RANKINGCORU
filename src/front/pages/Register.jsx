@@ -24,9 +24,6 @@ export const Register = () => {
     email: "",
     password: "",
     phone: "",
-    instagram: "",
-    level: "",
-    position: "",
     terms_accepted: false,
     privacy_accepted: false,
   });
@@ -47,25 +44,6 @@ export const Register = () => {
       window.removeEventListener("languageChanged", handleLanguageChanged);
     };
   }, []);
-
-  const levels = [
-    { value: "Iniciación", label: t.levelBeginner },
-    { value: "Bronce", label: t.levelBronze },
-    { value: "Plata", label: t.levelSilver },
-    { value: "Oro", label: t.levelGold },
-    { value: "Diamante", label: t.levelDiamond },
-    {
-      value: "No lo sé / quiero que me valoréis",
-      label: t.levelUnknown,
-    },
-  ];
-
-  const positions = [
-    { value: "Derecha", label: t.positionRight },
-    { value: "Revés", label: t.positionLeft },
-    { value: "Ambas", label: t.positionBoth },
-    { value: "No lo sé", label: t.positionUnknown },
-  ];
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -95,7 +73,11 @@ export const Register = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          level: "No lo sé / quiero que me valoréis",
+          position: "Ambas",
+        }),
       });
 
       const contentType = response.headers.get("content-type");
@@ -253,40 +235,6 @@ export const Register = () => {
                   placeholder={t.phonePlaceholder}
                   required
                 />
-              </div>
-
-              <div className="form-group">
-                <label>{t.levelLabel}</label>
-                <select
-                  name="level"
-                  value={formData.level}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">{t.selectLevel}</option>
-                  {levels.map((level) => (
-                    <option key={level.value} value={level.value}>
-                      {level.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>{t.positionLabel}</label>
-                <select
-                  name="position"
-                  value={formData.position}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">{t.selectPosition}</option>
-                  {positions.map((position) => (
-                    <option key={position.value} value={position.value}>
-                      {position.label}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 
