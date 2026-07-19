@@ -26,8 +26,10 @@ export const Home = () => {
 
   const toggleLanguage = () => {
     const nextLanguage = language === "es" ? "en" : "es";
-    setLanguage(nextLanguage);
+
     localStorage.setItem("language", nextLanguage);
+    setLanguage(nextLanguage);
+
     window.dispatchEvent(new Event("languageChanged"));
   };
 
@@ -164,6 +166,7 @@ export const Home = () => {
         <section className="fdp-extra">
           <div className="fdp-extra-card">
             <span>{t.forPlayers}</span>
+
             <h3>{t.forPlayersTitle}</h3>
 
             <p className="desktop-text">{t.forPlayersText}</p>
@@ -172,6 +175,7 @@ export const Home = () => {
 
           <div className="fdp-extra-card">
             <span>{t.forCompeting}</span>
+
             <h3>{t.forCompetingTitle}</h3>
 
             <p className="desktop-text">{t.forCompetingText}</p>
