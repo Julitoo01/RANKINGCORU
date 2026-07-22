@@ -6474,3 +6474,34 @@ button:disabled {
     justify-content: center;
   }
 }
+.upload-result-locked-info {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.8rem;
+  padding: 1rem;
+  border-radius: 1.1rem;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.upload-result-locked-info div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.upload-result-locked-info span {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.upload-result-locked-info strong {
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+@media (max-width: 768px) {
+  .upload-result-locked-info {
+    grid-template-columns: 1fr 1fr;
+  }
+}
