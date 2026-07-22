@@ -36,9 +36,12 @@ export const Profile = () => {
     };
   }, []);
 
-  const loadProfile = async () => {
+  const loadProfile = async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
+
       setError("");
       setMessage("");
 
@@ -66,12 +69,34 @@ export const Profile = () => {
       console.error(error);
       setError(error.message || t.profileLoadError);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     loadProfile();
+  }, []);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      loadProfile({ silent: true });
+    };
+
+    const handleProfileUpdated = () => {
+      loadProfile({ silent: true });
+    };
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("profileUpdated", handleProfileUpdated);
+    window.addEventListener("notificationsUpdated", handleProfileUpdated);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("profileUpdated", handleProfileUpdated);
+      window.removeEventListener("notificationsUpdated", handleProfileUpdated);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -162,6 +187,21 @@ export const Profile = () => {
     return "pending";
   };
 
+  const formatWinPercentage = (profile) => {
+    if (!profile) return 0;
+
+    if (profile.win_percentage !== undefined && profile.win_percentage !== null) {
+      return profile.win_percentage;
+    }
+
+    const matchesPlayed = profile.matches_played || 0;
+    const wins = profile.wins || 0;
+
+    if (matchesPlayed === 0) return 0;
+
+    return Math.round((wins / matchesPlayed) * 100);
+  };
+
   if (loading) {
     return (
       <section className="profile-page">
@@ -215,6 +255,7 @@ export const Profile = () => {
   const { user, profile } = profileData;
   const profileStatus = profile?.status || "pending";
   const isApproved = profileStatus === "approved";
+  const winPercentage = formatWinPercentage(profile);
 
   return (
     <section className="profile-page">
@@ -286,11 +327,6 @@ export const Profile = () => {
               <span>{t.levelLabel}</span>
               <strong>{profile?.level || "-"}</strong>
             </div>
-
-            <div>
-              <span>{t.positionLabel}</span>
-              <strong>{profile?.position || "-"}</strong>
-            </div>
           </div>
 
           <div className="profile-actions">
@@ -323,7 +359,7 @@ export const Profile = () => {
 
             <div className="profile-stat-card">
               <span>{t.winPercentage}</span>
-              <strong>{profile?.win_percentage ?? 0}%</strong>
+              <strong>{winPercentage}%</strong>
             </div>
           </div>
 

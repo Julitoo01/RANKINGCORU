@@ -1,12 +1,17 @@
 export const authFetch = async (url, options = {}) => {
   const token = localStorage.getItem("token");
 
+  const headers = {
+    ...(options.headers || {}),
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const response = await fetch(url, {
     ...options,
-    headers: {
-      ...(options.headers || {}),
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
   });
 
   const contentType = response.headers.get("content-type");
@@ -19,20 +24,25 @@ export const authFetch = async (url, options = {}) => {
     const text = await response.text();
 
     throw new Error(
-      `El servidor no devolvió JSON. URL llamada: ${finalUrl}. Status: ${response.status}. Respuesta: ${text.slice(
-        0,
-        120
-      )}`
+      `El servidor no devolvió JSON. URL llamada: ${url}. Status: ${
+        response.status
+      }. Respuesta: ${text.slice(0, 120)}`
     );
   }
 
   if (!response.ok) {
-    if (response.status === 401 || data?.msg === "Token has expired") {
+    const tokenExpired =
+      response.status === 401 ||
+      data?.msg === "Token has expired" ||
+      data?.msg === "Missing Authorization Header" ||
+      data?.msg === "Invalid token";
+
+    if (tokenExpired) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("profile");
 
-      window.location.href = "/login";
+      window.location.href = "/#/login";
       return null;
     }
 

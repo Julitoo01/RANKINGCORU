@@ -185,12 +185,20 @@ export const OpenMatches = () => {
     );
   };
 
+  const isCurrentPlayer = (playerItem) => {
+    return (
+      Number(playerItem?.player_profile_id) === Number(playerProfile?.id)
+    );
+  };
+
   const isPlayerJoined = (openMatch) => {
     if (!playerProfile) return false;
 
-    return openMatch.players?.some(
-      (item) => Number(item.player_profile_id) === Number(playerProfile.id)
-    );
+    return openMatch.players?.some((item) => isCurrentPlayer(item));
+  };
+
+  const hasResult = (openMatch) => {
+    return Boolean(openMatch.has_result || openMatch.result_match_id);
   };
 
   const canUploadResult = (openMatch) => {
@@ -199,8 +207,7 @@ export const OpenMatches = () => {
     return (
       openMatch.status === "closed" &&
       joined &&
-      !openMatch.has_result &&
-      !openMatch.result_match_id
+      !hasResult(openMatch)
     );
   };
 
@@ -220,12 +227,13 @@ export const OpenMatches = () => {
     });
   };
 
-  const getStatusText = (status) => {
-    if (status === "open") return t.statusOpen;
-    if (status === "closed") return t.statusClosed;
-    if (status === "cancelled") return t.statusCancelled;
+  const getStatusText = (openMatch) => {
+    if (hasResult(openMatch)) return t.resultRegistered;
+    if (openMatch.status === "open") return t.statusOpen;
+    if (openMatch.status === "closed") return t.statusClosed;
+    if (openMatch.status === "cancelled") return t.statusCancelled;
 
-    return status;
+    return openMatch.status;
   };
 
   const profileIsPending =
@@ -330,12 +338,27 @@ export const OpenMatches = () => {
                 const isFull = openMatch.players_count >= openMatch.max_players;
                 const isActionLoading = actionLoadingId === openMatch.id;
                 const uploadAllowed = canUploadResult(openMatch);
+                const resultRegistered = hasResult(openMatch);
+                const spotsLeft =
+                  (openMatch.max_players || 4) - (openMatch.players_count || 0);
 
                 return (
-                  <article key={openMatch.id} className="open-match-card">
+                  <article
+                    key={openMatch.id}
+                    className={`open-match-card ${
+                      joined ? "open-match-card-joined" : ""
+                    }`}
+                  >
                     <div className="open-match-card-header">
                       <div>
-                        <h3>{openMatch.level}</h3>
+                        <h3>
+                          {openMatch.level}
+                          {joined && (
+                            <span className="open-match-inline-badge">
+                              {t.alreadyJoined}
+                            </span>
+                          )}
+                        </h3>
 
                         <p>
                           {openMatch.club} · {formatDate(openMatch.match_date)} ·{" "}
@@ -343,8 +366,12 @@ export const OpenMatches = () => {
                         </p>
                       </div>
 
-                      <span className={`open-match-status ${openMatch.status}`}>
-                        {getStatusText(openMatch.status)}
+                      <span
+                        className={`open-match-status ${
+                          resultRegistered ? "result" : openMatch.status
+                        }`}
+                      >
+                        {getStatusText(openMatch)}
                       </span>
                     </div>
 
@@ -355,8 +382,14 @@ export const OpenMatches = () => {
                     )}
 
                     <div className="open-match-count">
-                      {openMatch.players_count}/{openMatch.max_players}{" "}
-                      {t.players}
+                      <strong>{t.playersCountLabel}:</strong>{" "}
+                      {openMatch.players_count}/{openMatch.max_players}
+                      {isOpen && !isFull && (
+                        <span>
+                          {" "}
+                          · {spotsLeft} {t.spotsAvailable}
+                        </span>
+                      )}
                     </div>
 
                     <div className="open-match-players">
@@ -365,13 +398,15 @@ export const OpenMatches = () => {
                           <span
                             key={playerItem.id}
                             className={`open-match-player-pill ${
-                              Number(playerItem.player_profile_id) ===
-                              Number(playerProfile?.id)
+                              isCurrentPlayer(playerItem)
                                 ? "current-player"
                                 : ""
                             }`}
                           >
                             {getPlayerName(playerItem)}
+                            {isCurrentPlayer(playerItem) && (
+                              <small> · {t.youLabel}</small>
+                            )}
                           </span>
                         ))
                       ) : (
@@ -414,14 +449,22 @@ export const OpenMatches = () => {
                       )}
 
                       {isOpen && joined && (
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={() => setSelectedMatchToLeave(openMatch)}
-                          disabled={isActionLoading}
-                        >
-                          {isActionLoading ? t.leaving : t.leaveMatch}
-                        </button>
+                        <>
+                          <span className="open-match-joined-text">
+                            {t.alreadyJoined}
+                          </span>
+
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => setSelectedMatchToLeave(openMatch)}
+                            disabled={isActionLoading}
+                          >
+                            {isActionLoading
+                              ? t.leaving
+                              : t.cancelRegistration}
+                          </button>
+                        </>
                       )}
 
                       {uploadAllowed && (
@@ -433,15 +476,21 @@ export const OpenMatches = () => {
                         </Link>
                       )}
 
-                      {isClosed && !joined && !openMatch.has_result && (
+                      {isClosed && joined && !resultRegistered && (
+                        <span className="open-match-closed-text">
+                          {t.closedWaitingResult}
+                        </span>
+                      )}
+
+                      {isClosed && !joined && !resultRegistered && (
                         <span className="open-match-closed-text">
                           {t.matchFull}
                         </span>
                       )}
 
-                      {isClosed && joined && openMatch.has_result && (
+                      {resultRegistered && (
                         <span className="open-match-closed-text">
-                          {t.resultSent}
+                          {t.resultRegistered}
                         </span>
                       )}
 
@@ -489,6 +538,23 @@ export const OpenMatches = () => {
                 <span>{getMatchTimeRange(selectedMatchToJoin.match_time)}</span>
               </div>
             </div>
+
+            {selectedMatchToJoin.players?.length > 0 && (
+              <div className="join-modal-players">
+                <strong>{t.playersInMatch}</strong>
+
+                <div className="open-match-players">
+                  {selectedMatchToJoin.players.map((playerItem) => (
+                    <span
+                      key={playerItem.id}
+                      className="open-match-player-pill"
+                    >
+                      {getPlayerName(playerItem)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <p>{t.joinModalText}</p>
 

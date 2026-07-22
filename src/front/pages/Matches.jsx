@@ -121,6 +121,13 @@ export const Matches = () => {
     return "-";
   };
 
+  const getWinnerClass = (winnerTeam) => {
+    if (winnerTeam === "A") return "team-a";
+    if (winnerTeam === "B") return "team-b";
+
+    return "";
+  };
+
   const renderTeam = (team) => {
     if (!team || team.length === 0) return ["-"];
 
@@ -185,7 +192,8 @@ export const Matches = () => {
           >
             {seasons.map((season) => (
               <option key={season.id} value={season.id}>
-                {season.name} {season.is_active ? `· ${t.current}` : `· ${t.historical}`}
+                {season.name}{" "}
+                {season.is_active ? `· ${t.current}` : `· ${t.historical}`}
               </option>
             ))}
           </select>
@@ -231,21 +239,21 @@ export const Matches = () => {
                     <p>{match.club || t.clubNotProvidedResult}</p>
                   </div>
 
-                  <div className="match-score-box">
+                  <div className="match-score-box match-score-box-highlight">
                     <span>{t.resultLabel}</span>
                     <strong>{match.score || "-"}</strong>
                   </div>
                 </div>
 
-                <div className="match-status-row">
+                <div className="match-result-summary">
                   <span className="match-status-badge confirmed">
                     {t.registeredResult}
                   </span>
 
-                  <span>
-                    {t.winner}:{" "}
+                  <div className={`match-winner-pill ${getWinnerClass(match.winner_team)}`}>
+                    <span>{t.winner}</span>
                     <strong>{getWinnerText(match.winner_team)}</strong>
-                  </span>
+                  </div>
                 </div>
 
                 <div className="match-teams">
@@ -283,7 +291,8 @@ export const Matches = () => {
                   </span>
 
                   <span>
-                    {t.submittedBy}: <strong>{match.submitted_by || "-"}</strong>
+                    {t.submittedBy}:{" "}
+                    <strong>{match.submitted_by || "-"}</strong>
                   </span>
                 </div>
               </article>

@@ -39,6 +39,12 @@ export const UploadResult = () => {
     played_at: "",
   });
 
+  const [sets, setSets] = useState([
+    { teamA: "", teamB: "" },
+    { teamA: "", teamB: "" },
+    { teamA: "", teamB: "" },
+  ]);
+
   const [loadingPlayers, setLoadingPlayers] = useState(true);
   const [loadingOpenMatch, setLoadingOpenMatch] = useState(false);
   const [sending, setSending] = useState(false);
@@ -55,6 +61,10 @@ export const UploadResult = () => {
     return () => {
       window.removeEventListener("languageChanged", handleLanguageChanged);
     };
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
   }, []);
 
   const levels = [
@@ -156,6 +166,99 @@ export const UploadResult = () => {
     });
   };
 
+  const handleSetChange = (index, field, value) => {
+    const cleanValue = value.replace(/\D/g, "").slice(0, 2);
+
+    const updatedSets = sets.map((setItem, setIndex) => {
+      if (setIndex !== index) return setItem;
+
+      return {
+        ...setItem,
+        [field]: cleanValue,
+      };
+    });
+
+    setSets(updatedSets);
+  };
+
+  const getCompleteSets = () => {
+    return sets.filter((setItem) => {
+      return setItem.teamA !== "" || setItem.teamB !== "";
+    });
+  };
+
+  const calculateResult = () => {
+    const usedSets = getCompleteSets();
+
+    let teamAWonSets = 0;
+    let teamBWonSets = 0;
+    const scoreParts = [];
+
+    for (const setItem of usedSets) {
+      if (setItem.teamA === "" || setItem.teamB === "") {
+        return {
+          isValid: false,
+          error: t.invalidSetScore,
+          score: "",
+          winnerTeam: "",
+        };
+      }
+
+      const teamAGames = Number(setItem.teamA);
+      const teamBGames = Number(setItem.teamB);
+
+      if (
+        Number.isNaN(teamAGames) ||
+        Number.isNaN(teamBGames) ||
+        teamAGames < 0 ||
+        teamBGames < 0 ||
+        teamAGames === teamBGames
+      ) {
+        return {
+          isValid: false,
+          error: t.invalidSetScore,
+          score: "",
+          winnerTeam: "",
+        };
+      }
+
+      if (teamAGames > teamBGames) {
+        teamAWonSets += 1;
+      } else {
+        teamBWonSets += 1;
+      }
+
+      scoreParts.push(`${teamAGames}-${teamBGames}`);
+    }
+
+    if (scoreParts.length < 2) {
+      return {
+        isValid: false,
+        error: t.minimumSetsRequired,
+        score: "",
+        winnerTeam: "",
+      };
+    }
+
+    if (teamAWonSets === teamBWonSets) {
+      return {
+        isValid: false,
+        error: t.winnerCouldNotBeCalculated,
+        score: "",
+        winnerTeam: "",
+      };
+    }
+
+    return {
+      isValid: true,
+      error: "",
+      score: scoreParts.join(" "),
+      winnerTeam: teamAWonSets > teamBWonSets ? "A" : "B",
+    };
+  };
+
+  const calculatedResult = calculateResult();
+
   const validateForm = () => {
     const selectedPlayers = [
       formData.team_a_player_1_id,
@@ -174,8 +277,8 @@ export const UploadResult = () => {
       return t.duplicatePlayersError;
     }
 
-    if (!formData.score.trim()) {
-      return t.scoreRequired;
+    if (!calculatedResult.isValid) {
+      return calculatedResult.error;
     }
 
     if (!formData.level) {
@@ -198,10 +301,24 @@ export const UploadResult = () => {
       return;
     }
 
+    setFormData((previousFormData) => ({
+      ...previousFormData,
+      score: calculatedResult.score,
+      winner_team: calculatedResult.winnerTeam,
+    }));
+
     setShowConfirmModal(true);
   };
 
   const submitResult = async () => {
+    const finalResult = calculateResult();
+
+    if (!finalResult.isValid) {
+      setError(finalResult.error);
+      setShowConfirmModal(false);
+      return;
+    }
+
     try {
       setSending(true);
       setMessage("");
@@ -212,8 +329,8 @@ export const UploadResult = () => {
         team_a_player_2_id: Number(formData.team_a_player_2_id),
         team_b_player_1_id: Number(formData.team_b_player_1_id),
         team_b_player_2_id: Number(formData.team_b_player_2_id),
-        winner_team: formData.winner_team,
-        score: formData.score.trim(),
+        winner_team: finalResult.winnerTeam,
+        score: finalResult.score,
         level: formData.level,
         club: formData.club.trim(),
         played_at: formData.played_at || null,
@@ -251,12 +368,24 @@ export const UploadResult = () => {
           club: "",
           played_at: "",
         });
+
+        setSets([
+          { teamA: "", teamB: "" },
+          { teamA: "", teamB: "" },
+          { teamA: "", teamB: "" },
+        ]);
       } else {
         setFormData({
           ...formData,
           winner_team: "A",
           score: "",
         });
+
+        setSets([
+          { teamA: "", teamB: "" },
+          { teamA: "", teamB: "" },
+          { teamA: "", teamB: "" },
+        ]);
       }
     } catch (error) {
       console.error(error);
@@ -287,8 +416,12 @@ export const UploadResult = () => {
   };
 
   const getWinnerLabel = () => {
-    if (formData.winner_team === "A") return t.teamA;
-    if (formData.winner_team === "B") return t.teamB;
+    const winnerTeam = calculatedResult.isValid
+      ? calculatedResult.winnerTeam
+      : formData.winner_team;
+
+    if (winnerTeam === "A") return t.teamA;
+    if (winnerTeam === "B") return t.teamB;
 
     return t.winningTeamFallback;
   };
@@ -473,34 +606,70 @@ export const UploadResult = () => {
           <div className="upload-form-section">
             <div className="upload-form-section-title">
               <span>{t.resultLabel}</span>
-              <h2>{t.matchData}</h2>
+              <h2>{t.setsResultTitle}</h2>
+            </div>
+
+            <div className="sets-result-card">
+              {sets.map((setItem, index) => (
+                <div className="set-score-row" key={index}>
+                  <div className="set-score-label">
+                    <strong>
+                      {t.setLabel} {index + 1}
+                    </strong>
+
+                    {index === 2 && <span>{t.optionalSet}</span>}
+                  </div>
+
+                  <div className="set-score-inputs">
+                    <div>
+                      <label>{t.teamA}</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={setItem.teamA}
+                        onChange={(event) =>
+                          handleSetChange(index, "teamA", event.target.value)
+                        }
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <span>-</span>
+
+                    <div>
+                      <label>{t.teamB}</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={setItem.teamB}
+                        onChange={(event) =>
+                          handleSetChange(index, "teamB", event.target.value)
+                        }
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="calculated-result-box">
+                <div>
+                  <strong>{t.calculatedScore}</strong>
+                  <span>
+                    {calculatedResult.isValid ? calculatedResult.score : "—"}
+                  </span>
+                </div>
+
+                <div>
+                  <strong>{t.calculatedWinner}</strong>
+                  <span>
+                    {calculatedResult.isValid ? getWinnerLabel() : "—"}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="upload-form-grid">
-              <div className="form-group">
-                <label>{t.winnerTeam}</label>
-                <select
-                  name="winner_team"
-                  value={formData.winner_team}
-                  onChange={handleChange}
-                >
-                  <option value="A">{t.teamA}</option>
-                  <option value="B">{t.teamB}</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>{t.resultLabel}</label>
-                <input
-                  type="text"
-                  name="score"
-                  value={formData.score}
-                  onChange={handleChange}
-                  placeholder={t.scorePlaceholder}
-                />
-                <small>{t.scoreHelp}</small>
-              </div>
-
               <div className="form-group">
                 <label>{t.levelLabel}</label>
                 {isAutoFilled ? (
@@ -584,7 +753,7 @@ export const UploadResult = () => {
 
               <div>
                 <strong>{t.resultLabel}</strong>
-                <span>{formData.score}</span>
+                <span>{calculatedResult.score}</span>
               </div>
 
               <div>

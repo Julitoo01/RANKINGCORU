@@ -746,27 +746,16 @@ def create_match():
 
     if open_match:
         open_match.result_match_id = match.id
-
-    team_a_ids = [team_a_player_1_id, team_a_player_2_id]
-    team_b_ids = [team_b_player_1_id, team_b_player_2_id]
-
-    if winner_team == "A":
-        winner_ids = team_a_ids
-        loser_ids = team_b_ids
-    else:
-        winner_ids = team_b_ids
-        loser_ids = team_a_ids
-
-    for player_id in player_ids:
-        player = players_by_id[player_id]
-        player.matches_played = (player.matches_played or 0) + 1
-
-        if player_id in winner_ids:
-            player.wins = (player.wins or 0) + 1
-        elif player_id in loser_ids:
-            player.losses = (player.losses or 0) + 1
+        open_match.status = "closed"
 
     db.session.commit()
+
+    recalculate_ranking_internal(active_season.id)
+
+    db.session.refresh(match)
+
+    if open_match:
+        db.session.refresh(open_match)
 
     return jsonify(
         {

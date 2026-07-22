@@ -70,15 +70,18 @@ export const Ranking = () => {
       }
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar temporadas");
+      setError(error.message || t.seasonsLoadError || "Error al cargar temporadas");
     } finally {
       setSeasonsLoading(false);
     }
   };
 
-  const loadRanking = async () => {
+  const loadRanking = async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
+
       setError("");
 
       const params = new URLSearchParams();
@@ -104,9 +107,11 @@ export const Ranking = () => {
       setRanking(data);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar el ranking");
+      setError(error.message || t.rankingLoadError || "Error al cargar el ranking");
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -118,6 +123,24 @@ export const Ranking = () => {
     if (!seasonsLoading) {
       loadRanking();
     }
+  }, [level, selectedSeasonId, seasonsLoading]);
+
+  useEffect(() => {
+    const handleRankingRefresh = () => {
+      if (!seasonsLoading) {
+        loadRanking({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", handleRankingRefresh);
+    window.addEventListener("notificationsUpdated", handleRankingRefresh);
+    window.addEventListener("profileUpdated", handleRankingRefresh);
+
+    return () => {
+      window.removeEventListener("focus", handleRankingRefresh);
+      window.removeEventListener("notificationsUpdated", handleRankingRefresh);
+      window.removeEventListener("profileUpdated", handleRankingRefresh);
+    };
   }, [level, selectedSeasonId, seasonsLoading]);
 
   const getPositionLabel = (index) => {
@@ -151,6 +174,28 @@ export const Ranking = () => {
   const getSelectedLevelLabel = () => {
     const selectedLevel = levels.find((item) => item.value === level);
     return selectedLevel?.label || level;
+  };
+
+  const getPlayerName = (player) => {
+    return player.nickname || player.name || t.playerFallback;
+  };
+
+  const getPlayerInitial = (player) => {
+    const name = getPlayerName(player);
+    return name?.charAt(0)?.toUpperCase() || t.playerFallback.charAt(0);
+  };
+
+  const getWinPercentage = (player) => {
+    if (player.win_percentage !== undefined && player.win_percentage !== null) {
+      return player.win_percentage;
+    }
+
+    const matchesPlayed = player.matches_played || 0;
+    const wins = player.wins || 0;
+
+    if (matchesPlayed === 0) return 0;
+
+    return Math.round((wins / matchesPlayed) * 100);
   };
 
   return (
@@ -281,112 +326,118 @@ export const Ranking = () => {
                   </thead>
 
                   <tbody>
-                    {ranking.map((player, index) => (
-                      <tr key={`${player.id}-${player.profile_id || index}`}>
-                        <td>
-                          <span className="ranking-position">
-                            {isHistoricalSeason && player.final_position
-                              ? player.final_position
-                              : index < 3
-                              ? getPositionLabel(index)
-                              : index + 1}
-                          </span>
-                        </td>
+                    {ranking.map((player, index) => {
+                      const winPercentage = getWinPercentage(player);
 
-                        <td>
-                          <div className="ranking-player-cell">
-                            <div className="ranking-avatar">
-                              {player.profile_image ? (
-                                <img
-                                  src={player.profile_image}
-                                  alt={player.nickname || t.playerFallback}
-                                />
-                              ) : (
-                                player.nickname?.charAt(0)?.toUpperCase() ||
-                                t.playerFallback.charAt(0)
-                              )}
+                      return (
+                        <tr key={`${player.id}-${player.profile_id || index}`}>
+                          <td>
+                            <span className="ranking-position">
+                              {isHistoricalSeason && player.final_position
+                                ? player.final_position
+                                : index < 3
+                                ? getPositionLabel(index)
+                                : index + 1}
+                            </span>
+                          </td>
+
+                          <td>
+                            <div className="ranking-player-cell">
+                              <div className="ranking-avatar">
+                                {player.profile_image ? (
+                                  <img
+                                    src={player.profile_image}
+                                    alt={getPlayerName(player)}
+                                  />
+                                ) : (
+                                  getPlayerInitial(player)
+                                )}
+                              </div>
+
+                              <strong>{getPlayerName(player)}</strong>
                             </div>
+                          </td>
 
-                            <strong>{player.nickname}</strong>
-                          </div>
-                        </td>
+                          <td>
+                            <span className="ranking-level-pill">
+                              {player.level || "-"}
+                            </span>
+                          </td>
 
-                        <td>
-                          <span className="ranking-level-pill">
-                            {player.level}
-                          </span>
-                        </td>
-
-                        <td>{player.matches_played}</td>
-                        <td>{player.wins}</td>
-                        <td>{player.losses}</td>
-                        <td>{player.win_percentage}%</td>
-                      </tr>
-                    ))}
+                          <td>{player.matches_played ?? 0}</td>
+                          <td>{player.wins ?? 0}</td>
+                          <td>{player.losses ?? 0}</td>
+                          <td>{winPercentage}%</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               <div className="ranking-mobile-cards">
-                {ranking.map((player, index) => (
-                  <article
-                    key={`mobile-${player.id}-${player.profile_id || index}`}
-                    className={`ranking-mobile-card ${
-                      index === 0 ? "ranking-mobile-card-first" : ""
-                    }`}
-                  >
-                    <div className="ranking-mobile-card-top">
-                      <div className="ranking-player-cell">
-                        <div className="ranking-avatar ranking-mobile-avatar">
-                          {player.profile_image ? (
-                            <img
-                              src={player.profile_image}
-                              alt={player.nickname || t.playerFallback}
-                            />
-                          ) : (
-                            player.nickname?.charAt(0)?.toUpperCase() ||
-                            t.playerFallback.charAt(0)
-                          )}
+                {ranking.map((player, index) => {
+                  const winPercentage = getWinPercentage(player);
+
+                  return (
+                    <article
+                      key={`mobile-${player.id}-${player.profile_id || index}`}
+                      className={`ranking-mobile-card ${
+                        index === 0 ? "ranking-mobile-card-first" : ""
+                      }`}
+                    >
+                      <div className="ranking-mobile-card-top">
+                        <div className="ranking-player-cell">
+                          <div className="ranking-avatar ranking-mobile-avatar">
+                            {player.profile_image ? (
+                              <img
+                                src={player.profile_image}
+                                alt={getPlayerName(player)}
+                              />
+                            ) : (
+                              getPlayerInitial(player)
+                            )}
+                          </div>
+
+                          <div>
+                            <strong>{getPlayerName(player)}</strong>
+                            <span className="ranking-mobile-subtitle">
+                              {player.level || "-"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="ranking-mobile-position">
+                          {index < 3 && !isHistoricalSeason
+                            ? getPositionLabel(index)
+                            : getMobilePositionLabel(player, index)}
+                        </div>
+                      </div>
+
+                      <div className="ranking-mobile-stats">
+                        <div>
+                          <span>{t.matchesPlayedShort}</span>
+                          <strong>{player.matches_played ?? 0}</strong>
                         </div>
 
                         <div>
-                          <strong>{player.nickname}</strong>
-                          <span className="ranking-mobile-subtitle">
-                            {player.level}
-                          </span>
+                          <span>{t.winsShort}</span>
+                          <strong>{player.wins ?? 0}</strong>
+                        </div>
+
+                        <div>
+                          <span>{t.lossesShort}</span>
+                          <strong>{player.losses ?? 0}</strong>
+                        </div>
+
+                        <div>
+                          <span>%</span>
+                          <strong>{winPercentage}%</strong>
                         </div>
                       </div>
-
-                      <div className="ranking-mobile-position">
-                        {index < 3 && !isHistoricalSeason
-                          ? getPositionLabel(index)
-                          : getMobilePositionLabel(player, index)}
-                      </div>
-                    </div>
-
-                    <div className="ranking-mobile-stats">
-                      <div>
-                        <span>{t.matchesPlayedShort}</span>
-                        <strong>{player.matches_played}</strong>
-                      </div>
-
-                      <div>
-                        <span>{t.winsShort}</span>
-                        <strong>{player.wins}</strong>
-                      </div>
-
-                      <div>
-                        <span>{t.lossesShort}</span>
-                        <strong>{player.losses}</strong>
-                      </div>
-
-                      <div>
-                        <span>%</span>
-                        <strong>{player.win_percentage}%</strong>
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             </>
           )}
