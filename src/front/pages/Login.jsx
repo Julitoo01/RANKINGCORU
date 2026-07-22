@@ -73,11 +73,19 @@ export const Login = () => {
         throw new Error(data.msg || t.loginError);
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("profile", JSON.stringify(data.profile));
+      const user = data.user;
+      const profile = data.profile || data.user?.profile || null;
 
-      navigate("/profile");
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      if (profile) {
+        localStorage.setItem("profile", JSON.stringify(profile));
+      } else {
+        localStorage.removeItem("profile");
+      }
+
+      navigate("/ranking");
     } catch (error) {
       console.error(error);
       setError(error.message || t.loginGenericError);

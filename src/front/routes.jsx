@@ -39,11 +39,23 @@ const getStoredUser = () => {
   return null;
 };
 
-const ProtectedRoute = ({ children }) => {
+const isLoggedIn = () => {
   const token = localStorage.getItem("token");
   const user = getStoredUser();
 
-  if (!token || !user) {
+  return Boolean(token && user);
+};
+
+const HomeRoute = () => {
+  if (isLoggedIn()) {
+    return <Navigate to="/ranking" replace />;
+  }
+
+  return <Home />;
+};
+
+const ProtectedRoute = ({ children }) => {
+  if (!isLoggedIn()) {
     return <Navigate to="/" replace />;
   }
 
@@ -68,7 +80,7 @@ const AdminRoute = ({ children }) => {
 export const router = createHashRouter(
   createRoutesFromElements(
     <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>
-      <Route index element={<Home />} />
+      <Route index element={<HomeRoute />} />
 
       <Route path="register" element={<Register />} />
       <Route path="login" element={<Login />} />
@@ -184,4 +196,4 @@ export const router = createHashRouter(
       <Route path="*" element={<Navigate to="/" replace />} />
     </Route>
   )
-)
+);

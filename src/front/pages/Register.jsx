@@ -92,11 +92,16 @@ export const Register = () => {
         throw new Error(data.msg || t.registerError);
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      const user = data.user;
+      const profile = data.profile || data.user?.profile || null;
 
-      if (data.user?.profile) {
-        localStorage.setItem("profile", JSON.stringify(data.user.profile));
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      if (profile) {
+        localStorage.setItem("profile", JSON.stringify(profile));
+      } else {
+        localStorage.removeItem("profile");
       }
 
       setMessage(t.registerSuccess);
@@ -109,9 +114,9 @@ export const Register = () => {
     }
   };
 
-  const handleGoToProfile = () => {
+  const handleGoToRanking = () => {
     setShowPendingModal(false);
-    navigate("/profile");
+    navigate("/ranking");
   };
 
   return (
@@ -302,7 +307,7 @@ export const Register = () => {
             <button
               type="button"
               className="register-modal-btn"
-              onClick={handleGoToProfile}
+              onClick={handleGoToRanking}
             >
               {t.understood}
             </button>
