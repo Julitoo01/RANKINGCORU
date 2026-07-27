@@ -1,6 +1,6 @@
 export const translations = {
   es: {
-    appName: "Fuera de Pista",
+    appName: "Out of the Court",
 
     // Rules
     rulesTitle: "Normativa",
@@ -13,7 +13,7 @@ export const translations = {
     loadingRules: "Cargando normas...",
     ruleFallbackTitle: "Norma",
     officialRules: "Normas oficiales",
-    rulesDefaultTitle: "Normas de Fuera de Pista",
+    rulesDefaultTitle: "Normas de Out of the Court",
     lastUpdate: "Última actualización",
     noRulesYet: "Todavía no hay normas publicadas",
     noRulesYetText:
@@ -82,7 +82,7 @@ export const translations = {
     waitingApproval: "Esperando aprobación",
 
     // Upload result
-    uploadResultKicker: "Fuera de Pista",
+    uploadResultKicker: "Out of the Court",
     uploadResultTitle: "Subir resultado",
     uploadResultHeroText:
       "Introduce solo el marcador y selecciona el equipo ganador. Los equipos, el nivel, el club y la fecha ya vienen cargados del partido.",
@@ -115,7 +115,7 @@ export const translations = {
     winnerTeam: "Equipo ganador",
     scorePlaceholder: "Ej: 6-4 6-3",
     scoreHelp: "Escribe el marcador final del partido.",
-    clubPlaceholder: "Ej: Coruña Sport Centre",
+    clubPlaceholder: "Ej: Jeddah Padel Club",
     matchDate: "Fecha del partido",
     preparingResult: "Enviando resultado...",
     reviewAndSendResult: "Enviar resultado",
@@ -222,7 +222,7 @@ export const translations = {
     markAsRead: "Marcar como leída",
 
     // Ranking page
-    rankingKicker: "Fuera de Pista",
+    rankingKicker: "Out of the Court",
     rankingTitle: "Ranking",
     rankingHeroText:
       "Clasificación individual por temporadas cuatrimestrales. Los partidos se juegan por parejas, pero las estadísticas son individuales para cada jugador.",
@@ -277,19 +277,19 @@ export const translations = {
     changeLanguage: "Cambiar idioma",
 
     // Home
-    homeKicker: "Ranking social de pádel · A Coruña",
-    homeTitle: "FUERA DE PISTA",
+    homeKicker: "Ranking social de pádel · Jeddah",
+    homeTitle: "OUT OF THE COURT",
     homeHeroText:
       "Juega partidos por parejas, compite de forma individual y sube en el ranking contra jugadores de tu nivel.",
     homeHeroTextMobile: "Juega partidos, sube resultados y escala posiciones.",
     createAccount: "Crear cuenta",
     login: "Iniciar sesión",
     alreadyHaveAccount: "Ya tengo cuenta",
-    whatIsTitle: "¿Qué es Fuera de Pista?",
+    whatIsTitle: "¿Qué es Out of the Court?",
     whatIsSubtitle:
       "Una forma fácil de jugar más, competir mejor y conocer gente.",
     whatIsText:
-      "Fuera de Pista organiza partidos de pádel por niveles. Te apuntas a partidos abiertos, juegas con otros jugadores de la comunidad y cada resultado actualiza tu posición en el ranking individual.",
+      "Out of the Court organiza partidos de pádel por niveles. Te apuntas a partidos abiertos, juegas con otros jugadores de la comunidad y cada resultado actualiza tu posición en el ranking individual.",
     whatIsTextMobile:
       "Apúntate a partidos de tu nivel y escala en el ranking individual.",
     homeCard1Title: "Partidos por nivel",
@@ -352,7 +352,7 @@ export const translations = {
     signUpHere: "Inscríbete aquí",
 
     // Register
-    registerKicker: "Fuera de Pista · A Coruña",
+    registerKicker: "Out of the Court · Jeddah",
     registerTitle: "Únete al ranking",
     registerText:
       "Crea tu perfil, entra en la comunidad y empieza a competir en partidos de pádel por niveles.",
@@ -417,7 +417,7 @@ export const translations = {
   },
 
   en: {
-    appName: "Fuera de Pista",
+    appName: "Out of the Court",
 
     // Rules
     rulesTitle: "Rules",
@@ -430,7 +430,7 @@ export const translations = {
     loadingRules: "Loading rules...",
     ruleFallbackTitle: "Rule",
     officialRules: "Official rules",
-    rulesDefaultTitle: "Fuera de Pista rules",
+    rulesDefaultTitle: "Out of the Court rules",
     lastUpdate: "Last update",
     noRulesYet: "No rules published yet",
     noRulesYetText:
@@ -499,7 +499,7 @@ export const translations = {
     waitingApproval: "Waiting for approval",
 
     // Upload result
-    uploadResultKicker: "Fuera de Pista",
+    uploadResultKicker: "Out of the Court",
     uploadResultTitle: "Upload result",
     uploadResultHeroText:
       "Enter only the score and select the winning team. Teams, level, club and date are already loaded from the match.",
@@ -532,7 +532,7 @@ export const translations = {
     winnerTeam: "Winning team",
     scorePlaceholder: "E.g. 6-4 6-3",
     scoreHelp: "Enter the final match score.",
-    clubPlaceholder: "E.g. Coruña Sport Centre",
+    clubPlaceholder: "E.g. Jeddah Padel Club",
     matchDate: "Match date",
     preparingResult: "Submitting result...",
     reviewAndSendResult: "Submit result",
@@ -639,7 +639,7 @@ export const translations = {
     markAsRead: "Mark as read",
 
     // Ranking page
-    rankingKicker: "Fuera de Pista",
+    rankingKicker: "Out of the Court",
     rankingTitle: "Ranking",
     rankingHeroText:
       "Individual ranking by four-month seasons. Matches are played in pairs, but stats are tracked individually for each player.",
@@ -694,19 +694,19 @@ export const translations = {
     changeLanguage: "Change language",
 
     // Home
-    homeKicker: "Social padel ranking · A Coruña",
-    homeTitle: "FUERA DE PISTA",
+    homeKicker: "Social padel ranking · Jeddah",
+    homeTitle: "OUT OF THE COURT",
     homeHeroText:
       "Play doubles matches, compete individually and climb the ranking against players at your level.",
     homeHeroTextMobile: "Play matches, upload results and climb the ranking.",
     createAccount: "Create account",
     login: "Log in",
     alreadyHaveAccount: "I already have an account",
-    whatIsTitle: "What is Fuera de Pista?",
+    whatIsTitle: "What is Out of the Court?",
     whatIsSubtitle:
       "An easy way to play more, compete better and meet new players.",
     whatIsText:
-      "Fuera de Pista organizes padel matches by level. Join open matches, play with other players from the community and every result updates your individual ranking.",
+      "Out of the Court organizes padel matches by level. Join open matches, play with other players from the community and every result updates your individual ranking.",
     whatIsTextMobile:
       "Join matches at your level and climb the individual ranking.",
     homeCard1Title: "Matches by level",
@@ -768,7 +768,7 @@ export const translations = {
     signUpHere: "Sign up here",
 
     // Register
-    registerKicker: "Fuera de Pista · A Coruña",
+    registerKicker: "Out of the Court · Jeddah",
     registerTitle: "Join the ranking",
     registerText:
       "Create your profile, join the community and start competing in padel matches by level.",
