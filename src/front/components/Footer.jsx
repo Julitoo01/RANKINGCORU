@@ -4,7 +4,10 @@ export const Footer = () => {
   return (
     <footer className="app-footer">
       <div className="app-footer-content">
-        <p>© 2026 Fuera de Pista · Ranking social de pádel</p>
+        <div>
+          <strong>Fuera de Pista</strong>
+          <span>Ranking social de pádel en A Coruña</span>
+        </div>
 
         <nav className="app-footer-links">
           <Link to="/terms">Términos</Link>
