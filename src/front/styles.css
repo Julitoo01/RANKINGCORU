@@ -6505,3 +6505,63 @@ button:disabled {
     grid-template-columns: 1fr 1fr;
   }
 }
+.app-footer {
+  padding: 0.55rem 1rem;
+  margin-top: 1rem;
+  background: transparent;
+  border-top: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.app-footer-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.app-footer-content p {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: rgba(15, 23, 42, 0.38);
+}
+
+.app-footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.app-footer-links a {
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: rgba(15, 23, 42, 0.38);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.app-footer-links a:hover {
+  color: rgba(15, 23, 42, 0.65);
+}
+
+@media (max-width: 768px) {
+  .app-footer {
+    padding: 0.45rem 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .app-footer-content {
+    gap: 0.4rem;
+  }
+
+  .app-footer-content p,
+  .app-footer-links a {
+    font-size: 0.64rem;
+  }
+}
