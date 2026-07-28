@@ -72,7 +72,16 @@ class PlayerProfile(db.Model):
     level = db.Column(db.String(50), nullable=False)
     position = db.Column(db.String(50), nullable=False)
 
-    status = db.Column(db.String(50), default="pending")
+    status = db.Column(db.String(50), default="unpaid")
+    # unpaid = registrado pero no pagado
+    # paid = pagado y puede jugar
+    # rejected = rechazado / bloqueado
+
+    payment_method = db.Column(db.String(50), nullable=True)
+    # stc_manual = STC Pay manual
+
+    payment_reference = db.Column(db.String(160), nullable=True)
+    paid_at = db.Column(db.DateTime, nullable=True)
 
     matches_played = db.Column(db.Integer, default=0)
     wins = db.Column(db.Integer, default=0)
@@ -102,6 +111,9 @@ class PlayerProfile(db.Model):
             "level": self.level,
             "position": self.position,
             "status": self.status,
+            "payment_method": self.payment_method,
+            "payment_reference": self.payment_reference,
+            "paid_at": self.paid_at.isoformat() if self.paid_at else None,
             "matches_played": self.matches_played,
             "wins": self.wins,
             "losses": self.losses,

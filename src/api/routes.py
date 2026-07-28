@@ -87,7 +87,7 @@ def expire_old_open_matches():
 
 
 def get_ranking_sorted_players():
-    players = PlayerProfile.query.filter_by(status="approved").all()
+    players = PlayerProfile.query.filter_by(status="paid").all()
 
     return sorted(
         players,
@@ -285,7 +285,7 @@ def create_season_snapshots(season):
     db.session.flush()
 
     players = sorted(
-        PlayerProfile.query.filter_by(status="approved").all(),
+        PlayerProfile.query.filter_by(status="paid").all(),
         key=lambda player: (
             player.win_percentage(),
             player.wins,
@@ -322,7 +322,7 @@ def create_season_snapshots(season):
 
 @api.route("/hello", methods=["GET"])
 def handle_hello():
-    return jsonify({"message": "Hello from Fuera de Pista"}), 200
+    return jsonify({"message": "Hello from Out of the Court"}), 200
 
 
 # =========================
@@ -399,7 +399,10 @@ def register():
         user_id=user.id,
         level=data.get("level"),
         position=data.get("position"),
-        status="pending",
+        status="unpaid",
+        payment_method=None,
+        payment_reference=None,
+        paid_at=None,
         matches_played=0,
         wins=0,
         losses=0,
@@ -546,7 +549,7 @@ def get_ranking():
     if level and level != "Todos":
         query = query.filter(PlayerProfile.level == level)
 
-    players = query.filter(PlayerProfile.status == "approved").all()
+    players = query.filter(PlayerProfile.status == "paid").all()
 
     sorted_players = sorted(
         players,
@@ -565,7 +568,7 @@ def get_ranking():
 @jwt_required()
 def get_players():
     players = (
-        PlayerProfile.query.filter_by(status="approved")
+        PlayerProfile.query.filter_by(status="paid")
         .order_by(PlayerProfile.level.asc())
         .all()
     )
@@ -612,8 +615,10 @@ def create_match():
 
     current_profile = current_user.profile
 
-    if current_profile.status != "approved":
-        return jsonify({"msg": "Tu perfil debe estar aprobado para subir resultados"}), 403
+    if current_profile.status != "paid":
+        return jsonify(
+            {"msg": "Para subir resultados tienes que tener el pago confirmado"}
+        ), 403
 
     data = request.get_json() or {}
 
@@ -684,8 +689,10 @@ def create_match():
         if not profile:
             return jsonify({"msg": "Uno de los jugadores no existe"}), 404
 
-        if profile.status != "approved":
-            return jsonify({"msg": "Todos los jugadores deben estar aprobados"}), 400
+        if profile.status != "paid":
+            return jsonify(
+                {"msg": "Todos los jugadores deben tener el pago confirmado"}
+            ), 400
 
         players_by_id[player_id] = profile
 
@@ -977,7 +984,7 @@ def admin_create_open_match():
 
     players_to_notify = PlayerProfile.query.filter_by(
         level=open_match.level,
-        status="approved",
+        status="paid",
     ).all()
 
     for player in players_to_notify:
@@ -1014,9 +1021,9 @@ def join_open_match(open_match_id):
     if not current_profile:
         return jsonify({"msg": "Perfil no encontrado"}), 404
 
-    if current_profile.status != "approved":
+    if current_profile.status != "paid":
         return jsonify(
-            {"msg": "Tu perfil debe estar aprobado para unirte a partidos"}
+            {"msg": "Para apuntarte a partidos tienes que tener el pago confirmado"}
         ), 403
 
     open_match = OpenMatch.query.get(open_match_id)
@@ -1206,7 +1213,7 @@ def get_rules():
     if not rules:
         return jsonify(
             {
-                "title": "Normas de Fuera de Pista",
+                "title": "Normas de Out of the Court",
                 "content": "Todavía no se han publicado normas.",
             }
         ), 200
@@ -1301,10 +1308,30 @@ def admin_update_player(profile_id):
     data = request.get_json() or {}
 
     if "status" in data:
-        if data["status"] not in ["pending", "approved", "rejected"]:
+        if data["status"] not in ["unpaid", "paid", "rejected"]:
             return jsonify({"msg": "Estado no válido"}), 400
 
         profile.status = data["status"]
+
+        if data["status"] == "paid":
+            if not profile.paid_at:
+                profile.paid_at = datetime.utcnow()
+
+            profile.payment_method = "stc_manual"
+
+        if data["status"] != "paid":
+            profile.paid_at = None
+            profile.payment_method = None
+            profile.payment_reference = None
+
+    if "payment_method" in data:
+        if data["payment_method"] not in ["stc_manual", ""]:
+            return jsonify({"msg": "Método de pago no válido"}), 400
+
+        profile.payment_method = data["payment_method"] or None
+
+    if "payment_reference" in data:
+        profile.payment_reference = data["payment_reference"].strip()
 
     if "level" in data:
         if not data["level"]:
@@ -1468,6 +1495,12 @@ def admin_delete_match(match_id):
         return jsonify({"msg": "Partido no encontrado"}), 404
 
     season_id = match.season_id
+
+    linked_open_match = OpenMatch.query.filter_by(result_match_id=match.id).first()
+
+    if linked_open_match:
+        linked_open_match.result_match_id = None
+        linked_open_match.status = "closed"
 
     db.session.delete(match)
     db.session.commit()
