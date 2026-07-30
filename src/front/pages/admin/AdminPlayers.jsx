@@ -45,8 +45,8 @@ export const AdminPlayers = () => {
   };
 
   const paymentLabels = {
-    unpaid: "Pago pendiente",
-    paid: "Pago STC confirmado",
+    unpaid: "Pendiente de pago",
+    paid: "Pagado STC",
   };
 
   const loadPlayers = async () => {
@@ -135,25 +135,25 @@ export const AdminPlayers = () => {
     }
   };
 
-  const approvePlayer = (profileId) => {
-    updatePlayer(profileId, { status: "approved" });
-  };
-
   const rejectPlayer = (profileId) => {
     updatePlayer(profileId, { status: "rejected" });
   };
 
-  const markPaymentPaid = (player) => {
+  const togglePaymentStatus = (player) => {
+    const isPaid = player.payment_status === "paid";
+
+    if (isPaid) {
+      updatePlayer(player.id, {
+        payment_status: "unpaid",
+      });
+
+      return;
+    }
+
     updatePlayer(player.id, {
       status: "approved",
       payment_status: "paid",
       payment_method: "stc_manual",
-    });
-  };
-
-  const markPaymentUnpaid = (player) => {
-    updatePlayer(player.id, {
-      payment_status: "unpaid",
     });
   };
 
@@ -261,7 +261,7 @@ export const AdminPlayers = () => {
   };
 
   const getPaymentLabel = (paymentStatus) => {
-    return paymentLabels[paymentStatus || "unpaid"] || "Pago pendiente";
+    return paymentLabels[paymentStatus || "unpaid"] || "Pendiente de pago";
   };
 
   const getFullName = (player) => {
@@ -446,13 +446,22 @@ export const AdminPlayers = () => {
                               {getStatusLabel(player.status)}
                             </span>
 
-                            <span
+                            <button
+                              type="button"
                               className={`status-badge ${getPaymentClass(
                                 player.payment_status
                               )}`}
+                              onClick={() => togglePaymentStatus(player)}
+                              disabled={isActionLoading}
+                              style={{
+                                border: "none",
+                                cursor: isActionLoading ? "not-allowed" : "pointer",
+                              }}
                             >
-                              {getPaymentLabel(player.payment_status)}
-                            </span>
+                              {isActionLoading
+                                ? "Actualizando..."
+                                : getPaymentLabel(player.payment_status)}
+                            </button>
                           </div>
 
                           {player.payment_reference && (
@@ -473,38 +482,6 @@ export const AdminPlayers = () => {
                         >
                           Editar
                         </button>
-
-                        {player.payment_status !== "paid" && (
-                          <button
-                            className="admin-action-btn approve"
-                            onClick={() => markPaymentPaid(player)}
-                            disabled={isActionLoading}
-                          >
-                            {isActionLoading
-                              ? "Confirmando..."
-                              : "Pago STC confirmado"}
-                          </button>
-                        )}
-
-                        {(player.payment_status || "unpaid") !== "unpaid" && (
-                          <button
-                            className="admin-action-btn neutral"
-                            onClick={() => markPaymentUnpaid(player)}
-                            disabled={isActionLoading}
-                          >
-                            {isActionLoading ? "Actualizando..." : "Pago pendiente"}
-                          </button>
-                        )}
-
-                        {player.status !== "approved" && (
-                          <button
-                            className="admin-action-btn approve"
-                            onClick={() => approvePlayer(player.id)}
-                            disabled={isActionLoading}
-                          >
-                            {isActionLoading ? "Aprobando..." : "Aprobar"}
-                          </button>
-                        )}
 
                         {player.status !== "rejected" && (
                           <button
