@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { authFetch } from "../../utils/authFetch";
 
 export const AdminPlayers = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
 
   const [players, setPlayers] = useState([]);
   const [filters, setFilters] = useState({
@@ -15,6 +19,8 @@ export const AdminPlayers = () => {
     level: "",
     position: "",
     status: "",
+    payment_status: "",
+    payment_reference: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -30,11 +36,17 @@ export const AdminPlayers = () => {
   const playerStatuses = ["pending", "approved", "rejected"];
   const statuses = ["Todos", ...playerStatuses];
 
+  const paymentStatuses = ["unpaid", "paid"];
+
   const statusLabels = {
     pending: "Pendiente",
     approved: "Aprobado",
     rejected: "Rechazado",
-    payment_pending: "Pendiente de pago",
+  };
+
+  const paymentLabels = {
+    unpaid: "Pago pendiente",
+    paid: "Pago STC confirmado",
   };
 
   const loadPlayers = async () => {
@@ -131,6 +143,20 @@ export const AdminPlayers = () => {
     updatePlayer(profileId, { status: "rejected" });
   };
 
+  const markPaymentPaid = (player) => {
+    updatePlayer(player.id, {
+      status: "approved",
+      payment_status: "paid",
+      payment_method: "stc_manual",
+    });
+  };
+
+  const markPaymentUnpaid = (player) => {
+    updatePlayer(player.id, {
+      payment_status: "unpaid",
+    });
+  };
+
   const startEditing = (player) => {
     setEditingPlayerId(player.id);
 
@@ -138,6 +164,8 @@ export const AdminPlayers = () => {
       level: player.level || "Bronce",
       position: player.position || "Derecha",
       status: player.status || "pending",
+      payment_status: player.payment_status || "unpaid",
+      payment_reference: player.payment_reference || "",
     });
 
     setMessage("");
@@ -151,6 +179,8 @@ export const AdminPlayers = () => {
       level: "",
       position: "",
       status: "",
+      payment_status: "",
+      payment_reference: "",
     });
   };
 
@@ -164,11 +194,19 @@ export const AdminPlayers = () => {
   };
 
   const saveEditing = (profileId) => {
-    updatePlayer(profileId, {
+    const payload = {
       level: editForm.level,
       position: editForm.position,
       status: editForm.status,
-    });
+      payment_status: editForm.payment_status,
+      payment_reference: editForm.payment_reference,
+    };
+
+    if (editForm.payment_status === "paid") {
+      payload.payment_method = "stc_manual";
+    }
+
+    updatePlayer(profileId, payload);
   };
 
   const deletePlayer = async (profileId, nickname) => {
@@ -208,13 +246,22 @@ export const AdminPlayers = () => {
   const getStatusClass = (status) => {
     if (status === "approved") return "approved";
     if (status === "rejected") return "rejected";
-    if (status === "payment_pending") return "payment-pending";
+
+    return "pending";
+  };
+
+  const getPaymentClass = (paymentStatus) => {
+    if (paymentStatus === "paid") return "approved";
 
     return "pending";
   };
 
   const getStatusLabel = (status) => {
     return statusLabels[status] || "Pendiente";
+  };
+
+  const getPaymentLabel = (paymentStatus) => {
+    return paymentLabels[paymentStatus || "unpaid"] || "Pago pendiente";
   };
 
   const getFullName = (player) => {
@@ -238,7 +285,7 @@ export const AdminPlayers = () => {
           <h1>Gestión de jugadores</h1>
 
           <p>
-            Revisa solicitudes, aprueba jugadores, ajusta nivel y posición, o
+            Revisa solicitudes, confirma pagos STC, ajusta nivel y posición, o
             rechaza perfiles que no deban entrar al ranking.
           </p>
         </div>
@@ -363,8 +410,8 @@ export const AdminPlayers = () => {
               <h2>Listado de jugadores</h2>
 
               <p>
-                Pulsa editar para ver la ficha completa, cambiar nivel, posición
-                o estado.
+                Pulsa editar para ver la ficha completa, cambiar nivel, posición,
+                estado o referencia de pago STC.
               </p>
             </div>
           </div>
@@ -398,7 +445,21 @@ export const AdminPlayers = () => {
                             >
                               {getStatusLabel(player.status)}
                             </span>
+
+                            <span
+                              className={`status-badge ${getPaymentClass(
+                                player.payment_status
+                              )}`}
+                            >
+                              {getPaymentLabel(player.payment_status)}
+                            </span>
                           </div>
+
+                          {player.payment_reference && (
+                            <p className="admin-player-simple-name">
+                              Ref. STC: {player.payment_reference}
+                            </p>
+                          )}
                         </>
                       )}
                     </div>
@@ -412,6 +473,28 @@ export const AdminPlayers = () => {
                         >
                           Editar
                         </button>
+
+                        {player.payment_status !== "paid" && (
+                          <button
+                            className="admin-action-btn approve"
+                            onClick={() => markPaymentPaid(player)}
+                            disabled={isActionLoading}
+                          >
+                            {isActionLoading
+                              ? "Confirmando..."
+                              : "Pago STC confirmado"}
+                          </button>
+                        )}
+
+                        {(player.payment_status || "unpaid") !== "unpaid" && (
+                          <button
+                            className="admin-action-btn neutral"
+                            onClick={() => markPaymentUnpaid(player)}
+                            disabled={isActionLoading}
+                          >
+                            {isActionLoading ? "Actualizando..." : "Pago pendiente"}
+                          </button>
+                        )}
 
                         {player.status !== "approved" && (
                           <button
@@ -494,7 +577,7 @@ export const AdminPlayers = () => {
                         </div>
 
                         <div className="form-group">
-                          <label>Estado</label>
+                          <label>Estado perfil</label>
 
                           <select
                             name="status"
@@ -507,6 +590,34 @@ export const AdminPlayers = () => {
                               </option>
                             ))}
                           </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Pago STC</label>
+
+                          <select
+                            name="payment_status"
+                            value={editForm.payment_status}
+                            onChange={handleEditChange}
+                          >
+                            {paymentStatuses.map((paymentStatus) => (
+                              <option key={paymentStatus} value={paymentStatus}>
+                                {getPaymentLabel(paymentStatus)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Referencia STC</label>
+
+                          <input
+                            type="text"
+                            name="payment_reference"
+                            value={editForm.payment_reference}
+                            onChange={handleEditChange}
+                            placeholder="Referencia opcional"
+                          />
                         </div>
                       </div>
 

@@ -1306,6 +1306,29 @@ def admin_update_player(profile_id):
 
         profile.status = data["status"]
 
+    if "payment_status" in data:
+        if data["payment_status"] not in ["unpaid", "paid"]:
+            return jsonify({"msg": "Estado de pago no válido"}), 400
+
+        profile.payment_status = data["payment_status"]
+
+        if data["payment_status"] == "paid":
+            if not profile.paid_at:
+                profile.paid_at = datetime.utcnow()
+
+            profile.payment_method = "stc_manual"
+
+            if profile.status == "pending":
+                profile.status = "approved"
+
+        else:
+            profile.paid_at = None
+            profile.payment_method = None
+            profile.payment_reference = None
+
+    if "payment_reference" in data:
+        profile.payment_reference = data["payment_reference"].strip()
+
     if "level" in data:
         if not data["level"]:
             return jsonify({"msg": "El nivel no puede estar vacío"}), 400

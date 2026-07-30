@@ -24,6 +24,7 @@ export const Login = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const handleLanguageChanged = () => {
@@ -131,16 +132,40 @@ export const Login = () => {
           </div>
 
           <div className="form-group">
-            <label>{t.passwordLabel}</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder={t.passwordPlaceholder}
-              required
-            />
-          </div>
+  <label>{t.passwordLabel}</label>
+
+  <div style={{ position: "relative", width: "100%" }}>
+    <input
+      type={showPassword ? "text" : "password"}
+      name="password"
+      value={formData.password}
+      onChange={handleChange}
+      placeholder={t.passwordPlaceholder}
+      required
+      style={{ paddingRight: "2.6rem" }}
+    />
+
+    <button
+      type="button"
+      onClick={() => setShowPassword((prev) => !prev)}
+      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+      style={{
+        position: "absolute",
+        right: "0.9rem",
+        top: "50%",
+        transform: "translateY(-50%)",
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        padding: 0,
+        fontSize: "1rem",
+        lineHeight: 1,
+      }}
+    >
+      {showPassword ? "🙈" : "👁️"}
+    </button>
+  </div>
+</div>
 
           <button className="login-submit" disabled={loading}>
             {loading ? t.loginLoading : t.loginButton}
