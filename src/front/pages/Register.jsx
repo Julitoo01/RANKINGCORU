@@ -32,6 +32,7 @@ export const Register = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [showPendingModal, setShowPendingModal] = useState(false);
+  const [registeredNickname, setRegisteredNickname] = useState("");
 
   useEffect(() => {
     const handleLanguageChanged = () => {
@@ -104,6 +105,7 @@ export const Register = () => {
         localStorage.removeItem("profile");
       }
 
+      setRegisteredNickname(formData.nickname.trim());
       setMessage(t.registerSuccess);
       setShowPendingModal(true);
     } catch (error) {
@@ -298,18 +300,65 @@ export const Register = () => {
           <div className="register-modal-card">
             <div className="register-modal-icon">✓</div>
 
-            <span>{t.registrationSent}</span>
+            <span>Registro completado</span>
 
-            <h2>{t.profilePendingTitle}</h2>
+            <h2>Pago pendiente por STC Pay</h2>
 
-            <p>{t.profilePendingText}</p>
+            <p>
+              Para poder apuntarte a partidos, tienes que hacer un pago de{" "}
+              <strong>100 SAR</strong> por STC Pay.
+            </p>
+
+            <div
+              style={{
+                margin: "1rem 0",
+                padding: "1rem",
+                borderRadius: "18px",
+                background: "#f8fafc",
+                border: "1px solid #e5e7eb",
+                textAlign: "left",
+              }}
+            >
+              <p style={{ margin: "0 0 0.35rem" }}>
+                <strong>Enviar STC Pay a:</strong>
+              </p>
+
+              <p
+                style={{
+                  margin: "0 0 0.9rem",
+                  fontSize: "1.1rem",
+                  fontWeight: 700,
+                }}
+              >
+                Raque Bpadel
+              </p>
+
+              <p style={{ margin: "0 0 0.35rem" }}>
+                <strong>Concepto / referencia:</strong>
+              </p>
+
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "1.1rem",
+                  fontWeight: 700,
+                }}
+              >
+                {registeredNickname || formData.nickname}
+              </p>
+            </div>
+
+            <p>
+              Cuando el admin confirme tu pago, tu perfil quedará activado para
+              participar en partidos.
+            </p>
 
             <button
               type="button"
               className="register-modal-btn"
               onClick={handleGoToRanking}
             >
-              {t.understood}
+              Entendido
             </button>
           </div>
         </div>
