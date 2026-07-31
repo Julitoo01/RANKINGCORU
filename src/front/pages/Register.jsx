@@ -11,6 +11,9 @@ export const Register = () => {
       ? import.meta.env.VITE_BACKEND_URL
       : window.location.origin;
 
+  const stcPhoneDisplay = "+966 54 421 0879";
+  const stcPhoneCopy = "+966544210879";
+
   const [language, setLanguage] = useState(
     localStorage.getItem("language") || "es"
   );
@@ -53,6 +56,16 @@ export const Register = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  const copyToClipboard = async (text, successMessage) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setMessage(successMessage);
+    } catch (error) {
+      console.error(error);
+      setError("No se ha podido copiar. Cópialo manualmente.");
+    }
   };
 
   const handleRegister = async (event) => {
@@ -334,6 +347,54 @@ export const Register = () => {
               </p>
 
               <p style={{ margin: "0 0 0.35rem" }}>
+                <strong>Teléfono STC Pay:</strong>
+              </p>
+
+              <p
+                style={{
+                  margin: "0 0 0.6rem",
+                  fontSize: "1.1rem",
+                  fontWeight: 700,
+                }}
+              >
+                {stcPhoneDisplay}
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  copyToClipboard(stcPhoneCopy, "Teléfono STC copiado.")
+                }
+                style={{
+                  width: "100%",
+                  border: "none",
+                  borderRadius: "999px",
+                  padding: "0.75rem 1rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  marginBottom: "0.9rem",
+                  background: "#e5e7eb",
+                  color: "#111827",
+                }}
+              >
+                Copiar teléfono
+              </button>
+
+              <p style={{ margin: "0 0 0.35rem" }}>
+                <strong>Cantidad:</strong>
+              </p>
+
+              <p
+                style={{
+                  margin: "0 0 0.9rem",
+                  fontSize: "1.1rem",
+                  fontWeight: 700,
+                }}
+              >
+                100 SAR
+              </p>
+
+              <p style={{ margin: "0 0 0.35rem" }}>
                 <strong>Concepto / referencia:</strong>
               </p>
 
@@ -350,7 +411,8 @@ export const Register = () => {
 
             <p>
               Cuando el admin confirme tu pago, tu perfil quedará activado para
-              participar en partidos.
+              participar en partidos. Usa exactamente tu nickname como referencia
+              para que podamos identificar el pago.
             </p>
 
             <button
