@@ -64,7 +64,7 @@ export const Register = () => {
       setMessage(successMessage);
     } catch (error) {
       console.error(error);
-      setError("No se ha podido copiar. Cópialo manualmente.");
+      setError(t.copyError);
     }
   };
 
@@ -313,13 +313,13 @@ export const Register = () => {
           <div className="register-modal-card">
             <div className="register-modal-icon">✓</div>
 
-            <span>Registro completado</span>
+            <span>{t.registrationCompleted}</span>
 
-            <h2>Pago pendiente por STC Pay</h2>
+            <h2>{t.stcPaymentPendingTitle}</h2>
 
             <p>
-              Para poder apuntarte a partidos, tienes que hacer un pago de{" "}
-              <strong>100 SAR</strong> por STC Pay.
+              {t.stcPaymentIntro} <strong>{t.stcPaymentAmount}</strong>{" "}
+              {t.stcPaymentByStcPay}
             </p>
 
             <div
@@ -333,7 +333,7 @@ export const Register = () => {
               }}
             >
               <p style={{ margin: "0 0 0.35rem" }}>
-                <strong>Enviar STC Pay a:</strong>
+                <strong>{t.stcPaymentSendTo}</strong>
               </p>
 
               <p
@@ -343,11 +343,11 @@ export const Register = () => {
                   fontWeight: 700,
                 }}
               >
-                Raque Bpadel
+                {t.stcPaymentName}
               </p>
 
               <p style={{ margin: "0 0 0.35rem" }}>
-                <strong>Teléfono STC Pay:</strong>
+                <strong>{t.stcPaymentPhoneLabel}</strong>
               </p>
 
               <p
@@ -362,9 +362,7 @@ export const Register = () => {
 
               <button
                 type="button"
-                onClick={() =>
-                  copyToClipboard(stcPhoneCopy, "Teléfono STC copiado.")
-                }
+                onClick={() => copyToClipboard(stcPhoneCopy, t.phoneCopied)}
                 style={{
                   width: "100%",
                   border: "none",
@@ -377,11 +375,11 @@ export const Register = () => {
                   color: "#111827",
                 }}
               >
-                Copiar teléfono
+                {t.copyPhone}
               </button>
 
               <p style={{ margin: "0 0 0.35rem" }}>
-                <strong>Cantidad:</strong>
+                <strong>{t.stcPaymentQuantityLabel}</strong>
               </p>
 
               <p
@@ -391,11 +389,11 @@ export const Register = () => {
                   fontWeight: 700,
                 }}
               >
-                100 SAR
+                {t.stcPaymentAmount}
               </p>
 
               <p style={{ margin: "0 0 0.35rem" }}>
-                <strong>Concepto / referencia:</strong>
+                <strong>{t.stcPaymentReferenceLabel}</strong>
               </p>
 
               <p
@@ -409,18 +407,14 @@ export const Register = () => {
               </p>
             </div>
 
-            <p>
-              Cuando el admin confirme tu pago, tu perfil quedará activado para
-              participar en partidos. Usa exactamente tu nickname como referencia
-              para que podamos identificar el pago.
-            </p>
+            <p>{t.stcPaymentFinalText}</p>
 
             <button
               type="button"
               className="register-modal-btn"
               onClick={handleGoToRanking}
             >
-              Entendido
+              {t.understood}
             </button>
           </div>
         </div>

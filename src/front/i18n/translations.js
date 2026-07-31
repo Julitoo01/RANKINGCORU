@@ -19,6 +19,22 @@ export const translations = {
     noRulesYetText:
       "Cuando el admin escriba las normas del ranking, aparecerán aquí.",
 
+      registrationCompleted: "Registro completado",
+stcPaymentPendingTitle: "Pago pendiente por STC Pay",
+stcPaymentIntro:
+  "Para poder apuntarte a partidos, tienes que hacer un pago de",
+stcPaymentAmount: "100 SAR",
+stcPaymentSendTo: "Enviar STC Pay a:",
+stcPaymentName: "Raque Bpadel",
+stcPaymentPhoneLabel: "Teléfono STC Pay:",
+copyPhone: "Copiar teléfono",
+phoneCopied: "Teléfono STC copiado.",
+stcPaymentQuantityLabel: "Cantidad:",
+stcPaymentReferenceLabel: "Concepto / referencia:",
+stcPaymentFinalText:
+  "Cuando el admin confirme tu pago, tu perfil quedará activado para participar en partidos. Usa exactamente tu nickname como referencia para que podamos identificar el pago.",
+copyError: "No se ha podido copiar. Cópialo manualmente.",
+
     // Matches
     matchesTitle: "Partidos",
     matchesHeroText:
@@ -746,6 +762,22 @@ export const translations = {
       "Create your account, wait for admin approval and start joining matches at your level.",
     finalTextMobile:
       "Create your account and start playing matches at your level.",
+
+      registrationCompleted: "Registration completed",
+stcPaymentPendingTitle: "STC Pay payment pending",
+stcPaymentIntro:
+  "To join matches, you need to make a payment of",
+stcPaymentAmount: "100 SAR",
+stcPaymentSendTo: "Send STC Pay to:",
+stcPaymentName: "Raque Bpadel",
+stcPaymentPhoneLabel: "STC Pay phone number:",
+copyPhone: "Copy phone number",
+phoneCopied: "STC phone number copied.",
+stcPaymentQuantityLabel: "Amount:",
+stcPaymentReferenceLabel: "Reference / concept:",
+stcPaymentFinalText:
+  "Once the admin confirms your payment, your profile will be activated to join matches. Use your exact nickname as the reference so we can identify your payment.",
+copyError: "Could not copy. Please copy it manually.",
 
     // Login
     loginPageTitle: "Welcome back",
