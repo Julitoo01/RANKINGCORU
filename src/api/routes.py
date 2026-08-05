@@ -400,6 +400,10 @@ def register():
         level=data.get("level"),
         position=data.get("position"),
         status="pending",
+        payment_status="unpaid",
+        payment_method=None,
+        payment_reference=None,
+        paid_at=None,
         matches_played=0,
         wins=0,
         losses=0,
@@ -416,6 +420,7 @@ def register():
             "msg": "Usuario registrado correctamente",
             "token": access_token,
             "user": user.serialize(),
+            "profile": profile.serialize(),
         }
     ), 201
 
@@ -615,6 +620,13 @@ def create_match():
     if current_profile.status != "approved":
         return jsonify({"msg": "Tu perfil debe estar aprobado para subir resultados"}), 403
 
+    if current_profile.payment_status != "paid":
+        return jsonify(
+            {
+                "msg": "Para subir resultados tienes que tener el pago STC confirmado"
+            }
+        ), 403
+
     data = request.get_json() or {}
 
     open_match_id = data.get("open_match_id")
@@ -686,6 +698,19 @@ def create_match():
 
         if profile.status != "approved":
             return jsonify({"msg": "Todos los jugadores deben estar aprobados"}), 400
+
+        if profile.payment_status != "paid":
+            player_name = (
+                profile.user.nickname
+                if profile.user and profile.user.nickname
+                else "Un jugador"
+            )
+
+            return jsonify(
+                {
+                    "msg": f"{player_name} no tiene el pago STC confirmado"
+                }
+            ), 403
 
         players_by_id[player_id] = profile
 
@@ -978,6 +1003,7 @@ def admin_create_open_match():
     players_to_notify = PlayerProfile.query.filter_by(
         level=open_match.level,
         status="approved",
+        payment_status="paid",
     ).all()
 
     for player in players_to_notify:
@@ -1017,6 +1043,13 @@ def join_open_match(open_match_id):
     if current_profile.status != "approved":
         return jsonify(
             {"msg": "Tu perfil debe estar aprobado para unirte a partidos"}
+        ), 403
+
+    if current_profile.payment_status != "paid":
+        return jsonify(
+            {
+                "msg": "Para apuntarte a partidos tienes que tener el pago STC confirmado"
+            }
         ), 403
 
     open_match = OpenMatch.query.get(open_match_id)
@@ -1491,6 +1524,12 @@ def admin_delete_match(match_id):
         return jsonify({"msg": "Partido no encontrado"}), 404
 
     season_id = match.season_id
+
+    linked_open_match = OpenMatch.query.filter_by(result_match_id=match.id).first()
+
+    if linked_open_match:
+        linked_open_match.result_match_id = None
+        linked_open_match.status = "closed"
 
     db.session.delete(match)
     db.session.commit()
