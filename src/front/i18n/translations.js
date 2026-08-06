@@ -35,6 +35,9 @@ stcPaymentFinalText:
   "Cuando el admin confirme tu pago, tu perfil quedará activado para participar en partidos. Usa exactamente tu nickname como referencia para que podamos identificar el pago.",
 copyError: "No se ha podido copiar. Cópialo manualmente.",
 
+clearAllNotifications: "Borrar todas",
+allNotificationsCleared: "Todas las notificaciones han sido borradas",
+
     // Matches
     matchesTitle: "Partidos",
     matchesHeroText:
@@ -778,6 +781,9 @@ stcPaymentReferenceLabel: "Reference / concept:",
 stcPaymentFinalText:
   "Once the admin confirms your payment, your profile will be activated to join matches. Use your exact nickname as the reference so we can identify your payment.",
 copyError: "Could not copy. Please copy it manually.",
+
+clearAllNotifications: "Clear all",
+allNotificationsCleared: "All notifications have been cleared",
 
     // Login
     loginPageTitle: "Welcome back",

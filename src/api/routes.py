@@ -814,6 +814,30 @@ def get_notifications():
 
     return jsonify([notification.serialize() for notification in notifications]), 200
 
+@api.route("/notifications/read-all", methods=["PUT"])
+@jwt_required()
+def mark_all_notifications_as_read():
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    notifications = Notification.query.filter_by(
+        user_id=current_user.id,
+        is_read=False,
+    ).all()
+
+    for notification in notifications:
+        notification.is_read = True
+
+    db.session.commit()
+
+    return jsonify(
+        {
+            "msg": "Todas las notificaciones han sido borradas",
+            "count": len(notifications),
+        }
+    ), 200
 
 @api.route("/notifications/<int:notification_id>/read", methods=["PUT"])
 @jwt_required()
@@ -1423,6 +1447,19 @@ def admin_update_player(profile_id):
 
     if "instagram" in data:
         user.instagram = data["instagram"].strip()
+
+    if "is_admin" in data:
+        if data["is_admin"] is not True:
+            return jsonify(
+                {"msg": "Solo se permite convertir usuarios en admin desde este panel"}
+            ), 400
+
+        if user.is_admin:
+            return jsonify(
+                {"msg": "Este usuario ya es administrador", "player": profile.serialize()}
+            ), 200
+
+        user.is_admin = True
 
     db.session.commit()
 

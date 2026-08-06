@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { authFetch } from "../../utils/authFetch";
 
 export const Admin = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== "undefined" ? import.meta.env.VITE_BACKEND_URL : window.location.origin;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL &&
+    import.meta.env.VITE_BACKEND_URL !== "undefined"
+      ? import.meta.env.VITE_BACKEND_URL
+      : window.location.origin;
 
   const storedUser = localStorage.getItem("user");
 
@@ -23,8 +27,39 @@ export const Admin = () => {
 
   const [nextSeasonName, setNextSeasonName] = useState("");
   const [closingSeason, setClosingSeason] = useState(false);
+
+  const [players, setPlayers] = useState([]);
+  const [playersLoading, setPlayersLoading] = useState(false);
+  const [selectedAdminProfileId, setSelectedAdminProfileId] = useState("");
+  const [makingAdmin, setMakingAdmin] = useState(false);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const loadPlayers = async () => {
+    try {
+      setPlayersLoading(true);
+      setError("");
+
+      const data = await authFetch(`${backendUrl}/api/admin/players`);
+
+      if (!data) {
+        setPlayers([]);
+        return;
+      }
+
+      setPlayers(data);
+    } catch (error) {
+      console.error(error);
+      setError(error.message || "No se pudieron cargar los jugadores");
+    } finally {
+      setPlayersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPlayers();
+  }, []);
 
   const closeSeason = async (event) => {
     event.preventDefault();
@@ -72,6 +107,67 @@ export const Admin = () => {
       setClosingSeason(false);
     }
   };
+
+  const makeAdmin = async (event) => {
+    event.preventDefault();
+
+    setMessage("");
+    setError("");
+
+    if (!selectedAdminProfileId) {
+      setError("Selecciona un jugador primero.");
+      return;
+    }
+
+    const selectedPlayer = players.find(
+      (player) => String(player.id) === String(selectedAdminProfileId)
+    );
+
+    const selectedName =
+      selectedPlayer?.nickname ||
+      selectedPlayer?.name ||
+      selectedPlayer?.email ||
+      "este jugador";
+
+    const confirmAdmin = window.confirm(
+      `¿Seguro que quieres hacer admin a ${selectedName}? Tendrá acceso al panel de administración.`
+    );
+
+    if (!confirmAdmin) return;
+
+    try {
+      setMakingAdmin(true);
+
+      const data = await authFetch(
+        `${backendUrl}/api/admin/players/${selectedAdminProfileId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            is_admin: true,
+          }),
+        }
+      );
+
+      if (!data) return;
+
+      setMessage(`${selectedName} ahora es admin.`);
+      setSelectedAdminProfileId("");
+
+      await loadPlayers();
+    } catch (error) {
+      console.error(error);
+      setError(error.message || "No se pudo convertir el jugador en admin");
+    } finally {
+      setMakingAdmin(false);
+    }
+  };
+
+  const availablePlayersForAdmin = players.filter((player) => {
+    return !player.is_admin;
+  });
 
   return (
     <section className="admin-page">
@@ -196,6 +292,66 @@ export const Admin = () => {
           </form>
         </div>
 
+        <div className="admin-season-card">
+          <div className="admin-season-content">
+            <div className="admin-season-icon">🛡️</div>
+
+            <div>
+              <span className="section-kicker">Administradores</span>
+
+              <h2>Hacer admin a un jugador</h2>
+
+              <p>
+                Selecciona un jugador registrado para darle acceso al panel de
+                administración.
+              </p>
+            </div>
+          </div>
+
+          <form className="admin-season-form" onSubmit={makeAdmin}>
+            <label>Selecciona un jugador</label>
+
+            <select
+              value={selectedAdminProfileId}
+              onChange={(event) =>
+                setSelectedAdminProfileId(event.target.value)
+              }
+              disabled={playersLoading || makingAdmin}
+            >
+              <option value="">
+                {playersLoading
+                  ? "Cargando jugadores..."
+                  : "Selecciona un jugador"}
+              </option>
+
+              {availablePlayersForAdmin.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.nickname || player.name || "Jugador"} ·{" "}
+                  {player.email || "sin email"} · {player.level || "sin nivel"}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="submit"
+              disabled={
+                makingAdmin ||
+                playersLoading ||
+                !selectedAdminProfileId ||
+                availablePlayersForAdmin.length === 0
+              }
+            >
+              {makingAdmin ? "Guardando..." : "Hacer admin"}
+            </button>
+          </form>
+
+          {!playersLoading && availablePlayersForAdmin.length === 0 && (
+            <p style={{ marginTop: "1rem", color: "#64748b" }}>
+              No hay jugadores disponibles para convertir en admin.
+            </p>
+          )}
+        </div>
+
         <div className="admin-help-card">
           <span className="section-kicker">Checklist MVP</span>
 
@@ -203,6 +359,7 @@ export const Admin = () => {
 
           <div className="admin-checklist">
             <p>✅ Aprobar jugadores pendientes</p>
+            <p>✅ Confirmar pagos STC</p>
             <p>✅ Abrir partidos por nivel</p>
             <p>✅ Revisar resultados subidos</p>
             <p>✅ Eliminar partidos incorrectos</p>

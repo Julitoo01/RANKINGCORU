@@ -19,6 +19,7 @@ export const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [clearingAll, setClearingAll] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -88,6 +89,31 @@ export const Notifications = () => {
       setError(error.message || t.notificationReadError);
     } finally {
       setActionLoadingId(null);
+    }
+  };
+
+  const handleClearAllNotifications = async () => {
+    try {
+      setClearingAll(true);
+      setMessage("");
+      setError("");
+
+      const data = await authFetch(`${backendUrl}/api/notifications/read-all`, {
+        method: "PUT",
+      });
+
+      if (!data) return;
+
+      setNotifications([]);
+
+      window.dispatchEvent(new Event("notificationsUpdated"));
+
+      setMessage(t.allNotificationsCleared || "Todas las notificaciones han sido borradas");
+    } catch (error) {
+      console.error(error);
+      setError(error.message || t.notificationReadError);
+    } finally {
+      setClearingAll(false);
     }
   };
 
@@ -199,6 +225,35 @@ export const Notifications = () => {
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
 
+      {!loading && notifications.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            marginBottom: "1rem",
+          }}
+        >
+          <button
+            type="button"
+            onClick={handleClearAllNotifications}
+            disabled={clearingAll}
+            style={{
+              border: "none",
+              borderRadius: "999px",
+              padding: "0.75rem 1rem",
+              fontWeight: 700,
+              cursor: clearingAll ? "not-allowed" : "pointer",
+              background: "#e5e7eb",
+              color: "#111827",
+            }}
+          >
+            {clearingAll
+              ? t.processing
+              : t.clearAllNotifications || "Borrar todas"}
+          </button>
+        </div>
+      )}
+
       {loading && (
         <div className="notifications-empty minimal">
           <h2>{t.loadingNotifications}</h2>
@@ -235,10 +290,8 @@ export const Notifications = () => {
                     {openMatch ? (
                       <p className="notification-main-text">
                         {t.matchAt}{" "}
-                        <strong>
-                          {openMatch.club || t.clubNotProvided}
-                        </strong>
-                        . {t.day}{" "}
+                        <strong>{openMatch.club || t.clubNotProvided}</strong>.{" "}
+                        {t.day}{" "}
                         <strong>{formatOpenMatchDate(openMatch)}</strong>{" "}
                         {t.from}{" "}
                         <strong>
@@ -261,7 +314,9 @@ export const Notifications = () => {
                       className="notification-main-btn"
                       type="button"
                       onClick={() => handleJoinOpenMatch(notification)}
-                      disabled={actionLoadingId === notification.id}
+                      disabled={
+                        actionLoadingId === notification.id || clearingAll
+                      }
                     >
                       {actionLoadingId === notification.id
                         ? t.joining
@@ -274,7 +329,9 @@ export const Notifications = () => {
                       className="notification-main-btn"
                       type="button"
                       onClick={() => handleMarkAsRead(notification.id)}
-                      disabled={actionLoadingId === notification.id}
+                      disabled={
+                        actionLoadingId === notification.id || clearingAll
+                      }
                     >
                       {actionLoadingId === notification.id
                         ? t.processing
@@ -287,7 +344,9 @@ export const Notifications = () => {
                       className="notification-light-btn"
                       type="button"
                       onClick={() => handleMarkAsRead(notification.id)}
-                      disabled={actionLoadingId === notification.id}
+                      disabled={
+                        actionLoadingId === notification.id || clearingAll
+                      }
                     >
                       {t.markAsRead}
                     </button>
