@@ -1,8 +1,11 @@
+import os
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from sqlalchemy import or_
+import resend
 
 from api.models import (
     db,
@@ -55,6 +58,176 @@ def create_notification(user_id, title, message, notification_type, open_match_i
 
     db.session.add(notification)
     return notification
+
+
+def send_email(to_email, subject, html):
+    if not to_email:
+        return False
+
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    email_from = os.getenv("EMAIL_FROM", "Ranking Jeddah <onboarding@resend.dev>")
+
+    if not resend_api_key:
+        print("RESEND_API_KEY no configurada. Email no enviado.")
+        return False
+
+    try:
+        resend.api_key = resend_api_key
+
+        resend.Emails.send(
+            {
+                "from": email_from,
+                "to": [to_email],
+                "subject": subject,
+                "html": html,
+            }
+        )
+
+        return True
+    except Exception as error:
+        print(f"Error enviando email a {to_email}: {error}")
+        return False
+
+
+def get_player_display_name(player):
+    if not player:
+        return "Jugador"
+
+    if player.user and player.user.nickname:
+        return player.user.nickname
+
+    if player.user and player.user.name:
+        return player.user.name
+
+    return "Jugador"
+
+
+def format_open_match_date(open_match):
+    if not open_match or not open_match.match_date:
+        return "-"
+
+    return open_match.match_date.strftime("%d/%m/%Y")
+
+
+def format_open_match_time(open_match):
+    if not open_match or not open_match.match_time:
+        return "-"
+
+    return open_match.match_time.strftime("%H:%M")
+
+
+def send_open_match_completed_emails(open_match, players):
+    if not open_match or not players:
+        return
+
+    unique_emails = set()
+
+    player_names = [get_player_display_name(player) for player in players if player]
+    players_html = "".join([f"<li>{name}</li>" for name in player_names])
+
+    subject = "Tu partido está completo 🎾"
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
+      <h2>Tu partido está completo 🎾</h2>
+
+      <p>Ya se han unido los 4 jugadores y las parejas se han creado automáticamente.</p>
+
+      <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin: 16px 0;">
+        <p><strong>Club:</strong> {open_match.club or "-"}</p>
+        <p><strong>Fecha:</strong> {format_open_match_date(open_match)}</p>
+        <p><strong>Hora:</strong> {format_open_match_time(open_match)}</p>
+        <p><strong>Nivel:</strong> {open_match.level or "-"}</p>
+      </div>
+
+      <p><strong>Jugadores:</strong></p>
+      <ul>
+        {players_html}
+      </ul>
+
+      <p>Entra en la app para revisar los detalles del partido.</p>
+
+      <p style="font-size: 12px; color: #64748b; margin-top: 24px;">
+        Ranking Jeddah · Out of the Court
+      </p>
+    </div>
+    """
+
+    for player in players:
+        if not player or not player.user or not player.user.email:
+            continue
+
+        email = player.user.email.strip().lower()
+
+        if email in unique_emails:
+            continue
+
+        unique_emails.add(email)
+        send_email(email, subject, html)
+
+
+def send_result_registered_emails(match):
+    if not match:
+        return
+
+    players = [
+        match.team_a_player_1,
+        match.team_a_player_2,
+        match.team_b_player_1,
+        match.team_b_player_2,
+    ]
+
+    unique_emails = set()
+
+    team_a_names = [
+        get_player_display_name(match.team_a_player_1),
+        get_player_display_name(match.team_a_player_2),
+    ]
+
+    team_b_names = [
+        get_player_display_name(match.team_b_player_1),
+        get_player_display_name(match.team_b_player_2),
+    ]
+
+    winner_text = "Equipo A" if match.winner_team == "A" else "Equipo B"
+
+    subject = "Resultado registrado 🎾"
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
+      <h2>Resultado registrado 🎾</h2>
+
+      <p>El resultado de tu partido se ha registrado correctamente y el ranking se ha actualizado.</p>
+
+      <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin: 16px 0;">
+        <p><strong>Club:</strong> {match.club or "-"}</p>
+        <p><strong>Nivel:</strong> {match.level or "-"}</p>
+        <p><strong>Resultado:</strong> {match.score or "-"}</p>
+        <p><strong>Ganador:</strong> {winner_text}</p>
+      </div>
+
+      <p><strong>Equipo A:</strong> {team_a_names[0]} / {team_a_names[1]}</p>
+      <p><strong>Equipo B:</strong> {team_b_names[0]} / {team_b_names[1]}</p>
+
+      <p>Entra en la app para ver el ranking actualizado.</p>
+
+      <p style="font-size: 12px; color: #64748b; margin-top: 24px;">
+        Ranking Jeddah · Out of the Court
+      </p>
+    </div>
+    """
+
+    for player in players:
+        if not player or not player.user or not player.user.email:
+            continue
+
+        email = player.user.email.strip().lower()
+
+        if email in unique_emails:
+            continue
+
+        unique_emails.add(email)
+        send_email(email, subject, html)
 
 
 def expire_old_open_matches():
@@ -149,6 +322,8 @@ def close_open_match_if_full(open_match):
                 notification_type="open_match_closed",
                 open_match_id=open_match.id,
             )
+
+    send_open_match_completed_emails(open_match, ranked_players)
 
     return True
 
@@ -466,39 +641,6 @@ def get_profile():
     return jsonify(user.serialize()), 200
 
 
-@api.route("/profile/photo", methods=["PUT"])
-@jwt_required()
-def update_profile_photo():
-    user = get_current_user()
-
-    if not user:
-        return jsonify({"msg": "Usuario no encontrado"}), 404
-
-    data = request.get_json() or {}
-    profile_image = data.get("profile_image")
-
-    if not profile_image:
-        return jsonify({"msg": "No se ha enviado ninguna imagen"}), 400
-
-    if not profile_image.startswith("data:image/"):
-        return jsonify({"msg": "Formato de imagen no válido"}), 400
-
-    if len(profile_image) > 1500000:
-        return jsonify(
-            {"msg": "La imagen es demasiado grande. Usa una imagen más ligera."}
-        ), 400
-
-    user.profile_image = profile_image
-
-    db.session.commit()
-
-    return jsonify(
-        {
-            "msg": "Foto de perfil actualizada correctamente",
-            "user": user.serialize(),
-        }
-    ), 200
-
 
 # =========================
 # SEASONS / RANKING
@@ -781,6 +923,8 @@ def create_match():
 
     if open_match:
         db.session.refresh(open_match)
+
+    send_result_registered_emails(match)
 
     return jsonify(
         {

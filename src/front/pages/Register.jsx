@@ -145,35 +145,7 @@ export const Register = () => {
           <p className="mobile-text">{t.registerTextMobile}</p>
         </div>
 
-        <div className="register-layout">
-          <aside className="register-info">
-            <h2>{t.playerProfileTitle}</h2>
-
-            <p className="desktop-text">{t.playerProfileText}</p>
-            <p className="mobile-text">{t.playerProfileTextMobile}</p>
-
-            <div className="register-info-list">
-              <div>
-                <strong>{t.registerInfoRankingTitle}</strong>
-                <span>{t.registerInfoRankingText}</span>
-              </div>
-
-              <div>
-                <strong>{t.registerInfoLevelTitle}</strong>
-                <span>{t.registerInfoLevelText}</span>
-              </div>
-
-              <div>
-                <strong>{t.registerInfoApprovalTitle}</strong>
-                <span>{t.registerInfoApprovalText}</span>
-              </div>
-            </div>
-
-            <p className="register-login-text">
-              {t.alreadyRegistered} <Link to="/login">{t.loginHere}</Link>
-            </p>
-          </aside>
-
+        <div className="register-layout register-layout-single">
           <form className="register-form" onSubmit={handleRegister}>
             <div className="register-form-header">
               <h2>{t.registerFormTitle}</h2>
@@ -304,6 +276,10 @@ export const Register = () => {
             >
               {loading ? t.creatingAccount : t.sendRegistration}
             </button>
+
+            <p className="register-login-text" style={{ textAlign: "center" }}>
+              {t.alreadyRegistered} <Link to="/login">{t.loginHere}</Link>
+            </p>
           </form>
         </div>
       </section>

@@ -47,7 +47,6 @@ class User(db.Model):
             "email": self.email,
             "phone": self.phone,
             "instagram": self.instagram,
-            "profile_image": self.profile_image,
             "is_admin": self.is_admin,
             "terms_accepted": self.terms_accepted,
             "terms_accepted_at": (

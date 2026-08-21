@@ -277,15 +277,7 @@ export const Profile = () => {
               )}
             </div>
 
-            <label className="profile-photo-upload-btn">
-              {photoLoading ? t.uploading : t.changePhoto}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleProfileImageChange}
-                disabled={photoLoading}
-              />
-            </label>
+            
           </div>
 
           <div>
