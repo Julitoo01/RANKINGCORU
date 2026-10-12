@@ -79,7 +79,9 @@ export const Login = () => {
     <section className="login-page">
       <div className="login-card">
         <div className="login-info">
-          <span>Fuera de Pista</span>
+          <Link to="/" className="login-brand-link">
+            Fuera de Pista
+          </Link>
 
           <h1>Bienvenido de nuevo</h1>
 
@@ -87,14 +89,6 @@ export const Login = () => {
             Accede a tu cuenta para ver tu perfil, subir resultados y seguir tu
             posición dentro del ranking.
           </p>
-
-          <div className="login-info-box">
-            <strong>Ranking individual</strong>
-            <small>
-              Los partidos se juegan por parejas, pero cada jugador suma sus
-              propios puntos.
-            </small>
-          </div>
         </div>
 
         <form className="login-form" onSubmit={handleLogin}>
@@ -107,6 +101,7 @@ export const Login = () => {
 
           <div className="form-group">
             <label>Email</label>
+
             <input
               type="email"
               name="email"
@@ -119,6 +114,7 @@ export const Login = () => {
 
           <div className="form-group">
             <label>Contraseña</label>
+
             <input
               type="password"
               name="password"

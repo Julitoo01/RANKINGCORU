@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { Navbar } from "./components/Navbar.jsx";
 import { Footer } from "./components/Footer.jsx";
@@ -17,7 +17,6 @@ import { Terms } from "./pages/Terms.jsx";
 import { Privacy } from "./pages/Privacy.jsx";
 import { RegisterSuccess } from "./pages/RegisterSuccess.jsx";
 import { OpenMatches } from "./pages/OpenMatches.jsx";
-import { Notifications } from "./pages/Notifications.jsx";
 
 import { Admin } from "./pages/admin/Admin.jsx";
 import { AdminPlayers } from "./pages/admin/AdminPlayers.jsx";
@@ -40,14 +39,16 @@ export const App = () => {
 
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
-<Route
-  path="/register-success"
-  element={
-    <ProtectedRoute>
-      <RegisterSuccess />
-    </ProtectedRoute>
-  }
-/>
+
+          <Route
+            path="/register-success"
+            element={
+              <ProtectedRoute>
+                <RegisterSuccess />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/ranking"
             element={
@@ -88,7 +89,7 @@ export const App = () => {
             path="/notifications"
             element={
               <ProtectedRoute>
-                <Notifications />
+                <Navigate to="/open-matches" replace />
               </ProtectedRoute>
             }
           />

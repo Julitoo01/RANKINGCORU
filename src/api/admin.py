@@ -12,7 +12,6 @@ def setup_admin(app):
     admin = Admin(
         app,
         name="4Geeks Admin",
-        template_mode="bootstrap3"
     )
 
     # Dynamically add all models to the admin interface

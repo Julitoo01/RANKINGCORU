@@ -3,8 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 const backendUrl =
   import.meta.env.VITE_BACKEND_URL ||
-  import.meta.env.VITE_API_URL ||
-  "https://rankingcoru.onrender.com";
+  import.meta.env.VITE_API_URL;
 
 export const Register = () => {
   const navigate = useNavigate();
@@ -27,6 +26,9 @@ export const Register = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [showPendingModal, setShowPendingModal] = useState(false);
+
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const levels = [
     "Iniciación",
@@ -55,6 +57,12 @@ export const Register = () => {
     setMessage("");
     setError("");
 
+    if (!backendUrl) {
+      setError("No se ha configurado la URL del backend en el archivo .env.");
+      setLoading(false);
+      return;
+    }
+
     if (!formData.terms_accepted || !formData.privacy_accepted) {
       setError(
         "Debes aceptar los Términos y Condiciones y la Política de Privacidad para registrarte."
@@ -69,7 +77,19 @@ export const Register = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          last_name: formData.last_name,
+          nickname: formData.nickname,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          instagram: formData.instagram,
+          level: formData.level,
+          position: formData.position,
+          terms_accepted: formData.terms_accepted,
+          privacy_accepted: formData.privacy_accepted,
+        }),
       });
 
       const contentType = response.headers.get("content-type");
@@ -79,8 +99,6 @@ export const Register = () => {
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
       } else {
-        const text = await response.text();
-
         throw new Error(
           `El servidor no devolvió JSON. URL llamada: ${backendUrl}/api/register. Status: ${response.status}.`
         );
@@ -115,54 +133,11 @@ export const Register = () => {
   return (
     <>
       <section className="register-page">
-        <div className="register-hero">
-          <span>Fuera de Pista · A Coruña</span>
-          <h1>Únete al ranking</h1>
-          <p>
-            Crea tu perfil, entra en la comunidad y empieza a competir en
-            partidos de pádel por niveles.
-          </p>
-        </div>
-
-        <div className="register-layout">
-          <aside className="register-info">
-            <h2>Tu perfil de jugador</h2>
-
-            <p>
-              Estos datos nos ayudan a organizar partidos equilibrados y a
-              mostrar tu perfil correctamente dentro del ranking.
-            </p>
-
-            <div className="register-info-list">
-              <div>
-                <strong>Ranking individual</strong>
-                <span>
-                  Tu nickname será el nombre público en la clasificación.
-                </span>
-              </div>
-
-              <div>
-                <strong>Partidos por nivel</strong>
-                <span>El nivel ayuda a crear partidos más igualados.</span>
-              </div>
-
-              <div>
-                <strong>Aprobación admin</strong>
-                <span>
-                  El perfil podrá ser revisado antes de aparecer en el ranking.
-                </span>
-              </div>
-            </div>
-
-            <p className="register-login-text">
-              ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
-            </p>
-          </aside>
-
-          <form className="register-form" onSubmit={handleRegister}>
+        <div className="register-layout register-layout-clean">
+          <form className="register-form register-form-clean" onSubmit={handleRegister}>
             <div className="register-form-header">
-              <h2>Inscripción</h2>
-              <p>Rellena tus datos para crear tu cuenta.</p>
+              <h2>Crear cuenta</h2>
+              <p>Rellena tus datos para enviar tu inscripción.</p>
             </div>
 
             {message && <div className="success-message">{message}</div>}
@@ -243,6 +218,17 @@ export const Register = () => {
               </div>
 
               <div className="form-group">
+                <label>Instagram</label>
+                <input
+                  type="text"
+                  name="instagram"
+                  value={formData.instagram}
+                  onChange={handleChange}
+                  placeholder="Ej. @julito10"
+                />
+              </div>
+
+              <div className="form-group">
                 <label>Nivel aproximado</label>
                 <select
                   name="level"
@@ -288,9 +274,13 @@ export const Register = () => {
                 />
                 <span>
                   He leído y acepto los{" "}
-                  <Link to="/terms" target="_blank">
+                  <button
+                    type="button"
+                    className="register-legal-link"
+                    onClick={() => setShowTermsModal(true)}
+                  >
                     Términos y Condiciones
-                  </Link>
+                  </button>
                   .
                 </span>
               </label>
@@ -305,15 +295,20 @@ export const Register = () => {
                 />
                 <span>
                   He leído y acepto la{" "}
-                  <Link to="/privacy" target="_blank">
+                  <button
+                    type="button"
+                    className="register-legal-link"
+                    onClick={() => setShowPrivacyModal(true)}
+                  >
                     Política de Privacidad
-                  </Link>
+                  </button>
                   .
                 </span>
               </label>
             </div>
 
             <button
+              type="submit"
               className="register-submit"
               disabled={
                 loading ||
@@ -323,6 +318,10 @@ export const Register = () => {
             >
               {loading ? "Creando cuenta..." : "Enviar inscripción"}
             </button>
+
+            <p className="register-login-text register-login-text-clean">
+              ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+            </p>
           </form>
         </div>
       </section>
@@ -345,6 +344,141 @@ export const Register = () => {
               type="button"
               className="register-modal-btn"
               onClick={handleGoToProfile}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showTermsModal && (
+        <div className="legal-modal-overlay">
+          <div className="legal-modal-card">
+            <div className="legal-modal-header">
+              <h2>Términos y Condiciones</h2>
+
+              <button
+                type="button"
+                className="legal-modal-close"
+                onClick={() => setShowTermsModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="legal-modal-body">
+              <h3>1. Uso de la plataforma</h3>
+              <p>
+                Fuera de Pista permite a los jugadores registrarse, formar parte
+                de una comunidad de pádel, participar en rankings, apuntarse a
+                partidos y consultar resultados.
+              </p>
+
+              <h3>2. Registro de usuario</h3>
+              <p>
+                El usuario se compromete a proporcionar información real,
+                actualizada y correcta durante el proceso de inscripción.
+              </p>
+
+              <h3>3. Perfil público</h3>
+              <p>
+                El nickname, nivel, posición y datos deportivos podrán mostrarse
+                dentro de la plataforma para organizar partidos y rankings.
+              </p>
+
+              <h3>4. Ranking y resultados</h3>
+              <p>
+                Los resultados introducidos en la plataforma podrán afectar al
+                ranking. La organización podrá revisar, corregir o eliminar
+                resultados si detecta errores, conflictos o uso indebido.
+              </p>
+
+              <h3>5. Conducta</h3>
+              <p>
+                El usuario se compromete a mantener una actitud respetuosa con
+                otros jugadores, administradores y miembros de la comunidad.
+              </p>
+
+              <h3>6. Aprobación del perfil</h3>
+              <p>
+                El perfil podrá quedar pendiente de revisión por parte del admin
+                antes de aparecer en el ranking o poder apuntarse a partidos.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="legal-modal-btn"
+              onClick={() => setShowTermsModal(false)}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showPrivacyModal && (
+        <div className="legal-modal-overlay">
+          <div className="legal-modal-card">
+            <div className="legal-modal-header">
+              <h2>Política de Privacidad</h2>
+
+              <button
+                type="button"
+                className="legal-modal-close"
+                onClick={() => setShowPrivacyModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="legal-modal-body">
+              <h3>1. Datos recogidos</h3>
+              <p>
+                La plataforma puede recoger datos como nombre, apellidos,
+                nickname, email, teléfono, Instagram, nivel de juego y posición
+                preferida.
+              </p>
+
+              <h3>2. Finalidad</h3>
+              <p>
+                Estos datos se utilizan para gestionar la inscripción, el perfil
+                de jugador, el ranking, los partidos, los resultados y las
+                notificaciones internas.
+              </p>
+
+              <h3>3. Datos visibles</h3>
+              <p>
+                Algunos datos, como nickname, nivel, posición, resultados y
+                posición en el ranking, podrán ser visibles para otros miembros
+                de la comunidad.
+              </p>
+
+              <h3>4. Acceso de administradores</h3>
+              <p>
+                Los administradores podrán acceder a la información necesaria
+                para gestionar usuarios, aprobar perfiles, organizar partidos y
+                resolver incidencias.
+              </p>
+
+              <h3>5. Conservación de datos</h3>
+              <p>
+                Los datos podrán conservarse mientras el usuario forme parte de
+                la comunidad o mientras sea necesario para mantener el historial
+                deportivo y de participación.
+              </p>
+
+              <h3>6. Derechos del usuario</h3>
+              <p>
+                El usuario puede solicitar la modificación o eliminación de sus
+                datos contactando con la organización de la plataforma.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="legal-modal-btn"
+              onClick={() => setShowPrivacyModal(false)}
             >
               Entendido
             </button>

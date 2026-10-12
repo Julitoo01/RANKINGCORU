@@ -8,11 +8,16 @@ export const OpenMatches = () => {
 
   const [user, setUser] = useState(null);
   const [playerProfile, setPlayerProfile] = useState(null);
+
   const [openMatches, setOpenMatches] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+
   const [selectedMatchToJoin, setSelectedMatchToJoin] = useState(null);
   const [selectedMatchToLeave, setSelectedMatchToLeave] = useState(null);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -40,7 +45,6 @@ export const OpenMatches = () => {
 
   const loadOpenMatches = async () => {
     try {
-      setLoading(true);
       setError("");
 
       const data = await authFetch(`${backendUrl}/api/open-matches`);
@@ -54,21 +58,57 @@ export const OpenMatches = () => {
     } catch (error) {
       console.error("Error cargando partidos abiertos:", error);
       setError("No se pudieron cargar los partidos abiertos.");
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const data = await authFetch(`${backendUrl}/api/notifications`);
+
+      if (!data) {
+        setNotifications([]);
+        return;
+      }
+
+      setNotifications(data);
+
+      const newMatchNotifications = data.filter(
+        (notification) => notification.notification_type === "open_match_created"
+      );
+
+      if (newMatchNotifications.length > 0) {
+        await Promise.all(
+          newMatchNotifications.map((notification) =>
+            authFetch(`${backendUrl}/api/notifications/${notification.id}/read`, {
+              method: "PUT",
+            })
+          )
+        );
+
+        window.dispatchEvent(new Event("notificationsUpdated"));
+      }
+    } catch (error) {
+      console.error("Error cargando notificaciones:", error);
+      setNotifications([]);
     }
   };
 
   const loadInitialData = async () => {
+    setLoading(true);
+    setError("");
+
     const profile = await loadProfile();
 
     if (!profile || profile.status !== "approved") {
       setOpenMatches([]);
+      setNotifications([]);
       setLoading(false);
       return;
     }
 
-    await loadOpenMatches();
+    await Promise.all([loadOpenMatches(), loadNotifications()]);
+
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -97,7 +137,7 @@ export const OpenMatches = () => {
 
       window.dispatchEvent(new Event("notificationsUpdated"));
 
-      await loadOpenMatches();
+      await Promise.all([loadOpenMatches(), loadNotifications()]);
     } catch (error) {
       console.error("Error uniéndose al partido:", error);
       setError(error.message || "No se pudo unir al partido.");
@@ -127,7 +167,7 @@ export const OpenMatches = () => {
 
       window.dispatchEvent(new Event("notificationsUpdated"));
 
-      await loadOpenMatches();
+      await Promise.all([loadOpenMatches(), loadNotifications()]);
     } catch (error) {
       console.error("Error saliendo del partido:", error);
       setError(error.message || "No se pudo salir del partido.");
@@ -183,6 +223,14 @@ export const OpenMatches = () => {
     );
   };
 
+  const isNewOpenMatch = (openMatchId) => {
+    return notifications.some(
+      (notification) =>
+        notification.notification_type === "open_match_created" &&
+        Number(notification.open_match_id) === Number(openMatchId)
+    );
+  };
+
   const formatDate = (date) => {
     if (!date) return "";
 
@@ -218,9 +266,8 @@ export const OpenMatches = () => {
         <h1>Partidos abiertos</h1>
 
         <p>
-          Apúntate a partidos de tu nivel. Cuando haya 4 jugadores, el partido
-          se cierra automáticamente, se crean las parejas y uno de los jugadores
-          podrá subir el resultado.
+          Apúntate a partidos de tu nivel. Los partidos nuevos aparecerán
+          marcados con un aviso rojo la primera vez que entres.
         </p>
       </div>
 
@@ -258,10 +305,11 @@ export const OpenMatches = () => {
 
           <span>Inscripción pendiente</span>
 
-          <h2>Tu perfil todavía no está aprobado</h2>
+          <h2>Tu perfil está pendiente de pago</h2>
 
           <p>
-            Podrás apuntarte a partidos cuando el admin apruebe tu inscripción.
+            Podrás apuntarte a partidos cuando el admin marque tu inscripción
+            como pagada.
           </p>
 
           <div className="open-matches-pending-steps">
@@ -272,7 +320,7 @@ export const OpenMatches = () => {
 
             <div>
               <strong>2</strong>
-              <span>Revisión del admin</span>
+              <span>Pago manual</span>
             </div>
 
             <div>
@@ -320,12 +368,27 @@ export const OpenMatches = () => {
                 const isFull = openMatch.players_count >= openMatch.max_players;
                 const isActionLoading = actionLoadingId === openMatch.id;
                 const uploadAllowed = canUploadResult(openMatch);
+                const isNewMatch = isNewOpenMatch(openMatch.id);
 
                 return (
-                  <article key={openMatch.id} className="open-match-card">
+                  <article
+                    key={openMatch.id}
+                    className={`open-match-card ${
+                      isNewMatch ? "new-open-match-card" : ""
+                    }`}
+                  >
                     <div className="open-match-card-header">
                       <div>
-                        <h3>{openMatch.level}</h3>
+                        <div className="open-match-title-row">
+                          <h3>{openMatch.level}</h3>
+
+                          {isNewMatch && (
+                            <span className="open-match-new-badge">
+                              <span className="open-match-new-dot"></span>
+                              Nuevo
+                            </span>
+                          )}
+                        </div>
 
                         <p>
                           {openMatch.club} · {formatDate(openMatch.match_date)} ·{" "}
@@ -480,8 +543,8 @@ export const OpenMatches = () => {
             </div>
 
             <p>
-              Si confirmas, quedarás apuntado a este partido. La pista dura
-              1 hora y 30 minutos. Cuando haya 4 jugadores, se cerrará
+              Si confirmas, quedarás apuntado a este partido. La pista dura 1
+              hora y 30 minutos. Cuando haya 4 jugadores, se cerrará
               automáticamente y se crearán las parejas.
             </p>
 

@@ -31,10 +31,9 @@ export const AdminPlayers = () => {
   const statuses = ["Todos", ...playerStatuses];
 
   const statusLabels = {
-    pending: "Pendiente",
-    approved: "Aprobado",
+    pending: "Pendiente de pago",
+    approved: "Pagado",
     rejected: "Rechazado",
-    payment_pending: "Pendiente de pago",
   };
 
   const loadPlayers = async () => {
@@ -111,7 +110,12 @@ export const AdminPlayers = () => {
 
       if (!data) return;
 
-      setMessage("Jugador actualizado correctamente.");
+      setMessage(
+        payload.status === "approved"
+          ? "Jugador marcado como pagado correctamente."
+          : "Jugador actualizado correctamente."
+      );
+
       setEditingPlayerId(null);
 
       await loadPlayers();
@@ -208,13 +212,12 @@ export const AdminPlayers = () => {
   const getStatusClass = (status) => {
     if (status === "approved") return "approved";
     if (status === "rejected") return "rejected";
-    if (status === "payment_pending") return "payment-pending";
 
     return "pending";
   };
 
   const getStatusLabel = (status) => {
-    return statusLabels[status] || "Pendiente";
+    return statusLabels[status] || "Pendiente de pago";
   };
 
   const getFullName = (player) => {
@@ -235,11 +238,11 @@ export const AdminPlayers = () => {
         <div>
           <span>Panel admin</span>
 
-          <h1>Gestión de jugadores</h1>
+          <h1>Pagos y jugadores</h1>
 
           <p>
-            Revisa solicitudes, aprueba jugadores, ajusta nivel y posición, o
-            rechaza perfiles que no deban entrar al ranking.
+            Revisa solicitudes, marca como pagados a los jugadores, ajusta nivel
+            y posición, o rechaza perfiles que no deban entrar al ranking.
           </p>
         </div>
 
@@ -271,7 +274,7 @@ export const AdminPlayers = () => {
           }`}
           onClick={() => setStatusFilter("pending")}
         >
-          <span>Pendientes</span>
+          <span>Pendientes de pago</span>
           <strong>{getCounter("pending")}</strong>
         </button>
 
@@ -282,7 +285,7 @@ export const AdminPlayers = () => {
           }`}
           onClick={() => setStatusFilter("approved")}
         >
-          <span>Aprobados</span>
+          <span>Pagados</span>
           <strong>{getCounter("approved")}</strong>
         </button>
 
@@ -303,13 +306,14 @@ export const AdminPlayers = () => {
           <h2>Filtros</h2>
 
           <p>
-            Filtra por estado o nivel para encontrar más rápido a cada jugador.
+            Filtra por estado de pago o nivel para encontrar más rápido a cada
+            jugador.
           </p>
         </div>
 
         <div className="admin-players-filters">
           <div className="form-group">
-            <label>Estado</label>
+            <label>Pago</label>
 
             <select
               name="status"
@@ -364,7 +368,7 @@ export const AdminPlayers = () => {
 
               <p>
                 Pulsa editar para ver la ficha completa, cambiar nivel, posición
-                o estado.
+                o estado de pago.
               </p>
             </div>
           </div>
@@ -419,7 +423,9 @@ export const AdminPlayers = () => {
                             onClick={() => approvePlayer(player.id)}
                             disabled={isActionLoading}
                           >
-                            {isActionLoading ? "Aprobando..." : "Aprobar"}
+                            {isActionLoading
+                              ? "Marcando..."
+                              : "Marcar pagado"}
                           </button>
                         )}
 
@@ -494,7 +500,7 @@ export const AdminPlayers = () => {
                         </div>
 
                         <div className="form-group">
-                          <label>Estado</label>
+                          <label>Pago</label>
 
                           <select
                             name="status"
