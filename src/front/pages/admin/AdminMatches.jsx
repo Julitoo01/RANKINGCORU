@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../../utils/authFetch";
+import { translations } from "../../i18n/translations";
 
 export const AdminMatches = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
 
   const [matches, setMatches] = useState([]);
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -39,7 +46,7 @@ export const AdminMatches = () => {
       setMatches(data);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar resultados");
+      setError(error.message || t.adminMatches.loadError);
     } finally {
       setLoading(false);
     }
@@ -48,6 +55,18 @@ export const AdminMatches = () => {
   useEffect(() => {
     loadMatches();
   }, [statusFilter]);
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   const formatDate = (date) => {
     if (!date) return "-";
@@ -58,7 +77,7 @@ export const AdminMatches = () => {
       return "-";
     }
 
-    return parsedDate.toLocaleDateString("es-ES", {
+    return parsedDate.toLocaleDateString(language === "es" ? "es-ES" : "en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -66,33 +85,35 @@ export const AdminMatches = () => {
   };
 
   const getWinnerText = (winnerTeam) => {
-    if (winnerTeam === "A") return "Equipo A";
-    if (winnerTeam === "B") return "Equipo B";
+    if (winnerTeam === "A") return t.adminMatches.teamA;
+    if (winnerTeam === "B") return t.adminMatches.teamB;
 
     return "-";
   };
 
   const getStatusText = (status) => {
-    if (status === "confirmed") return "Confirmado";
-    if (status === "pending") return "Pendiente";
-    if (status === "rejected") return "Rechazado";
+    if (status === "confirmed") return t.adminMatches.confirmed;
+    if (status === "pending") return t.adminMatches.pending;
+    if (status === "rejected") return t.adminMatches.rejected;
 
     return status || "-";
   };
 
   const getPlayerName = (player) => {
-    if (!player) return "Jugador";
+    if (!player) return t.adminMatches.player;
 
     return (
       player.nickname ||
       `${player.name || ""} ${player.last_name || ""}`.trim() ||
-      "Jugador"
+      t.adminMatches.player
     );
   };
 
   const renderTeam = (team) => {
     if (!team || team.length === 0) {
-      return <span className="admin-team-empty">Sin jugadores</span>;
+      return (
+        <span className="admin-team-empty">{t.adminMatches.noPlayers}</span>
+      );
     }
 
     return (
@@ -113,9 +134,7 @@ export const AdminMatches = () => {
   };
 
   const deleteMatch = async (matchId) => {
-    const confirmDelete = window.confirm(
-      "¿Seguro que quieres eliminar este resultado? El ranking se recalculará automáticamente."
-    );
+    const confirmDelete = window.confirm(t.adminMatches.deleteConfirm);
 
     if (!confirmDelete) return;
 
@@ -131,11 +150,11 @@ export const AdminMatches = () => {
 
       if (!data) return;
 
-      setMessage("Resultado eliminado correctamente. Ranking recalculado.");
+      setMessage(t.adminMatches.deleteSuccess);
       await loadMatches();
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al eliminar resultado");
+      setError(error.message || t.adminMatches.deleteError);
     } finally {
       setActionLoadingId(null);
     }
@@ -143,7 +162,7 @@ export const AdminMatches = () => {
 
   const recalculateRanking = async () => {
     const confirmRecalculate = window.confirm(
-      "¿Seguro que quieres recalcular todo el ranking?"
+      t.adminMatches.recalculateConfirm
     );
 
     if (!confirmRecalculate) return;
@@ -163,11 +182,11 @@ export const AdminMatches = () => {
 
       if (!data) return;
 
-      setMessage("Ranking recalculado correctamente.");
+      setMessage(t.adminMatches.recalculateSuccess);
       await loadMatches();
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al recalcular ranking");
+      setError(error.message || t.adminMatches.recalculateError);
     } finally {
       setRecalculating(false);
     }
@@ -177,19 +196,16 @@ export const AdminMatches = () => {
     <section className="admin-matches-page">
       <div className="admin-matches-hero">
         <div>
-          <span className="section-kicker">Panel admin</span>
+          <span className="section-kicker">{t.adminMatches.heroKicker}</span>
 
-          <h1>Gestión de resultados</h1>
+          <h1>{t.adminMatches.title}</h1>
 
-          <p>
-            Revisa los resultados subidos, elimina partidos incorrectos y
-            recalcula el ranking cuando sea necesario.
-          </p>
+          <p>{t.adminMatches.description}</p>
         </div>
 
         <div className="admin-matches-hero-card">
           <strong>{matches.length}</strong>
-          <span>Resultados visibles</span>
+          <span>{t.adminMatches.visibleResults}</span>
         </div>
       </div>
 
@@ -204,7 +220,7 @@ export const AdminMatches = () => {
           }`}
           onClick={() => setStatusFilter("Todos")}
         >
-          <span>Total</span>
+          <span>{t.adminMatches.total}</span>
           <strong>{getCounter("Todos")}</strong>
         </button>
 
@@ -215,7 +231,7 @@ export const AdminMatches = () => {
           }`}
           onClick={() => setStatusFilter("confirmed")}
         >
-          <span>Confirmados</span>
+          <span>{t.adminMatches.confirmedPlural}</span>
           <strong>{getCounter("confirmed")}</strong>
         </button>
 
@@ -226,7 +242,7 @@ export const AdminMatches = () => {
           }`}
           onClick={() => setStatusFilter("pending")}
         >
-          <span>Pendientes</span>
+          <span>{t.adminMatches.pendingPlural}</span>
           <strong>{getCounter("pending")}</strong>
         </button>
 
@@ -237,35 +253,32 @@ export const AdminMatches = () => {
           }`}
           onClick={() => setStatusFilter("rejected")}
         >
-          <span>Rechazados</span>
+          <span>{t.adminMatches.rejectedPlural}</span>
           <strong>{getCounter("rejected")}</strong>
         </button>
       </div>
 
       <div className="admin-matches-actions-card">
         <div>
-          <span className="section-kicker">Acciones</span>
+          <span className="section-kicker">{t.adminMatches.actionsKicker}</span>
 
-          <h2>Acciones rápidas</h2>
+          <h2>{t.adminMatches.actionsTitle}</h2>
 
-          <p>
-            Usa estas acciones solo cuando haya un resultado incorrecto o quieras
-            forzar el recálculo completo del ranking.
-          </p>
+          <p>{t.adminMatches.actionsText}</p>
         </div>
 
         <div className="admin-matches-actions-row">
           <div className="admin-matches-filter-box">
-            <label>Estado</label>
+            <label>{t.adminMatches.status}</label>
 
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
-              <option value="Todos">Todos</option>
-              <option value="confirmed">Confirmados</option>
-              <option value="pending">Pendientes</option>
-              <option value="rejected">Rechazados</option>
+              <option value="Todos">{t.adminMatches.all}</option>
+              <option value="confirmed">{t.adminMatches.confirmedPlural}</option>
+              <option value="pending">{t.adminMatches.pendingPlural}</option>
+              <option value="rejected">{t.adminMatches.rejectedPlural}</option>
             </select>
           </div>
 
@@ -275,7 +288,7 @@ export const AdminMatches = () => {
             onClick={loadMatches}
             disabled={loading}
           >
-            {loading ? "Actualizando..." : "Actualizar"}
+            {loading ? t.adminMatches.updating : t.adminMatches.update}
           </button>
 
           <button
@@ -284,24 +297,23 @@ export const AdminMatches = () => {
             onClick={recalculateRanking}
             disabled={recalculating}
           >
-            {recalculating ? "Recalculando..." : "Recalcular ranking"}
+            {recalculating
+              ? t.adminMatches.recalculating
+              : t.adminMatches.recalculateRanking}
           </button>
         </div>
       </div>
 
       {loading && (
         <div className="admin-matches-state">
-          <p>Cargando resultados...</p>
+          <p>{t.adminMatches.loading}</p>
         </div>
       )}
 
       {!loading && matches.length === 0 && (
         <div className="admin-matches-empty">
-          <h2>No hay resultados registrados</h2>
-          <p>
-            Cuando los jugadores suban resultados, aparecerán aquí para poder
-            gestionarlos.
-          </p>
+          <h2>{t.adminMatches.emptyTitle}</h2>
+          <p>{t.adminMatches.emptyText}</p>
         </div>
       )}
 
@@ -309,14 +321,13 @@ export const AdminMatches = () => {
         <div className="admin-matches-table-card">
           <div className="admin-matches-table-header">
             <div>
-              <span className="section-kicker">Historial</span>
+              <span className="section-kicker">
+                {t.adminMatches.historyKicker}
+              </span>
 
-              <h2>Resultados registrados</h2>
+              <h2>{t.adminMatches.registeredResults}</h2>
 
-              <p>
-                Cada resultado afecta directamente al ranking. Elimina solo los
-                que estén mal subidos.
-              </p>
+              <p>{t.adminMatches.historyText}</p>
             </div>
           </div>
 
@@ -333,9 +344,9 @@ export const AdminMatches = () => {
                         {formatDate(match.played_at)}
                       </span>
 
-                      <h3>{match.level || "Nivel no indicado"}</h3>
+                      <h3>{match.level || t.adminMatches.levelNotSet}</h3>
 
-                      <p>{match.club || "Club no indicado"}</p>
+                      <p>{match.club || t.adminMatches.clubNotSet}</p>
                     </div>
 
                     <span className={`admin-match-status ${match.status}`}>
@@ -344,7 +355,7 @@ export const AdminMatches = () => {
                   </div>
 
                   <div className="admin-result-score-box">
-                    <span>Resultado</span>
+                    <span>{t.adminMatches.result}</span>
                     <strong>{match.score || "-"}</strong>
                   </div>
 
@@ -355,8 +366,8 @@ export const AdminMatches = () => {
                       }`}
                     >
                       <div className="admin-result-team-title">
-                        <span>Equipo A</span>
-                        {teamAWon && <small>Ganador</small>}
+                        <span>{t.adminMatches.teamA}</span>
+                        {teamAWon && <small>{t.adminMatches.winner}</small>}
                       </div>
 
                       {renderTeam(match.team_a)}
@@ -370,8 +381,8 @@ export const AdminMatches = () => {
                       }`}
                     >
                       <div className="admin-result-team-title">
-                        <span>Equipo B</span>
-                        {teamBWon && <small>Ganador</small>}
+                        <span>{t.adminMatches.teamB}</span>
+                        {teamBWon && <small>{t.adminMatches.winner}</small>}
                       </div>
 
                       {renderTeam(match.team_b)}
@@ -380,11 +391,13 @@ export const AdminMatches = () => {
 
                   <div className="admin-result-meta">
                     <span>
-                      Ganador: <strong>{getWinnerText(match.winner_team)}</strong>
+                      {t.adminMatches.winner}:{" "}
+                      <strong>{getWinnerText(match.winner_team)}</strong>
                     </span>
 
                     <span>
-                      Subido por: <strong>{match.submitted_by || "-"}</strong>
+                      {t.adminMatches.submittedBy}:{" "}
+                      <strong>{match.submitted_by || "-"}</strong>
                     </span>
                   </div>
 
@@ -396,8 +409,8 @@ export const AdminMatches = () => {
                       disabled={actionLoadingId === match.id}
                     >
                       {actionLoadingId === match.id
-                        ? "Eliminando..."
-                        : "Eliminar resultado"}
+                        ? t.adminMatches.deleting
+                        : t.adminMatches.deleteResult}
                     </button>
                   </div>
                 </article>

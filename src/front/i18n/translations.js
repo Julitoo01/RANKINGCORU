@@ -62,6 +62,68 @@ export const translations = {
 
   backToRegister: "Volver al registro",
 },
+adminMatches: {
+  heroKicker: "Panel admin",
+  title: "Gestión de resultados",
+  description:
+    "Revisa los resultados subidos, elimina partidos incorrectos y recalcula el ranking cuando sea necesario.",
+  visibleResults: "Resultados visibles",
+
+  all: "Todos",
+  total: "Total",
+  confirmedPlural: "Confirmados",
+  pendingPlural: "Pendientes",
+  rejectedPlural: "Rechazados",
+
+  confirmed: "Confirmado",
+  pending: "Pendiente",
+  rejected: "Rechazado",
+
+  teamA: "Equipo A",
+  teamB: "Equipo B",
+  winnerTeam: "Equipo ganador",
+  winner: "Ganador",
+  player: "Jugador",
+  noPlayers: "Sin jugadores",
+
+  loadError: "Error al cargar resultados",
+  deleteError: "Error al eliminar resultado",
+  recalculateError: "Error al recalcular ranking",
+
+  deleteConfirm:
+    "¿Seguro que quieres eliminar este resultado? El ranking se recalculará automáticamente.",
+  deleteSuccess: "Resultado eliminado correctamente. Ranking recalculado.",
+
+  recalculateConfirm: "¿Seguro que quieres recalcular todo el ranking?",
+  recalculateSuccess: "Ranking recalculado correctamente.",
+
+  actionsKicker: "Acciones",
+  actionsTitle: "Acciones rápidas",
+  actionsText:
+    "Usa estas acciones solo cuando haya un resultado incorrecto o quieras forzar el recálculo completo del ranking.",
+  status: "Estado",
+  updating: "Actualizando...",
+  update: "Actualizar",
+  recalculating: "Recalculando...",
+  recalculateRanking: "Recalcular ranking",
+
+  loading: "Cargando resultados...",
+  emptyTitle: "No hay resultados registrados",
+  emptyText:
+    "Cuando los jugadores suban resultados, aparecerán aquí para poder gestionarlos.",
+
+  historyKicker: "Historial",
+  registeredResults: "Resultados registrados",
+  historyText:
+    "Cada resultado afecta directamente al ranking. Elimina solo los que estén mal subidos.",
+
+  levelNotSet: "Nivel no indicado",
+  clubNotSet: "Club no indicado",
+  result: "Resultado",
+  submittedBy: "Subido por",
+  deleting: "Eliminando...",
+  deleteResult: "Eliminar resultado",
+},
     terms: {
   kicker: "Fuera de Pista",
   title: "Términos y Condiciones",
@@ -314,6 +376,35 @@ rules: {
   emptyText:
     "Cuando el admin escriba las normas del ranking, aparecerán aquí.",
 },
+matchesTitle: "Matches",
+matchesDescription:
+  "Review registered results, delete incorrect matches and control the history by season.",
+matchesCountLabel: "Matches",
+
+season: "Season",
+currentSeason: "Current season",
+closedSeasonText: "You are viewing matches from a closed season.",
+activeSeasonText: "You are viewing matches from the active season.",
+viewSeason: "View season",
+current: "Current",
+historical: "Historical",
+
+loadingMatches: "Loading matches...",
+noRegisteredMatches: "There are no registered matches",
+noRegisteredMatchesText:
+  "When players upload results, they will appear here to be reviewed.",
+
+date: "Date",
+actions: "Actions",
+delete: "Delete",
+
+deleteMatchConfirm:
+  "Are you sure you want to delete this match? The ranking will be recalculated automatically.",
+deleteMatchSuccess: "Match deleted successfully. Ranking recalculated.",
+deleteMatchError: "Error deleting match",
+seasonsLoadError: "Error loading seasons",
+matchesLoadError: "Error loading matches",
+
 admin: {
   kicker: "Fuera de Pista",
   title: "Panel admin",
@@ -1271,6 +1362,68 @@ adminOpenMatches: {
   levelGold: "Gold",
   levelDiamond: "Diamond",
 },
+adminMatches: {
+  heroKicker: "Admin panel",
+  title: "Results management",
+  description:
+    "Review uploaded results, delete incorrect matches and recalculate the ranking when needed.",
+  visibleResults: "Visible results",
+
+  all: "All",
+  total: "Total",
+  confirmedPlural: "Confirmed",
+  pendingPlural: "Pending",
+  rejectedPlural: "Rejected",
+
+  confirmed: "Confirmed",
+  pending: "Pending",
+  rejected: "Rejected",
+
+  teamA: "Team A",
+  teamB: "Team B",
+  winnerTeam: "Winning team",
+  winner: "Winner",
+  player: "Player",
+  noPlayers: "No players",
+
+  loadError: "Error loading results",
+  deleteError: "Error deleting result",
+  recalculateError: "Error recalculating ranking",
+
+  deleteConfirm:
+    "Are you sure you want to delete this result? The ranking will be recalculated automatically.",
+  deleteSuccess: "Result deleted successfully. Ranking recalculated.",
+
+  recalculateConfirm: "Are you sure you want to recalculate the whole ranking?",
+  recalculateSuccess: "Ranking recalculated successfully.",
+
+  actionsKicker: "Actions",
+  actionsTitle: "Quick actions",
+  actionsText:
+    "Use these actions only when there is an incorrect result or when you want to force a full ranking recalculation.",
+  status: "Status",
+  updating: "Updating...",
+  update: "Update",
+  recalculating: "Recalculating...",
+  recalculateRanking: "Recalculate ranking",
+
+  loading: "Loading results...",
+  emptyTitle: "There are no registered results",
+  emptyText:
+    "When players upload results, they will appear here so you can manage them.",
+
+  historyKicker: "History",
+  registeredResults: "Registered results",
+  historyText:
+    "Each result directly affects the ranking. Only delete results that were uploaded incorrectly.",
+
+  levelNotSet: "Level not set",
+  clubNotSet: "Club not set",
+  result: "Result",
+  submittedBy: "Submitted by",
+  deleting: "Deleting...",
+  deleteResult: "Delete result",
+},
     login: {
       brand: "Fuera de Pista",
       title: "Welcome back",
@@ -1513,6 +1666,35 @@ adminPlayers: {
   positionBoth: "Both",
   positionUnknown: "I don't know",
 },
+matchesTitle: "Matches",
+matchesDescription:
+  "Review registered results, delete incorrect matches and control the history by season.",
+matchesCountLabel: "Matches",
+
+season: "Season",
+currentSeason: "Current season",
+closedSeasonText: "You are viewing matches from a closed season.",
+activeSeasonText: "You are viewing matches from the active season.",
+viewSeason: "View season",
+current: "Current",
+historical: "Historical",
+
+loadingMatches: "Loading matches...",
+noRegisteredMatches: "There are no registered matches",
+noRegisteredMatchesText:
+  "When players upload results, they will appear here to be reviewed.",
+
+date: "Date",
+actions: "Actions",
+delete: "Delete",
+
+deleteMatchConfirm:
+  "Are you sure you want to delete this match? The ranking will be recalculated automatically.",
+deleteMatchSuccess: "Match deleted successfully. Ranking recalculated.",
+deleteMatchError: "Error deleting match",
+seasonsLoadError: "Error loading seasons",
+matchesLoadError: "Error loading matches",
+
 openMatches: {
   kicker: "Play",
   title: "Open matches",
