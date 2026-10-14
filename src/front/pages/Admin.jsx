@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { authFetch } from "../../utils/authFetch";
+import { translations } from "../../i18n/translations";
 
 export const Admin = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
 
   const storedUser = localStorage.getItem("user");
 
@@ -26,6 +33,18 @@ export const Admin = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
+
   const closeSeason = async (event) => {
     event.preventDefault();
 
@@ -33,12 +52,12 @@ export const Admin = () => {
     setError("");
 
     if (!nextSeasonName.trim()) {
-      setError("Tienes que escribir el nombre de la nueva temporada.");
+      setError(t.admin.seasonNameRequired);
       return;
     }
 
     const confirmClose = window.confirm(
-      `¿Seguro que quieres cerrar la temporada actual y crear "${nextSeasonName}"? Se guardará el ranking histórico y el ranking actual se pondrá a 0.`
+      `${t.admin.closeSeasonConfirmStart} "${nextSeasonName}"? ${t.admin.closeSeasonConfirmEnd}`
     );
 
     if (!confirmClose) return;
@@ -59,7 +78,7 @@ export const Admin = () => {
       if (!data) return;
 
       setMessage(
-        `Temporada cerrada correctamente. Nueva temporada creada: ${
+        `${t.admin.closeSeasonSuccess} ${
           data.new_season?.name || nextSeasonName
         }`
       );
@@ -67,7 +86,7 @@ export const Admin = () => {
       setNextSeasonName("");
     } catch (error) {
       console.error(error);
-      setError(error.message || "No se pudo cerrar la temporada");
+      setError(error.message || t.admin.closeSeasonError);
     } finally {
       setClosingSeason(false);
     }
@@ -77,19 +96,16 @@ export const Admin = () => {
     <section className="admin-page">
       <div className="admin-hero">
         <div>
-          <span className="section-kicker">Fuera de Pista</span>
+          <span className="section-kicker">{t.admin.kicker}</span>
 
-          <h1>Panel admin</h1>
+          <h1>{t.admin.title}</h1>
 
-          <p>
-            Controla el funcionamiento del ranking desde un único sitio:
-            jugadores, partidos abiertos, resultados, normas y temporadas.
-          </p>
+          <p>{t.admin.description}</p>
         </div>
 
         <div className="admin-hero-card">
-          <span>Administrador</span>
-          <strong>{user?.nickname || user?.name || "Admin"}</strong>
+          <span>{t.admin.administrator}</span>
+          <strong>{user?.nickname || user?.name || t.admin.defaultAdmin}</strong>
         </div>
       </div>
 
@@ -100,65 +116,53 @@ export const Admin = () => {
         <Link to="/admin/players" className="admin-dashboard-card">
           <div className="admin-card-top">
             <div className="admin-card-icon">👥</div>
-            <span>Jugadores</span>
+            <span>{t.admin.playersKicker}</span>
           </div>
 
-          <h2>Gestionar jugadores</h2>
+          <h2>{t.admin.playersTitle}</h2>
 
-          <p>
-            Aprueba nuevos usuarios, cambia niveles, revisa estados y controla
-            quién puede participar en el ranking.
-          </p>
+          <p>{t.admin.playersText}</p>
 
-          <strong>Entrar →</strong>
+          <strong>{t.admin.enter}</strong>
         </Link>
 
         <Link to="/admin/open-matches" className="admin-dashboard-card">
           <div className="admin-card-top">
             <div className="admin-card-icon">📅</div>
-            <span>Partidos abiertos</span>
+            <span>{t.admin.openMatchesKicker}</span>
           </div>
 
-          <h2>Abrir partidos</h2>
+          <h2>{t.admin.openMatchesTitle}</h2>
 
-          <p>
-            Crea partidos por nivel, revisa jugadores apuntados y gestiona los
-            partidos disponibles para la comunidad.
-          </p>
+          <p>{t.admin.openMatchesText}</p>
 
-          <strong>Entrar →</strong>
+          <strong>{t.admin.enter}</strong>
         </Link>
 
         <Link to="/admin/matches" className="admin-dashboard-card">
           <div className="admin-card-top">
             <div className="admin-card-icon">🎾</div>
-            <span>Resultados</span>
+            <span>{t.admin.resultsKicker}</span>
           </div>
 
-          <h2>Gestionar resultados</h2>
+          <h2>{t.admin.resultsTitle}</h2>
 
-          <p>
-            Revisa resultados subidos, elimina partidos incorrectos y recalcula
-            el ranking cuando sea necesario.
-          </p>
+          <p>{t.admin.resultsText}</p>
 
-          <strong>Entrar →</strong>
+          <strong>{t.admin.enter}</strong>
         </Link>
 
         <Link to="/admin/rules" className="admin-dashboard-card">
           <div className="admin-card-top">
             <div className="admin-card-icon">📋</div>
-            <span>Normas</span>
+            <span>{t.admin.rulesKicker}</span>
           </div>
 
-          <h2>Editar normas</h2>
+          <h2>{t.admin.rulesTitle}</h2>
 
-          <p>
-            Actualiza las normas públicas, el funcionamiento del ranking y la
-            información que ven los jugadores.
-          </p>
+          <p>{t.admin.rulesText}</p>
 
-          <strong>Entrar →</strong>
+          <strong>{t.admin.enter}</strong>
         </Link>
       </div>
 
@@ -168,45 +172,41 @@ export const Admin = () => {
             <div className="admin-season-icon">🏆</div>
 
             <div>
-              <span className="section-kicker">Temporadas</span>
+              <span className="section-kicker">{t.admin.seasonsKicker}</span>
 
-              <h2>Cerrar cuatrimestre</h2>
+              <h2>{t.admin.closeQuarterTitle}</h2>
 
-              <p>
-                Guarda el ranking actual como histórico, crea una nueva
-                temporada y reinicia las estadísticas para empezar el siguiente
-                cuatrimestre.
-              </p>
+              <p>{t.admin.closeQuarterText}</p>
             </div>
           </div>
 
           <form className="admin-season-form" onSubmit={closeSeason}>
-            <label>Nombre de la nueva temporada</label>
+            <label>{t.admin.newSeasonName}</label>
 
             <input
               type="text"
               value={nextSeasonName}
               onChange={(event) => setNextSeasonName(event.target.value)}
-              placeholder="Ej: Mayo - Agosto 2026"
+              placeholder={t.admin.newSeasonPlaceholder}
             />
 
             <button type="submit" disabled={closingSeason}>
-              {closingSeason ? "Cerrando..." : "Cerrar temporada"}
+              {closingSeason ? t.admin.closing : t.admin.closeSeason}
             </button>
           </form>
         </div>
 
         <div className="admin-help-card">
-          <span className="section-kicker">Checklist MVP</span>
+          <span className="section-kicker">{t.admin.checklistKicker}</span>
 
-          <h2>Qué revisar cada semana</h2>
+          <h2>{t.admin.checklistTitle}</h2>
 
           <div className="admin-checklist">
-            <p>✅ Aprobar jugadores pendientes</p>
-            <p>✅ Abrir partidos por nivel</p>
-            <p>✅ Revisar resultados subidos</p>
-            <p>✅ Eliminar partidos incorrectos</p>
-            <p>✅ Comprobar que el ranking se actualiza bien</p>
+            <p>{t.admin.checklist1}</p>
+            <p>{t.admin.checklist2}</p>
+            <p>{t.admin.checklist3}</p>
+            <p>{t.admin.checklist4}</p>
+            <p>{t.admin.checklist5}</p>
           </div>
         </div>
       </div>

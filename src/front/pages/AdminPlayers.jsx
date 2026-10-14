@@ -1,35 +1,93 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { authFetch } from "../../utils/authFetch";
+import { translations } from "../../i18n/translations";
 
 export const AdminPlayers = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
+
   const [players, setPlayers] = useState([]);
+  const [filters, setFilters] = useState({
+    status: "Todos",
+    level: "Todos",
+  });
+
   const [editingPlayerId, setEditingPlayerId] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [editForm, setEditForm] = useState({
+    level: "",
+    position: "",
+    status: "",
+  });
+
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const levels = ["Iniciación", "Bronce", "Plata", "Oro", "Diamante"];
-  const positions = ["Derecha", "Revés", "Ambos"];
-  const statuses = ["pending", "approved", "rejected"];
+  const playerLevels = ["Iniciación", "Bronce", "Plata", "Oro", "Diamante"];
+  const levels = ["Todos", ...playerLevels];
+
+  const positions = ["Derecha", "Revés", "Ambas", "No lo sé"];
+
+  const playerStatuses = ["pending", "approved", "rejected"];
+  const statuses = ["Todos", ...playerStatuses];
+
+  const statusLabels = {
+    pending: t.adminPlayers.pendingPayment,
+    approved: t.adminPlayers.paidStatus,
+    rejected: t.adminPlayers.rejected,
+  };
+
+  const levelLabels = {
+    Todos: t.adminPlayers.all,
+    Iniciación: t.adminPlayers.levelInitiation,
+    Bronce: t.adminPlayers.levelBronze,
+    Plata: t.adminPlayers.levelSilver,
+    Oro: t.adminPlayers.levelGold,
+    Diamante: t.adminPlayers.levelDiamond,
+  };
+
+  const positionLabels = {
+    Derecha: t.adminPlayers.positionRight,
+    Revés: t.adminPlayers.positionBackhand,
+    Ambas: t.adminPlayers.positionBoth,
+    "No lo sé": t.adminPlayers.positionUnknown,
+  };
 
   const loadPlayers = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const data = await authFetch(`${backendUrl}/api/admin/players`);
+      const params = new URLSearchParams();
+
+      if (filters.status !== "Todos") {
+        params.append("status", filters.status);
+      }
+
+      if (filters.level !== "Todos") {
+        params.append("level", filters.level);
+      }
+
+      const queryString = params.toString();
+
+      const url = queryString
+        ? `${backendUrl}/api/admin/players?${queryString}`
+        : `${backendUrl}/api/admin/players`;
+
+      const data = await authFetch(url);
 
       if (!data) return;
 
       setPlayers(data);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar jugadores");
+      setError(error.message || t.adminPlayers.loadError);
     } finally {
       setLoading(false);
     }
@@ -37,471 +95,519 @@ export const AdminPlayers = () => {
 
   useEffect(() => {
     loadPlayers();
+  }, [filters]);
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
   }, []);
 
-  const getStatusText = (status) => {
-    if (status === "approved") return "Pagado";
-    if (status === "pending") return "Pendiente de pago";
-    if (status === "rejected") return "Rechazado";
-    return status || "-";
+  const handleFilterChange = (event) => {
+    const { name, value } = event.target;
+
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const getStatusDescription = (status) => {
-    if (status === "approved") return "Jugador activo";
-    if (status === "pending") return "Esperando verificación";
-    if (status === "rejected") return "No activo";
-    return "-";
+  const setStatusFilter = (status) => {
+    setFilters((prev) => ({
+      ...prev,
+      status,
+    }));
   };
 
-  const filteredPlayers = useMemo(() => {
-    if (statusFilter === "Todos") return players;
-
-    return players.filter((player) => player.status === statusFilter);
-  }, [players, statusFilter]);
-
-  const counters = useMemo(() => {
-    return {
-      total: players.length,
-      pending: players.filter((player) => player.status === "pending").length,
-      approved: players.filter((player) => player.status === "approved").length,
-      rejected: players.filter((player) => player.status === "rejected").length,
-    };
-  }, [players]);
-
-  const startEditing = (player) => {
+  const updatePlayer = async (profileId, payload) => {
     setMessage("");
     setError("");
+
+    try {
+      setActionLoadingId(profileId);
+
+      const data = await authFetch(
+        `${backendUrl}/api/admin/players/${profileId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!data) return;
+
+      setMessage(
+        payload.status === "approved"
+          ? t.adminPlayers.paidSuccess
+          : t.adminPlayers.updateSuccess
+      );
+
+      setEditingPlayerId(null);
+
+      await loadPlayers();
+    } catch (error) {
+      console.error(error);
+      setError(error.message || t.adminPlayers.updateError);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const approvePlayer = (profileId) => {
+    updatePlayer(profileId, { status: "approved" });
+  };
+
+  const rejectPlayer = (profileId) => {
+    updatePlayer(profileId, { status: "rejected" });
+  };
+
+  const startEditing = (player) => {
     setEditingPlayerId(player.id);
 
     setEditForm({
-      name: player.name || "",
-      last_name: player.last_name || "",
-      nickname: player.nickname || "",
-      email: player.email || "",
-      phone: player.phone || "",
-      instagram: player.instagram || "",
       level: player.level || "Bronce",
-      position: player.position || "Ambos",
+      position: player.position || "Derecha",
       status: player.status || "pending",
     });
+
+    setMessage("");
+    setError("");
   };
 
   const cancelEditing = () => {
     setEditingPlayerId(null);
-    setEditForm({});
+
+    setEditForm({
+      level: "",
+      position: "",
+      status: "",
+    });
   };
 
   const handleEditChange = (event) => {
     const { name, value } = event.target;
 
-    setEditForm({
-      ...editForm,
+    setEditForm((prev) => ({
+      ...prev,
       [name]: value,
+    }));
+  };
+
+  const saveEditing = (profileId) => {
+    updatePlayer(profileId, {
+      level: editForm.level,
+      position: editForm.position,
+      status: editForm.status,
     });
-  };
-
-  const savePlayer = async (profileId) => {
-    try {
-      setSaving(true);
-      setMessage("");
-      setError("");
-
-      const data = await authFetch(`${backendUrl}/api/admin/players/${profileId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editForm),
-      });
-
-      if (!data) return;
-
-      setMessage("Jugador actualizado correctamente.");
-      setEditingPlayerId(null);
-      setEditForm({});
-      loadPlayers();
-    } catch (error) {
-      console.error(error);
-      setError(error.message || "Error al actualizar jugador");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const updatePlayerStatus = async (player, newStatus) => {
-    try {
-      setSaving(true);
-      setMessage("");
-      setError("");
-
-      const data = await authFetch(`${backendUrl}/api/admin/players/${player.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: newStatus,
-        }),
-      });
-
-      if (!data) return;
-
-      if (newStatus === "approved") {
-        setMessage(`${player.nickname} marcado como pagado y aprobado.`);
-      } else if (newStatus === "pending") {
-        setMessage(`${player.nickname} marcado como pendiente de pago.`);
-      } else {
-        setMessage(`${player.nickname} marcado como rechazado.`);
-      }
-
-      loadPlayers();
-    } catch (error) {
-      console.error(error);
-      setError(error.message || "Error al cambiar el estado del jugador");
-    } finally {
-      setSaving(false);
-    }
   };
 
   const deletePlayer = async (profileId, nickname) => {
     const confirmDelete = window.confirm(
-      `¿Seguro que quieres eliminar a ${nickname}? Esta acción no se puede deshacer.`
+      `${t.adminPlayers.deleteConfirmStart} ${nickname}? ${t.adminPlayers.deleteConfirmEnd}`
     );
 
     if (!confirmDelete) return;
 
-    try {
-      setMessage("");
-      setError("");
+    setMessage("");
+    setError("");
 
-      const data = await authFetch(`${backendUrl}/api/admin/players/${profileId}`, {
-        method: "DELETE",
-      });
+    try {
+      setActionLoadingId(profileId);
+
+      const data = await authFetch(
+        `${backendUrl}/api/admin/players/${profileId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!data) return;
 
-      setMessage("Jugador eliminado correctamente.");
-      loadPlayers();
+      setMessage(t.adminPlayers.deleteSuccess);
+      setEditingPlayerId(null);
+
+      await loadPlayers();
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al eliminar jugador");
+      setError(error.message || t.adminPlayers.deleteError);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
+  const getStatusClass = (status) => {
+    if (status === "approved") return "approved";
+    if (status === "rejected") return "rejected";
+
+    return "pending";
+  };
+
+  const getStatusLabel = (status) => {
+    return statusLabels[status] || t.adminPlayers.pendingPayment;
+  };
+
+  const getLevelLabel = (level) => {
+    return levelLabels[level] || level || "-";
+  };
+
+  const getPositionLabel = (position) => {
+    return positionLabels[position] || position || "-";
+  };
+
+  const getFullName = (player) => {
+    const fullName = `${player.name || ""} ${player.last_name || ""}`.trim();
+
+    return fullName || "-";
+  };
+
+  const getCounter = (status) => {
+    if (status === "Todos") return players.length;
+
+    return players.filter((player) => player.status === status).length;
+  };
+
   return (
-    <section className="admin-page">
-      <div className="admin-hero">
+    <section className="admin-players-page">
+      <div className="admin-players-hero">
         <div>
-          <span>Panel admin</span>
-          <h1>Jugadores y pagos</h1>
-          <p>
-            Verifica el pago de cada jugador, activa su perfil y modifica sus
-            datos si hay algún error.
-          </p>
+          <span>{t.adminPlayers.heroKicker}</span>
+
+          <h1>{t.adminPlayers.title}</h1>
+
+          <p>{t.adminPlayers.description}</p>
         </div>
 
-        <div className="admin-hero-card">
+        <div className="admin-players-hero-card">
           <strong>{players.length}</strong>
-          <span>Jugadores</span>
+          <span>{t.adminPlayers.visiblePlayers}</span>
         </div>
-      </div>
-
-      <div className="admin-payment-summary">
-        <button
-          className={
-            statusFilter === "Todos"
-              ? "admin-payment-card active"
-              : "admin-payment-card"
-          }
-          onClick={() => setStatusFilter("Todos")}
-        >
-          <strong>{counters.total}</strong>
-          <span>Todos</span>
-        </button>
-
-        <button
-          className={
-            statusFilter === "pending"
-              ? "admin-payment-card pending active"
-              : "admin-payment-card pending"
-          }
-          onClick={() => setStatusFilter("pending")}
-        >
-          <strong>{counters.pending}</strong>
-          <span>Pendientes de pago</span>
-        </button>
-
-        <button
-          className={
-            statusFilter === "approved"
-              ? "admin-payment-card approved active"
-              : "admin-payment-card approved"
-          }
-          onClick={() => setStatusFilter("approved")}
-        >
-          <strong>{counters.approved}</strong>
-          <span>Pagados</span>
-        </button>
-
-        <button
-          className={
-            statusFilter === "rejected"
-              ? "admin-payment-card rejected active"
-              : "admin-payment-card rejected"
-          }
-          onClick={() => setStatusFilter("rejected")}
-        >
-          <strong>{counters.rejected}</strong>
-          <span>Rechazados</span>
-        </button>
       </div>
 
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
 
-      {loading ? (
-        <div className="admin-state">
-          <p>Cargando jugadores...</p>
+      <div className="admin-players-summary-grid">
+        <button
+          type="button"
+          className={`admin-players-summary-card ${
+            filters.status === "Todos" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("Todos")}
+        >
+          <span>{t.adminPlayers.totalVisible}</span>
+          <strong>{getCounter("Todos")}</strong>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-players-summary-card pending ${
+            filters.status === "pending" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("pending")}
+        >
+          <span>{t.adminPlayers.pendingPayments}</span>
+          <strong>{getCounter("pending")}</strong>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-players-summary-card approved ${
+            filters.status === "approved" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("approved")}
+        >
+          <span>{t.adminPlayers.paid}</span>
+          <strong>{getCounter("approved")}</strong>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-players-summary-card rejected ${
+            filters.status === "rejected" ? "active" : ""
+          }`}
+          onClick={() => setStatusFilter("rejected")}
+        >
+          <span>{t.adminPlayers.rejectedPlural}</span>
+          <strong>{getCounter("rejected")}</strong>
+        </button>
+      </div>
+
+      <div className="admin-players-filters-card">
+        <div>
+          <h2>{t.adminPlayers.filters}</h2>
+
+          <p>{t.adminPlayers.filtersText}</p>
         </div>
-      ) : filteredPlayers.length === 0 ? (
-        <div className="admin-empty">
-          <h2>No hay jugadores en este estado</h2>
-          <p>
-            Cambia el filtro superior para ver otros jugadores registrados.
-          </p>
+
+        <div className="admin-players-filters">
+          <div className="form-group">
+            <label>{t.adminPlayers.payment}</label>
+
+            <select
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+            >
+              {statuses.map((status) => (
+                <option key={status} value={status}>
+                  {status === "Todos" ? t.adminPlayers.all : getStatusLabel(status)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>{t.adminPlayers.level}</label>
+
+            <select
+              name="level"
+              value={filters.level}
+              onChange={handleFilterChange}
+            >
+              {levels.map((level) => (
+                <option key={level} value={level}>
+                  {getLevelLabel(level)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      ) : (
-        <div className="admin-table-card">
-          <div className="table-wrapper">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Jugador</th>
-                  <th>Contacto</th>
-                  <th>Nivel</th>
-                  <th>Posición</th>
-                  <th>Pago / Estado</th>
-                  <th>Puntos</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
+      </div>
 
-              <tbody>
-                {filteredPlayers.map((player) => (
-                  <tr key={player.id}>
-                    <td>
-                      {editingPlayerId === player.id ? (
-                        <div className="admin-edit-mini-grid">
-                          <input
-                            type="text"
-                            name="name"
-                            value={editForm.name}
-                            onChange={handleEditChange}
-                            placeholder="Nombre"
-                          />
+      {loading && (
+        <div className="admin-players-state">
+          <p>{t.adminPlayers.loading}</p>
+        </div>
+      )}
 
-                          <input
-                            type="text"
-                            name="last_name"
-                            value={editForm.last_name}
-                            onChange={handleEditChange}
-                            placeholder="Apellidos"
-                          />
+      {!loading && players.length === 0 && (
+        <div className="admin-players-empty">
+          <h2>{t.adminPlayers.noPlayers}</h2>
 
-                          <input
-                            type="text"
-                            name="nickname"
-                            value={editForm.nickname}
-                            onChange={handleEditChange}
-                            placeholder="Nickname"
-                          />
-                        </div>
-                      ) : (
-                        <div className="admin-player-data">
-                          <strong>{player.nickname}</strong>
-                          <span>
-                            {player.name} {player.last_name}
-                          </span>
-                        </div>
+          <p>{t.adminPlayers.noPlayersText}</p>
+        </div>
+      )}
+
+      {!loading && players.length > 0 && (
+        <div className="admin-players-table-card">
+          <div className="admin-players-table-header">
+            <div>
+              <h2>{t.adminPlayers.listTitle}</h2>
+
+              <p>{t.adminPlayers.listText}</p>
+            </div>
+          </div>
+
+          <div className="admin-players-simple-list">
+            {players.map((player) => {
+              const isEditing = editingPlayerId === player.id;
+              const isActionLoading = actionLoadingId === player.id;
+
+              return (
+                <article key={player.id} className="admin-player-simple-card">
+                  <div className="admin-player-simple-main">
+                    <div>
+                      <h3>{player.nickname || t.adminPlayers.player}</h3>
+
+                      {!isEditing && (
+                        <>
+                          <p className="admin-player-simple-name">
+                            {getFullName(player)}
+                          </p>
+
+                          <div className="admin-player-simple-meta">
+                            <span className="admin-player-level-pill">
+                              {getLevelLabel(player.level)}
+                            </span>
+
+                            <span
+                              className={`status-badge ${getStatusClass(
+                                player.status
+                              )}`}
+                            >
+                              {getStatusLabel(player.status)}
+                            </span>
+                          </div>
+                        </>
                       )}
-                    </td>
+                    </div>
 
-                    <td>
-                      {editingPlayerId === player.id ? (
-                        <div className="admin-edit-mini-grid">
-                          <input
-                            type="email"
-                            name="email"
-                            value={editForm.email}
-                            onChange={handleEditChange}
-                            placeholder="Email"
-                          />
-
-                          <input
-                            type="text"
-                            name="phone"
-                            value={editForm.phone}
-                            onChange={handleEditChange}
-                            placeholder="Teléfono"
-                          />
-
-                          <input
-                            type="text"
-                            name="instagram"
-                            value={editForm.instagram}
-                            onChange={handleEditChange}
-                            placeholder="Instagram"
-                          />
-                        </div>
-                      ) : (
-                        <div className="admin-player-data">
-                          <span>{player.email}</span>
-                          <span>{player.phone || "-"}</span>
-                          <span>{player.instagram || "-"}</span>
-                        </div>
-                      )}
-                    </td>
-
-                    <td>
-                      {editingPlayerId === player.id ? (
-                        <select
-                          className="admin-edit-select"
-                          name="level"
-                          value={editForm.level}
-                          onChange={handleEditChange}
+                    {!isEditing && (
+                      <div className="admin-player-actions compact">
+                        <button
+                          className="admin-action-btn neutral"
+                          onClick={() => startEditing(player)}
+                          disabled={isActionLoading}
                         >
-                          {levels.map((level) => (
-                            <option key={level} value={level}>
-                              {level}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="ranking-level-pill">
-                          {player.level}
-                        </span>
-                      )}
-                    </td>
+                          {t.adminPlayers.edit}
+                        </button>
 
-                    <td>
-                      {editingPlayerId === player.id ? (
-                        <select
-                          className="admin-edit-select"
-                          name="position"
-                          value={editForm.position}
-                          onChange={handleEditChange}
-                        >
-                          {positions.map((position) => (
-                            <option key={position} value={position}>
-                              {position}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        player.position || "-"
-                      )}
-                    </td>
-
-                    <td>
-                      {editingPlayerId === player.id ? (
-                        <select
-                          className="admin-edit-select"
-                          name="status"
-                          value={editForm.status}
-                          onChange={handleEditChange}
-                        >
-                          {statuses.map((status) => (
-                            <option key={status} value={status}>
-                              {getStatusText(status)}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="admin-payment-status-cell">
-                          <span
-                            className={`admin-status-pill status-${player.status}`}
+                        {player.status !== "approved" && (
+                          <button
+                            className="admin-action-btn approve"
+                            onClick={() => approvePlayer(player.id)}
+                            disabled={isActionLoading}
                           >
-                            {getStatusText(player.status)}
-                          </span>
+                            {isActionLoading
+                              ? t.adminPlayers.marking
+                              : t.adminPlayers.markPaid}
+                          </button>
+                        )}
 
-                          <small>{getStatusDescription(player.status)}</small>
-                        </div>
-                      )}
-                    </td>
-
-                    <td>
-                      <strong>{player.points ?? 0}</strong>
-                    </td>
-
-                    <td>
-                      <div className="admin-actions">
-                        {editingPlayerId === player.id ? (
-                          <>
-                            <button
-                              className="admin-action-btn approve"
-                              onClick={() => savePlayer(player.id)}
-                              disabled={saving}
-                            >
-                              {saving ? "Guardando..." : "Guardar"}
-                            </button>
-
-                            <button
-                              className="admin-action-btn reject"
-                              onClick={cancelEditing}
-                              disabled={saving}
-                            >
-                              Cancelar
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            {player.status !== "approved" && (
-                              <button
-                                className="admin-action-btn approve"
-                                onClick={() =>
-                                  updatePlayerStatus(player, "approved")
-                                }
-                                disabled={saving}
-                              >
-                                Marcar pagado
-                              </button>
-                            )}
-
-                            {player.status !== "pending" && (
-                              <button
-                                className="admin-action-btn neutral"
-                                onClick={() =>
-                                  updatePlayerStatus(player, "pending")
-                                }
-                                disabled={saving}
-                              >
-                                Pendiente
-                              </button>
-                            )}
-
-                            <button
-                              className="admin-action-btn edit"
-                              onClick={() => startEditing(player)}
-                            >
-                              Editar
-                            </button>
-
-                            <button
-                              className="admin-action-btn delete"
-                              onClick={() =>
-                                deletePlayer(player.id, player.nickname)
-                              }
-                            >
-                              Eliminar
-                            </button>
-                          </>
+                        {player.status !== "rejected" && (
+                          <button
+                            className="admin-action-btn reject"
+                            onClick={() => rejectPlayer(player.id)}
+                            disabled={isActionLoading}
+                          >
+                            {isActionLoading
+                              ? t.adminPlayers.rejecting
+                              : t.adminPlayers.reject}
+                          </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    )}
+                  </div>
+
+                  {isEditing && (
+                    <div className="admin-player-edit-panel">
+                      <div className="admin-player-edit-details">
+                        <div>
+                          <span>{t.adminPlayers.nickname}</span>
+                          <strong>{player.nickname || "-"}</strong>
+                        </div>
+
+                        <div>
+                          <span>{t.adminPlayers.fullName}</span>
+                          <strong>{getFullName(player)}</strong>
+                        </div>
+
+                        <div>
+                          <span>{t.adminPlayers.email}</span>
+                          <strong>{player.email || "-"}</strong>
+                        </div>
+
+                        <div>
+                          <span>{t.adminPlayers.phone}</span>
+                          <strong>{player.phone || "-"}</strong>
+                        </div>
+                      </div>
+
+                      <div className="admin-player-edit-form">
+                        <div className="form-group">
+                          <label>{t.adminPlayers.level}</label>
+
+                          <select
+                            name="level"
+                            value={editForm.level}
+                            onChange={handleEditChange}
+                          >
+                            {playerLevels.map((level) => (
+                              <option key={level} value={level}>
+                                {getLevelLabel(level)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label>{t.adminPlayers.position}</label>
+
+                          <select
+                            name="position"
+                            value={editForm.position}
+                            onChange={handleEditChange}
+                          >
+                            {positions.map((position) => (
+                              <option key={position} value={position}>
+                                {getPositionLabel(position)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label>{t.adminPlayers.payment}</label>
+
+                          <select
+                            name="status"
+                            value={editForm.status}
+                            onChange={handleEditChange}
+                          >
+                            {playerStatuses.map((status) => (
+                              <option key={status} value={status}>
+                                {getStatusLabel(status)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="admin-player-edit-stats">
+                        <div>
+                          <span>{t.adminPlayers.matchesPlayedShort}</span>
+                          <strong>{player.matches_played ?? 0}</strong>
+                        </div>
+
+                        <div>
+                          <span>{t.adminPlayers.winsShort}</span>
+                          <strong>{player.wins ?? 0}</strong>
+                        </div>
+
+                        <div>
+                          <span>{t.adminPlayers.lossesShort}</span>
+                          <strong>{player.losses ?? 0}</strong>
+                        </div>
+
+                        <div>
+                          <span>{t.adminPlayers.winPercentage}</span>
+                          <strong>{player.win_percentage ?? 0}%</strong>
+                        </div>
+                      </div>
+
+                      <div className="admin-player-actions edit-panel">
+                        <button
+                          className="admin-action-btn approve"
+                          onClick={() => saveEditing(player.id)}
+                          disabled={isActionLoading}
+                        >
+                          {isActionLoading
+                            ? t.adminPlayers.saving
+                            : t.adminPlayers.saveChanges}
+                        </button>
+
+                        <button
+                          className="admin-action-btn neutral"
+                          onClick={cancelEditing}
+                          disabled={isActionLoading}
+                        >
+                          {t.adminPlayers.cancel}
+                        </button>
+
+                        <button
+                          className="admin-action-btn delete"
+                          onClick={() => deletePlayer(player.id, player.nickname)}
+                          disabled={isActionLoading}
+                        >
+                          {isActionLoading
+                            ? t.adminPlayers.deleting
+                            : t.adminPlayers.deletePlayer}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </div>
       )}

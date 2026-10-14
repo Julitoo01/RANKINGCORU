@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { translations } from "../i18n/translations";
 
 const backendUrl =
-  import.meta.env.VITE_BACKEND_URL ||
-  import.meta.env.VITE_API_URL;
+  import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL;
 
 export const Register = () => {
   const navigate = useNavigate();
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -31,15 +37,62 @@ export const Register = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const levels = [
-    "Iniciación",
-    "Bronce",
-    "Plata",
-    "Oro",
-    "Diamante",
-    "No lo sé / quiero que me valoréis",
+    {
+      value: "Iniciación",
+      label: t.register.levelInitiation,
+    },
+    {
+      value: "Bronce",
+      label: t.register.levelBronze,
+    },
+    {
+      value: "Plata",
+      label: t.register.levelSilver,
+    },
+    {
+      value: "Oro",
+      label: t.register.levelGold,
+    },
+    {
+      value: "Diamante",
+      label: t.register.levelDiamond,
+    },
+    {
+      value: "No lo sé / quiero que me valoréis",
+      label: t.register.levelUnknown,
+    },
   ];
 
-  const positions = ["Derecha", "Revés", "Ambas", "No lo sé"];
+  const positions = [
+    {
+      value: "Derecha",
+      label: t.register.positionRight,
+    },
+    {
+      value: "Revés",
+      label: t.register.positionBackhand,
+    },
+    {
+      value: "Ambas",
+      label: t.register.positionBoth,
+    },
+    {
+      value: "No lo sé",
+      label: t.register.positionUnknown,
+    },
+  ];
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -58,15 +111,13 @@ export const Register = () => {
     setError("");
 
     if (!backendUrl) {
-      setError("No se ha configurado la URL del backend en el archivo .env.");
+      setError(t.register.backendMissing);
       setLoading(false);
       return;
     }
 
     if (!formData.terms_accepted || !formData.privacy_accepted) {
-      setError(
-        "Debes aceptar los Términos y Condiciones y la Política de Privacidad para registrarte."
-      );
+      setError(t.register.legalError);
       setLoading(false);
       return;
     }
@@ -100,12 +151,12 @@ export const Register = () => {
         data = await response.json();
       } else {
         throw new Error(
-          `El servidor no devolvió JSON. URL llamada: ${backendUrl}/api/register. Status: ${response.status}.`
+          `${t.register.noJson} ${backendUrl}/api/register. Status: ${response.status}.`
         );
       }
 
       if (!response.ok) {
-        throw new Error(data.msg || "No se pudo completar el registro");
+        throw new Error(data.msg || t.register.registerFailed);
       }
 
       localStorage.setItem("token", data.token);
@@ -115,11 +166,11 @@ export const Register = () => {
         localStorage.setItem("profile", JSON.stringify(data.user.profile));
       }
 
-      setMessage("Registro completado correctamente.");
+      setMessage(t.register.success);
       setShowPendingModal(true);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al registrarse");
+      setError(error.message || t.register.registerError);
     } finally {
       setLoading(false);
     }
@@ -136,8 +187,8 @@ export const Register = () => {
         <div className="register-layout register-layout-clean">
           <form className="register-form register-form-clean" onSubmit={handleRegister}>
             <div className="register-form-header">
-              <h2>Crear cuenta</h2>
-              <p>Rellena tus datos para enviar tu inscripción.</p>
+              <h2>{t.register.title}</h2>
+              <p>{t.register.subtitle}</p>
             </div>
 
             {message && <div className="success-message">{message}</div>}
@@ -145,118 +196,118 @@ export const Register = () => {
 
             <div className="register-form-grid">
               <div className="form-group">
-                <label>Nombre real</label>
+                <label>{t.register.name}</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="Ej. Julio"
+                  placeholder={t.register.namePlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Apellidos</label>
+                <label>{t.register.lastName}</label>
                 <input
                   type="text"
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleChange}
-                  placeholder="Ej. Lapuente"
+                  placeholder={t.register.lastNamePlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Nickname</label>
+                <label>{t.register.nickname}</label>
                 <input
                   type="text"
                   name="nickname"
                   value={formData.nickname}
                   onChange={handleChange}
-                  placeholder="Ej. Julito10"
+                  placeholder={t.register.nicknamePlaceholder}
                   required
                 />
-                <small>Este será tu nombre público en el ranking.</small>
+                <small>{t.register.nicknameHelp}</small>
               </div>
 
               <div className="form-group">
-                <label>Email</label>
+                <label>{t.register.email}</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="tuemail@gmail.com"
+                  placeholder={t.register.emailPlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Contraseña</label>
+                <label>{t.register.password}</label>
                 <input
                   type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Crea una contraseña"
+                  placeholder={t.register.passwordPlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Teléfono</label>
+                <label>{t.register.phone}</label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="Ej. 600 000 000"
+                  placeholder={t.register.phonePlaceholder}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Instagram</label>
+                <label>{t.register.instagram}</label>
                 <input
                   type="text"
                   name="instagram"
                   value={formData.instagram}
                   onChange={handleChange}
-                  placeholder="Ej. @julito10"
+                  placeholder={t.register.instagramPlaceholder}
                 />
               </div>
 
               <div className="form-group">
-                <label>Nivel aproximado</label>
+                <label>{t.register.level}</label>
                 <select
                   name="level"
                   value={formData.level}
                   onChange={handleChange}
                   required
                 >
-                  <option value="">Selecciona tu nivel</option>
+                  <option value="">{t.register.levelPlaceholder}</option>
                   {levels.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
+                    <option key={level.value} value={level.value}>
+                      {level.label}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Posición</label>
+                <label>{t.register.position}</label>
                 <select
                   name="position"
                   value={formData.position}
                   onChange={handleChange}
                   required
                 >
-                  <option value="">Selecciona tu posición</option>
+                  <option value="">{t.register.positionPlaceholder}</option>
                   {positions.map((position) => (
-                    <option key={position} value={position}>
-                      {position}
+                    <option key={position.value} value={position.value}>
+                      {position.label}
                     </option>
                   ))}
                 </select>
@@ -273,13 +324,13 @@ export const Register = () => {
                   required
                 />
                 <span>
-                  He leído y acepto los{" "}
+                  {t.register.termsPrefix}{" "}
                   <button
                     type="button"
                     className="register-legal-link"
                     onClick={() => setShowTermsModal(true)}
                   >
-                    Términos y Condiciones
+                    {t.register.termsLink}
                   </button>
                   .
                 </span>
@@ -294,13 +345,13 @@ export const Register = () => {
                   required
                 />
                 <span>
-                  He leído y acepto la{" "}
+                  {t.register.privacyPrefix}{" "}
                   <button
                     type="button"
                     className="register-legal-link"
                     onClick={() => setShowPrivacyModal(true)}
                   >
-                    Política de Privacidad
+                    {t.register.privacyLink}
                   </button>
                   .
                 </span>
@@ -316,11 +367,12 @@ export const Register = () => {
                 !formData.privacy_accepted
               }
             >
-              {loading ? "Creando cuenta..." : "Enviar inscripción"}
+              {loading ? t.register.loading : t.register.submit}
             </button>
 
             <p className="register-login-text register-login-text-clean">
-              ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+              {t.register.alreadyAccount}{" "}
+              <Link to="/login">{t.register.login}</Link>
             </p>
           </form>
         </div>
@@ -331,21 +383,18 @@ export const Register = () => {
           <div className="register-modal-card">
             <div className="register-modal-icon">✓</div>
 
-            <span>Inscripción enviada</span>
+            <span>{t.register.pendingKicker}</span>
 
-            <h2>Tu perfil todavía no está aprobado</h2>
+            <h2>{t.register.pendingTitle}</h2>
 
-            <p>
-              Podrás apuntarte a partidos cuando el admin apruebe tu
-              inscripción.
-            </p>
+            <p>{t.register.pendingText}</p>
 
             <button
               type="button"
               className="register-modal-btn"
               onClick={handleGoToProfile}
             >
-              Entendido
+              {t.register.understood}
             </button>
           </div>
         </div>
@@ -355,7 +404,7 @@ export const Register = () => {
         <div className="legal-modal-overlay">
           <div className="legal-modal-card">
             <div className="legal-modal-header">
-              <h2>Términos y Condiciones</h2>
+              <h2>{t.register.termsTitle}</h2>
 
               <button
                 type="button"
@@ -367,43 +416,23 @@ export const Register = () => {
             </div>
 
             <div className="legal-modal-body">
-              <h3>1. Uso de la plataforma</h3>
-              <p>
-                Fuera de Pista permite a los jugadores registrarse, formar parte
-                de una comunidad de pádel, participar en rankings, apuntarse a
-                partidos y consultar resultados.
-              </p>
+              <h3>{t.register.terms1Title}</h3>
+              <p>{t.register.terms1Text}</p>
 
-              <h3>2. Registro de usuario</h3>
-              <p>
-                El usuario se compromete a proporcionar información real,
-                actualizada y correcta durante el proceso de inscripción.
-              </p>
+              <h3>{t.register.terms2Title}</h3>
+              <p>{t.register.terms2Text}</p>
 
-              <h3>3. Perfil público</h3>
-              <p>
-                El nickname, nivel, posición y datos deportivos podrán mostrarse
-                dentro de la plataforma para organizar partidos y rankings.
-              </p>
+              <h3>{t.register.terms3Title}</h3>
+              <p>{t.register.terms3Text}</p>
 
-              <h3>4. Ranking y resultados</h3>
-              <p>
-                Los resultados introducidos en la plataforma podrán afectar al
-                ranking. La organización podrá revisar, corregir o eliminar
-                resultados si detecta errores, conflictos o uso indebido.
-              </p>
+              <h3>{t.register.terms4Title}</h3>
+              <p>{t.register.terms4Text}</p>
 
-              <h3>5. Conducta</h3>
-              <p>
-                El usuario se compromete a mantener una actitud respetuosa con
-                otros jugadores, administradores y miembros de la comunidad.
-              </p>
+              <h3>{t.register.terms5Title}</h3>
+              <p>{t.register.terms5Text}</p>
 
-              <h3>6. Aprobación del perfil</h3>
-              <p>
-                El perfil podrá quedar pendiente de revisión por parte del admin
-                antes de aparecer en el ranking o poder apuntarse a partidos.
-              </p>
+              <h3>{t.register.terms6Title}</h3>
+              <p>{t.register.terms6Text}</p>
             </div>
 
             <button
@@ -411,7 +440,7 @@ export const Register = () => {
               className="legal-modal-btn"
               onClick={() => setShowTermsModal(false)}
             >
-              Entendido
+              {t.register.understood}
             </button>
           </div>
         </div>
@@ -421,7 +450,7 @@ export const Register = () => {
         <div className="legal-modal-overlay">
           <div className="legal-modal-card">
             <div className="legal-modal-header">
-              <h2>Política de Privacidad</h2>
+              <h2>{t.register.privacyTitle}</h2>
 
               <button
                 type="button"
@@ -433,46 +462,23 @@ export const Register = () => {
             </div>
 
             <div className="legal-modal-body">
-              <h3>1. Datos recogidos</h3>
-              <p>
-                La plataforma puede recoger datos como nombre, apellidos,
-                nickname, email, teléfono, Instagram, nivel de juego y posición
-                preferida.
-              </p>
+              <h3>{t.register.privacy1Title}</h3>
+              <p>{t.register.privacy1Text}</p>
 
-              <h3>2. Finalidad</h3>
-              <p>
-                Estos datos se utilizan para gestionar la inscripción, el perfil
-                de jugador, el ranking, los partidos, los resultados y las
-                notificaciones internas.
-              </p>
+              <h3>{t.register.privacy2Title}</h3>
+              <p>{t.register.privacy2Text}</p>
 
-              <h3>3. Datos visibles</h3>
-              <p>
-                Algunos datos, como nickname, nivel, posición, resultados y
-                posición en el ranking, podrán ser visibles para otros miembros
-                de la comunidad.
-              </p>
+              <h3>{t.register.privacy3Title}</h3>
+              <p>{t.register.privacy3Text}</p>
 
-              <h3>4. Acceso de administradores</h3>
-              <p>
-                Los administradores podrán acceder a la información necesaria
-                para gestionar usuarios, aprobar perfiles, organizar partidos y
-                resolver incidencias.
-              </p>
+              <h3>{t.register.privacy4Title}</h3>
+              <p>{t.register.privacy4Text}</p>
 
-              <h3>5. Conservación de datos</h3>
-              <p>
-                Los datos podrán conservarse mientras el usuario forme parte de
-                la comunidad o mientras sea necesario para mantener el historial
-                deportivo y de participación.
-              </p>
+              <h3>{t.register.privacy5Title}</h3>
+              <p>{t.register.privacy5Text}</p>
 
-              <h3>6. Derechos del usuario</h3>
-              <p>
-                El usuario puede solicitar la modificación o eliminación de sus
-                datos contactando con la organización de la plataforma.
-              </p>
+              <h3>{t.register.privacy6Title}</h3>
+              <p>{t.register.privacy6Text}</p>
             </div>
 
             <button
@@ -480,7 +486,7 @@ export const Register = () => {
               className="legal-modal-btn"
               onClick={() => setShowPrivacyModal(false)}
             >
-              Entendido
+              {t.register.understood}
             </button>
           </div>
         </div>

@@ -1,115 +1,85 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { translations } from "../i18n/translations";
 
 export const Terms = () => {
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
+
   return (
     <section className="legal-page">
       <div className="legal-hero">
-        <span>Fuera de Pista</span>
-        <h1>Términos y Condiciones</h1>
-        <p>
-          Condiciones de uso de la plataforma Fuera de Pista para participar en
-          rankings, partidos y actividades de la comunidad.
-        </p>
+        <span>{t.terms.kicker}</span>
+        <h1>{t.terms.title}</h1>
+        <p>{t.terms.description}</p>
       </div>
 
       <div className="legal-card">
-        <div className="legal-updated">
-          Última actualización: junio de 2026
+        <div className="legal-updated">{t.terms.updated}</div>
+
+        <div className="legal-section">
+          <h2>{t.terms.section1Title}</h2>
+          <p>{t.terms.section1Text}</p>
         </div>
 
         <div className="legal-section">
-          <h2>1. Identificación del servicio</h2>
-          <p>
-            Fuera de Pista es una plataforma digital orientada a la organización
-            de partidos, rankings y actividades de pádel por niveles. El objetivo
-            es facilitar que los usuarios puedan apuntarse a partidos, consultar
-            clasificaciones y registrar resultados dentro de la comunidad.
-          </p>
+          <h2>{t.terms.section2Title}</h2>
+          <p>{t.terms.section2Text}</p>
         </div>
 
         <div className="legal-section">
-          <h2>2. Registro de usuario</h2>
-          <p>
-            Para utilizar determinadas funcionalidades de la plataforma, el
-            usuario deberá crear una cuenta proporcionando datos reales y
-            actualizados. El usuario se compromete a no utilizar datos falsos,
-            suplantar a terceros ni crear cuentas con fines fraudulentos.
-          </p>
+          <h2>{t.terms.section3Title}</h2>
+          <p>{t.terms.section3Text}</p>
         </div>
 
         <div className="legal-section">
-          <h2>3. Uso de la plataforma</h2>
-          <p>
-            El usuario se compromete a utilizar Fuera de Pista de forma correcta,
-            respetuosa y conforme a la finalidad de la plataforma. No está
-            permitido realizar un uso abusivo, manipular resultados, alterar el
-            funcionamiento del ranking o perjudicar la experiencia de otros
-            usuarios.
-          </p>
+          <h2>{t.terms.section4Title}</h2>
+          <p>{t.terms.section4Text}</p>
         </div>
 
         <div className="legal-section">
-          <h2>4. Rankings y resultados</h2>
-          <p>
-            Los resultados introducidos en la plataforma podrán afectar a la
-            clasificación de los jugadores. El usuario que suba un resultado
-            declara que la información introducida es correcta. La organización
-            podrá revisar, corregir o eliminar resultados si detecta errores,
-            duplicidades o uso indebido.
-          </p>
+          <h2>{t.terms.section5Title}</h2>
+          <p>{t.terms.section5Text}</p>
         </div>
 
         <div className="legal-section">
-          <h2>5. Aprobación de perfiles</h2>
-          <p>
-            La organización podrá revisar y aprobar perfiles antes de que los
-            usuarios aparezcan en el ranking o puedan participar en determinadas
-            actividades. Esta revisión tiene como finalidad mantener el orden,
-            la seguridad y el correcto funcionamiento de la comunidad.
-          </p>
+          <h2>{t.terms.section6Title}</h2>
+          <p>{t.terms.section6Text}</p>
         </div>
 
         <div className="legal-section">
-          <h2>6. Conducta de los usuarios</h2>
-          <p>
-            Los usuarios deberán comportarse con respeto hacia otros jugadores,
-            administradores y colaboradores. La organización podrá limitar,
-            suspender o eliminar el acceso de usuarios que incumplan estas normas
-            o realicen conductas inapropiadas.
-          </p>
+          <h2>{t.terms.section7Title}</h2>
+          <p>{t.terms.section7Text}</p>
         </div>
 
         <div className="legal-section">
-          <h2>7. Disponibilidad del servicio</h2>
-          <p>
-            Fuera de Pista podrá realizar cambios, mejoras o interrupciones
-            temporales en la plataforma por motivos técnicos, organizativos o de
-            mantenimiento. No se garantiza que el servicio esté disponible de
-            forma permanente o libre de errores.
-          </p>
+          <h2>{t.terms.section8Title}</h2>
+          <p>{t.terms.section8Text}</p>
         </div>
 
         <div className="legal-section">
-          <h2>8. Modificación de las condiciones</h2>
-          <p>
-            La organización podrá modificar estos términos para adaptarlos a
-            cambios técnicos, legales u organizativos. Cuando sea necesario, se
-            informará a los usuarios de los cambios relevantes.
-          </p>
-        </div>
-
-        <div className="legal-section">
-          <h2>9. Contacto</h2>
-          <p>
-            Para cualquier duda relacionada con estos términos, el usuario puede
-            contactar con la organización de Fuera de Pista a través de los
-            canales habilitados por la comunidad.
-          </p>
+          <h2>{t.terms.section9Title}</h2>
+          <p>{t.terms.section9Text}</p>
         </div>
 
         <div className="legal-actions">
           <Link to="/register" className="legal-back-btn">
-            Volver al registro
+            {t.terms.backToRegister}
           </Link>
         </div>
       </div>

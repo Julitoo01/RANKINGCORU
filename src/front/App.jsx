@@ -4,6 +4,7 @@ import { Navbar } from "./components/Navbar.jsx";
 import { Footer } from "./components/Footer.jsx";
 import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { AdminRoute } from "./components/AdminRoute.jsx";
+import { LanguageButton } from "./components/LanguageButton.jsx";
 
 import { Home } from "./pages/Home.jsx";
 import { Register } from "./pages/Register.jsx";
@@ -29,6 +30,8 @@ import "./styles.css";
 export const App = () => {
   return (
     <BrowserRouter>
+      <LanguageButton />
+
       <Navbar />
 
       <main className="main-container">

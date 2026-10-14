@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
+import { translations } from "../i18n/translations";
 
 export const Profile = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const navigate = useNavigate();
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
 
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +47,7 @@ export const Profile = () => {
       }
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar el perfil");
+      setError(error.message || t.profile.loadError);
     } finally {
       setLoading(false);
     }
@@ -48,6 +55,18 @@ export const Profile = () => {
 
   useEffect(() => {
     loadProfile();
+  }, []);
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -67,12 +86,12 @@ export const Profile = () => {
     setError("");
 
     if (!file.type.startsWith("image/")) {
-      setError("El archivo tiene que ser una imagen.");
+      setError(t.profile.imageFileError);
       return;
     }
 
     if (file.size > 1000000) {
-      setError("La imagen es demasiado grande. Usa una foto de menos de 1MB.");
+      setError(t.profile.imageSizeError);
       return;
     }
 
@@ -110,10 +129,10 @@ export const Profile = () => {
           localStorage.setItem("profile", JSON.stringify(updatedProfile));
         }
 
-        setMessage("Foto de perfil actualizada correctamente.");
+        setMessage(t.profile.photoSuccess);
       } catch (error) {
         console.error(error);
-        setError(error.message || "Error al subir la foto de perfil");
+        setError(error.message || t.profile.photoError);
       } finally {
         setPhotoLoading(false);
         event.target.value = "";
@@ -124,11 +143,11 @@ export const Profile = () => {
   };
 
   const getProfileStatusText = (status) => {
-    if (status === "approved") return "Perfil aprobado";
-    if (status === "pending") return "Pendiente de aprobación";
-    if (status === "rejected") return "Perfil rechazado";
+    if (status === "approved") return t.profile.approved;
+    if (status === "pending") return t.profile.pending;
+    if (status === "rejected") return t.profile.rejected;
 
-    return "Estado pendiente";
+    return t.profile.unknownStatus;
   };
 
   const getProfileStatusClass = (status) => {
@@ -142,8 +161,8 @@ export const Profile = () => {
     return (
       <section className="profile-page">
         <div className="profile-loading-card">
-          <h1>Mi perfil</h1>
-          <p>Cargando perfil...</p>
+          <h1>{t.profile.title}</h1>
+          <p>{t.profile.loading}</p>
         </div>
       </section>
     );
@@ -153,7 +172,7 @@ export const Profile = () => {
     return (
       <section className="profile-page">
         <div className="profile-error-card">
-          <h1>Mi perfil</h1>
+          <h1>{t.profile.title}</h1>
           <div className="error-message">{error}</div>
 
           <button
@@ -161,7 +180,7 @@ export const Profile = () => {
             className="primary-button"
             onClick={loadProfile}
           >
-            Volver a intentar
+            {t.profile.retry}
           </button>
         </div>
       </section>
@@ -172,18 +191,16 @@ export const Profile = () => {
     return (
       <section className="profile-page">
         <div className="profile-error-card">
-          <h1>Mi perfil</h1>
+          <h1>{t.profile.title}</h1>
 
-          <div className="error-message">
-            No hemos podido encontrar tu perfil.
-          </div>
+          <div className="error-message">{t.profile.notFound}</div>
 
           <button
             type="button"
             className="primary-button"
             onClick={handleLogout}
           >
-            Volver a iniciar sesión
+            {t.profile.loginAgain}
           </button>
         </div>
       </section>
@@ -206,7 +223,7 @@ export const Profile = () => {
               {user?.profile_image ? (
                 <img
                   src={user.profile_image}
-                  alt={user?.nickname || "Foto de perfil"}
+                  alt={user?.nickname || t.profile.profilePhotoAlt}
                 />
               ) : (
                 user?.nickname?.charAt(0)?.toUpperCase() || "J"
@@ -214,7 +231,7 @@ export const Profile = () => {
             </div>
 
             <label className="profile-photo-upload-btn">
-              {photoLoading ? "Subiendo..." : "Cambiar foto"}
+              {photoLoading ? t.profile.uploading : t.profile.changePhoto}
               <input
                 type="file"
                 accept="image/*"
@@ -225,9 +242,9 @@ export const Profile = () => {
           </div>
 
           <div>
-            <span className="profile-kicker">Perfil de jugador</span>
+            <span className="profile-kicker">{t.profile.playerProfile}</span>
 
-            <h1>{user?.nickname || "Jugador"}</h1>
+            <h1>{user?.nickname || t.profile.defaultPlayer}</h1>
 
             <p>
               {user?.name || "-"} {user?.last_name || ""}
@@ -246,26 +263,26 @@ export const Profile = () => {
 
       <div className="profile-layout">
         <aside className="profile-side-card">
-          <h2>Datos personales</h2>
+          <h2>{t.profile.personalData}</h2>
 
           <div className="profile-detail-list">
             <div>
-              <span>Email</span>
+              <span>{t.profile.email}</span>
               <strong>{user?.email || "-"}</strong>
             </div>
 
             <div>
-              <span>Teléfono</span>
+              <span>{t.profile.phone}</span>
               <strong>{user?.phone || "-"}</strong>
             </div>
 
             <div>
-              <span>Nivel</span>
+              <span>{t.profile.level}</span>
               <strong>{profile?.level || "-"}</strong>
             </div>
 
             <div>
-              <span>Posición</span>
+              <span>{t.profile.position}</span>
               <strong>{profile?.position || "-"}</strong>
             </div>
           </div>
@@ -276,7 +293,7 @@ export const Profile = () => {
               className="profile-action-btn logout"
               onClick={handleLogout}
             >
-              Cerrar sesión
+              {t.profile.logout}
             </button>
           </div>
         </aside>
@@ -284,47 +301,39 @@ export const Profile = () => {
         <main className="profile-main">
           <div className="profile-stats-grid">
             <div className="profile-stat-card highlight">
-              <span>Partidos jugados</span>
+              <span>{t.profile.matchesPlayed}</span>
               <strong>{profile?.matches_played ?? 0}</strong>
             </div>
 
             <div className="profile-stat-card">
-              <span>Partidos ganados</span>
+              <span>{t.profile.wins}</span>
               <strong>{profile?.wins ?? 0}</strong>
             </div>
 
             <div className="profile-stat-card">
-              <span>Partidos perdidos</span>
+              <span>{t.profile.losses}</span>
               <strong>{profile?.losses ?? 0}</strong>
             </div>
 
             <div className="profile-stat-card">
-              <span>% Victorias</span>
+              <span>{t.profile.winPercentage}</span>
               <strong>{profile?.win_percentage ?? 0}%</strong>
             </div>
           </div>
 
           <div className="profile-info-card">
-            <span>Tu actividad</span>
+            <span>{t.profile.activity}</span>
 
-            <h2>
-              {isApproved
-                ? "Ya formas parte del ranking"
-                : "Tu perfil está casi listo"}
-            </h2>
+            <h2>{isApproved ? t.profile.approvedTitle : t.profile.pendingTitle}</h2>
 
-            <p>
-              {isApproved
-                ? "Apúntate a partidos abiertos, juega con otros jugadores de tu nivel y sube resultados para mejorar tu posición."
-                : "Cuando el admin apruebe tu inscripción, podrás apuntarte a partidos abiertos y empezar a competir en el ranking."}
-            </p>
+            <p>{isApproved ? t.profile.approvedText : t.profile.pendingText}</p>
 
             {isApproved ? (
               <Link
                 to="/open-matches"
                 className="primary-button profile-info-action"
               >
-                Ir a jugar
+                {t.profile.play}
               </Link>
             ) : (
               <button
@@ -332,7 +341,7 @@ export const Profile = () => {
                 className="secondary-button profile-info-action"
                 disabled
               >
-                Esperando aprobación
+                {t.profile.waitingApproval}
               </button>
             )}
           </div>

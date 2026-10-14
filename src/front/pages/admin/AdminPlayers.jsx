@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../../utils/authFetch";
+import { translations } from "../../i18n/translations";
 
 export const AdminPlayers = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
 
   const [players, setPlayers] = useState([]);
   const [filters, setFilters] = useState({
@@ -31,9 +38,25 @@ export const AdminPlayers = () => {
   const statuses = ["Todos", ...playerStatuses];
 
   const statusLabels = {
-    pending: "Pendiente de pago",
-    approved: "Pagado",
-    rejected: "Rechazado",
+    pending: t.adminPlayers.pendingPayment,
+    approved: t.adminPlayers.paidStatus,
+    rejected: t.adminPlayers.rejected,
+  };
+
+  const levelLabels = {
+    Todos: t.adminPlayers.all,
+    Iniciación: t.adminPlayers.levelInitiation,
+    Bronce: t.adminPlayers.levelBronze,
+    Plata: t.adminPlayers.levelSilver,
+    Oro: t.adminPlayers.levelGold,
+    Diamante: t.adminPlayers.levelDiamond,
+  };
+
+  const positionLabels = {
+    Derecha: t.adminPlayers.positionRight,
+    Revés: t.adminPlayers.positionBackhand,
+    Ambas: t.adminPlayers.positionBoth,
+    "No lo sé": t.adminPlayers.positionUnknown,
   };
 
   const loadPlayers = async () => {
@@ -64,7 +87,7 @@ export const AdminPlayers = () => {
       setPlayers(data);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar jugadores");
+      setError(error.message || t.adminPlayers.loadError);
     } finally {
       setLoading(false);
     }
@@ -73,6 +96,18 @@ export const AdminPlayers = () => {
   useEffect(() => {
     loadPlayers();
   }, [filters]);
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   const handleFilterChange = (event) => {
     const { name, value } = event.target;
@@ -112,8 +147,8 @@ export const AdminPlayers = () => {
 
       setMessage(
         payload.status === "approved"
-          ? "Jugador marcado como pagado correctamente."
-          : "Jugador actualizado correctamente."
+          ? t.adminPlayers.paidSuccess
+          : t.adminPlayers.updateSuccess
       );
 
       setEditingPlayerId(null);
@@ -121,7 +156,7 @@ export const AdminPlayers = () => {
       await loadPlayers();
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al actualizar jugador");
+      setError(error.message || t.adminPlayers.updateError);
     } finally {
       setActionLoadingId(null);
     }
@@ -177,7 +212,7 @@ export const AdminPlayers = () => {
 
   const deletePlayer = async (profileId, nickname) => {
     const confirmDelete = window.confirm(
-      `¿Seguro que quieres eliminar a ${nickname}? Esta acción borra el usuario y también sus partidos asociados.`
+      `${t.adminPlayers.deleteConfirmStart} ${nickname}? ${t.adminPlayers.deleteConfirmEnd}`
     );
 
     if (!confirmDelete) return;
@@ -197,13 +232,13 @@ export const AdminPlayers = () => {
 
       if (!data) return;
 
-      setMessage("Jugador eliminado correctamente.");
+      setMessage(t.adminPlayers.deleteSuccess);
       setEditingPlayerId(null);
 
       await loadPlayers();
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al eliminar jugador");
+      setError(error.message || t.adminPlayers.deleteError);
     } finally {
       setActionLoadingId(null);
     }
@@ -217,7 +252,15 @@ export const AdminPlayers = () => {
   };
 
   const getStatusLabel = (status) => {
-    return statusLabels[status] || "Pendiente de pago";
+    return statusLabels[status] || t.adminPlayers.pendingPayment;
+  };
+
+  const getLevelLabel = (level) => {
+    return levelLabels[level] || level || "-";
+  };
+
+  const getPositionLabel = (position) => {
+    return positionLabels[position] || position || "-";
   };
 
   const getFullName = (player) => {
@@ -236,19 +279,16 @@ export const AdminPlayers = () => {
     <section className="admin-players-page">
       <div className="admin-players-hero">
         <div>
-          <span>Panel admin</span>
+          <span>{t.adminPlayers.heroKicker}</span>
 
-          <h1>Pagos y jugadores</h1>
+          <h1>{t.adminPlayers.title}</h1>
 
-          <p>
-            Revisa solicitudes, marca como pagados a los jugadores, ajusta nivel
-            y posición, o rechaza perfiles que no deban entrar al ranking.
-          </p>
+          <p>{t.adminPlayers.description}</p>
         </div>
 
         <div className="admin-players-hero-card">
           <strong>{players.length}</strong>
-          <span>Jugadores visibles</span>
+          <span>{t.adminPlayers.visiblePlayers}</span>
         </div>
       </div>
 
@@ -263,7 +303,7 @@ export const AdminPlayers = () => {
           }`}
           onClick={() => setStatusFilter("Todos")}
         >
-          <span>Total visible</span>
+          <span>{t.adminPlayers.totalVisible}</span>
           <strong>{getCounter("Todos")}</strong>
         </button>
 
@@ -274,7 +314,7 @@ export const AdminPlayers = () => {
           }`}
           onClick={() => setStatusFilter("pending")}
         >
-          <span>Pendientes de pago</span>
+          <span>{t.adminPlayers.pendingPayments}</span>
           <strong>{getCounter("pending")}</strong>
         </button>
 
@@ -285,7 +325,7 @@ export const AdminPlayers = () => {
           }`}
           onClick={() => setStatusFilter("approved")}
         >
-          <span>Pagados</span>
+          <span>{t.adminPlayers.paid}</span>
           <strong>{getCounter("approved")}</strong>
         </button>
 
@@ -296,24 +336,21 @@ export const AdminPlayers = () => {
           }`}
           onClick={() => setStatusFilter("rejected")}
         >
-          <span>Rechazados</span>
+          <span>{t.adminPlayers.rejectedPlural}</span>
           <strong>{getCounter("rejected")}</strong>
         </button>
       </div>
 
       <div className="admin-players-filters-card">
         <div>
-          <h2>Filtros</h2>
+          <h2>{t.adminPlayers.filters}</h2>
 
-          <p>
-            Filtra por estado de pago o nivel para encontrar más rápido a cada
-            jugador.
-          </p>
+          <p>{t.adminPlayers.filtersText}</p>
         </div>
 
         <div className="admin-players-filters">
           <div className="form-group">
-            <label>Pago</label>
+            <label>{t.adminPlayers.payment}</label>
 
             <select
               name="status"
@@ -322,14 +359,14 @@ export const AdminPlayers = () => {
             >
               {statuses.map((status) => (
                 <option key={status} value={status}>
-                  {status === "Todos" ? "Todos" : getStatusLabel(status)}
+                  {status === "Todos" ? t.adminPlayers.all : getStatusLabel(status)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label>Nivel</label>
+            <label>{t.adminPlayers.level}</label>
 
             <select
               name="level"
@@ -338,7 +375,7 @@ export const AdminPlayers = () => {
             >
               {levels.map((level) => (
                 <option key={level} value={level}>
-                  {level}
+                  {getLevelLabel(level)}
                 </option>
               ))}
             </select>
@@ -348,15 +385,15 @@ export const AdminPlayers = () => {
 
       {loading && (
         <div className="admin-players-state">
-          <p>Cargando jugadores...</p>
+          <p>{t.adminPlayers.loading}</p>
         </div>
       )}
 
       {!loading && players.length === 0 && (
         <div className="admin-players-empty">
-          <h2>No hay jugadores</h2>
+          <h2>{t.adminPlayers.noPlayers}</h2>
 
-          <p>No hay jugadores que coincidan con los filtros seleccionados.</p>
+          <p>{t.adminPlayers.noPlayersText}</p>
         </div>
       )}
 
@@ -364,12 +401,9 @@ export const AdminPlayers = () => {
         <div className="admin-players-table-card">
           <div className="admin-players-table-header">
             <div>
-              <h2>Listado de jugadores</h2>
+              <h2>{t.adminPlayers.listTitle}</h2>
 
-              <p>
-                Pulsa editar para ver la ficha completa, cambiar nivel, posición
-                o estado de pago.
-              </p>
+              <p>{t.adminPlayers.listText}</p>
             </div>
           </div>
 
@@ -382,7 +416,7 @@ export const AdminPlayers = () => {
                 <article key={player.id} className="admin-player-simple-card">
                   <div className="admin-player-simple-main">
                     <div>
-                      <h3>{player.nickname || "Jugador"}</h3>
+                      <h3>{player.nickname || t.adminPlayers.player}</h3>
 
                       {!isEditing && (
                         <>
@@ -392,7 +426,7 @@ export const AdminPlayers = () => {
 
                           <div className="admin-player-simple-meta">
                             <span className="admin-player-level-pill">
-                              {player.level || "-"}
+                              {getLevelLabel(player.level)}
                             </span>
 
                             <span
@@ -414,7 +448,7 @@ export const AdminPlayers = () => {
                           onClick={() => startEditing(player)}
                           disabled={isActionLoading}
                         >
-                          Editar
+                          {t.adminPlayers.edit}
                         </button>
 
                         {player.status !== "approved" && (
@@ -424,8 +458,8 @@ export const AdminPlayers = () => {
                             disabled={isActionLoading}
                           >
                             {isActionLoading
-                              ? "Marcando..."
-                              : "Marcar pagado"}
+                              ? t.adminPlayers.marking
+                              : t.adminPlayers.markPaid}
                           </button>
                         )}
 
@@ -435,7 +469,9 @@ export const AdminPlayers = () => {
                             onClick={() => rejectPlayer(player.id)}
                             disabled={isActionLoading}
                           >
-                            {isActionLoading ? "Rechazando..." : "Rechazar"}
+                            {isActionLoading
+                              ? t.adminPlayers.rejecting
+                              : t.adminPlayers.reject}
                           </button>
                         )}
                       </div>
@@ -446,29 +482,29 @@ export const AdminPlayers = () => {
                     <div className="admin-player-edit-panel">
                       <div className="admin-player-edit-details">
                         <div>
-                          <span>Nickname</span>
+                          <span>{t.adminPlayers.nickname}</span>
                           <strong>{player.nickname || "-"}</strong>
                         </div>
 
                         <div>
-                          <span>Nombre completo</span>
+                          <span>{t.adminPlayers.fullName}</span>
                           <strong>{getFullName(player)}</strong>
                         </div>
 
                         <div>
-                          <span>Email</span>
+                          <span>{t.adminPlayers.email}</span>
                           <strong>{player.email || "-"}</strong>
                         </div>
 
                         <div>
-                          <span>Teléfono</span>
+                          <span>{t.adminPlayers.phone}</span>
                           <strong>{player.phone || "-"}</strong>
                         </div>
                       </div>
 
                       <div className="admin-player-edit-form">
                         <div className="form-group">
-                          <label>Nivel</label>
+                          <label>{t.adminPlayers.level}</label>
 
                           <select
                             name="level"
@@ -477,14 +513,14 @@ export const AdminPlayers = () => {
                           >
                             {playerLevels.map((level) => (
                               <option key={level} value={level}>
-                                {level}
+                                {getLevelLabel(level)}
                               </option>
                             ))}
                           </select>
                         </div>
 
                         <div className="form-group">
-                          <label>Posición</label>
+                          <label>{t.adminPlayers.position}</label>
 
                           <select
                             name="position"
@@ -493,14 +529,14 @@ export const AdminPlayers = () => {
                           >
                             {positions.map((position) => (
                               <option key={position} value={position}>
-                                {position}
+                                {getPositionLabel(position)}
                               </option>
                             ))}
                           </select>
                         </div>
 
                         <div className="form-group">
-                          <label>Pago</label>
+                          <label>{t.adminPlayers.payment}</label>
 
                           <select
                             name="status"
@@ -518,22 +554,22 @@ export const AdminPlayers = () => {
 
                       <div className="admin-player-edit-stats">
                         <div>
-                          <span>PJ</span>
+                          <span>{t.adminPlayers.matchesPlayedShort}</span>
                           <strong>{player.matches_played ?? 0}</strong>
                         </div>
 
                         <div>
-                          <span>PG</span>
+                          <span>{t.adminPlayers.winsShort}</span>
                           <strong>{player.wins ?? 0}</strong>
                         </div>
 
                         <div>
-                          <span>PP</span>
+                          <span>{t.adminPlayers.lossesShort}</span>
                           <strong>{player.losses ?? 0}</strong>
                         </div>
 
                         <div>
-                          <span>% Victorias</span>
+                          <span>{t.adminPlayers.winPercentage}</span>
                           <strong>{player.win_percentage ?? 0}%</strong>
                         </div>
                       </div>
@@ -544,7 +580,9 @@ export const AdminPlayers = () => {
                           onClick={() => saveEditing(player.id)}
                           disabled={isActionLoading}
                         >
-                          {isActionLoading ? "Guardando..." : "Guardar cambios"}
+                          {isActionLoading
+                            ? t.adminPlayers.saving
+                            : t.adminPlayers.saveChanges}
                         </button>
 
                         <button
@@ -552,19 +590,17 @@ export const AdminPlayers = () => {
                           onClick={cancelEditing}
                           disabled={isActionLoading}
                         >
-                          Cancelar
+                          {t.adminPlayers.cancel}
                         </button>
 
                         <button
                           className="admin-action-btn delete"
-                          onClick={() =>
-                            deletePlayer(player.id, player.nickname)
-                          }
+                          onClick={() => deletePlayer(player.id, player.nickname)}
                           disabled={isActionLoading}
                         >
                           {isActionLoading
-                            ? "Eliminando..."
-                            : "Eliminar jugador"}
+                            ? t.adminPlayers.deleting
+                            : t.adminPlayers.deletePlayer}
                         </button>
                       </div>
                     </div>

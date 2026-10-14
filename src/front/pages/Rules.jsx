@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
+import { translations } from "../i18n/translations";
 
 export const Rules = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
 
   const [rules, setRules] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +27,7 @@ export const Rules = () => {
       setRules(data);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar normas");
+      setError(error.message || t.rules.loadError);
     } finally {
       setLoading(false);
     }
@@ -28,6 +35,18 @@ export const Rules = () => {
 
   useEffect(() => {
     loadRules();
+  }, []);
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
   }, []);
 
   const parseRulesIntoCards = (content) => {
@@ -51,7 +70,9 @@ export const Rules = () => {
 
         currentCard = {
           number: numberedMatch[1],
-          title: numberedMatch[2] || `Norma ${numberedMatch[1]}`,
+          title:
+            numberedMatch[2] ||
+            `${t.rules.ruleDefaultTitle} ${numberedMatch[1]}`,
           content: [],
         };
       } else if (currentCard) {
@@ -81,7 +102,7 @@ export const Rules = () => {
       return null;
     }
 
-    return parsedDate.toLocaleDateString("es-ES", {
+    return parsedDate.toLocaleDateString(language === "es" ? "es-ES" : "en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -95,23 +116,20 @@ export const Rules = () => {
     <section className="rules-page">
       <div className="rules-hero">
         <div>
-          <span>Fuera de Pista</span>
-          <h1>Normativa</h1>
-          <p>
-            Consulta las reglas principales del ranking y el funcionamiento de
-            los partidos.
-          </p>
+          <span>{t.rules.kicker}</span>
+          <h1>{t.rules.title}</h1>
+          <p>{t.rules.description}</p>
         </div>
 
         <div className="rules-hero-card">
-          <strong>Ranking</strong>
-          <span>Social de pádel</span>
+          <strong>{t.rules.heroCardTitle}</strong>
+          <span>{t.rules.heroCardText}</span>
         </div>
       </div>
 
       {loading && (
         <div className="rules-state">
-          <p>Cargando normas...</p>
+          <p>{t.rules.loading}</p>
         </div>
       )}
 
@@ -121,10 +139,14 @@ export const Rules = () => {
         <div className="rules-content-card">
           <div className="rules-content-header">
             <div>
-              <span>Normas oficiales</span>
-              <h2>{rules.title || "Normas de Fuera de Pista"}</h2>
+              <span>{t.rules.officialRules}</span>
+              <h2>{rules.title || t.rules.defaultTitle}</h2>
 
-              {updatedAt && <p>Última actualización: {updatedAt}</p>}
+              {updatedAt && (
+                <p>
+                  {t.rules.lastUpdate}: {updatedAt}
+                </p>
+              )}
             </div>
           </div>
 
@@ -150,10 +172,8 @@ export const Rules = () => {
             </div>
           ) : (
             <div className="rules-empty">
-              <h2>Todavía no hay normas publicadas</h2>
-              <p>
-                Cuando el admin escriba las normas del ranking, aparecerán aquí.
-              </p>
+              <h2>{t.rules.emptyTitle}</h2>
+              <p>{t.rules.emptyText}</p>
             </div>
           )}
         </div>

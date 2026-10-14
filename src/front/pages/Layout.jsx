@@ -1,11 +1,14 @@
-import ScrollToTop from "../components/ScrollToTop"
 import { Outlet } from "react-router-dom";
-import { Navbar } from "../components/Navbar";
-import { Footer } from "../components/Footer";
+
+import { Navbar } from "../components/Navbar.jsx";
+import { Footer } from "../components/Footer.jsx";
+import { LanguageButton } from "../components/LanguageButton.jsx";
 
 export const Layout = () => {
   return (
-    <div className="app-wrapper">
+    <>
+      <LanguageButton />
+
       <Navbar />
 
       <main className="main-container">
@@ -13,6 +16,6 @@ export const Layout = () => {
       </main>
 
       <Footer />
-    </div>
+    </>
   );
 };

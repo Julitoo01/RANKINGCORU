@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../utils/authFetch";
 import { getMatchTimeRange } from "../utils/time";
+import { translations } from "../i18n/translations";
 
 export const AdminOpenMatches = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
 
   const [openMatches, setOpenMatches] = useState([]);
   const [filteredOpenMatches, setFilteredOpenMatches] = useState([]);
@@ -27,6 +34,15 @@ export const AdminOpenMatches = () => {
   const filterLevels = ["Todos", ...levels];
   const statusOptions = ["Todos", "open", "closed"];
 
+  const levelLabels = {
+    Todos: t.adminOpenMatches.all,
+    Iniciación: t.adminOpenMatches.levelInitiation,
+    Bronce: t.adminOpenMatches.levelBronze,
+    Plata: t.adminOpenMatches.levelSilver,
+    Oro: t.adminOpenMatches.levelGold,
+    Diamante: t.adminOpenMatches.levelDiamond,
+  };
+
   const loadOpenMatches = async () => {
     try {
       setLoading(true);
@@ -42,7 +58,7 @@ export const AdminOpenMatches = () => {
       setOpenMatches(data);
     } catch (err) {
       console.error(err);
-      setError(err.message || "No se pudieron cargar los partidos abiertos");
+      setError(err.message || t.adminOpenMatches.loadError);
     } finally {
       setLoading(false);
     }
@@ -50,6 +66,18 @@ export const AdminOpenMatches = () => {
 
   useEffect(() => {
     loadOpenMatches();
+  }, []);
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
   }, []);
 
   useEffect(() => {
@@ -84,17 +112,17 @@ export const AdminOpenMatches = () => {
       setError("");
 
       if (!form.club.trim()) {
-        setError("El club es obligatorio");
+        setError(t.adminOpenMatches.clubRequired);
         return;
       }
 
       if (!form.match_date) {
-        setError("La fecha es obligatoria");
+        setError(t.adminOpenMatches.dateRequired);
         return;
       }
 
       if (!form.match_time) {
-        setError("La hora es obligatoria");
+        setError(t.adminOpenMatches.timeRequired);
         return;
       }
 
@@ -114,9 +142,7 @@ export const AdminOpenMatches = () => {
 
       if (!data) return;
 
-      setMessage(
-        "Partido abierto creado correctamente. Se ha notificado a los jugadores de ese nivel."
-      );
+      setMessage(t.adminOpenMatches.createdSuccess);
 
       setForm({
         level: "Bronce",
@@ -131,16 +157,14 @@ export const AdminOpenMatches = () => {
       await loadOpenMatches();
     } catch (err) {
       console.error(err);
-      setError(err.message || "No se pudo crear el partido");
+      setError(err.message || t.adminOpenMatches.createError);
     } finally {
       setCreating(false);
     }
   };
 
   const handleDeleteMatch = async (openMatchId) => {
-    const confirmDelete = window.confirm(
-      "¿Seguro que quieres eliminar este partido abierto? Esta acción no se puede deshacer."
-    );
+    const confirmDelete = window.confirm(t.adminOpenMatches.deleteConfirm);
 
     if (!confirmDelete) return;
 
@@ -158,21 +182,26 @@ export const AdminOpenMatches = () => {
 
       if (!data) return;
 
-      setMessage("Partido eliminado correctamente");
+      setMessage(t.adminOpenMatches.deletedSuccess);
       await loadOpenMatches();
     } catch (err) {
       console.error(err);
-      setError(err.message || "No se pudo eliminar el partido");
+      setError(err.message || t.adminOpenMatches.deleteError);
     } finally {
       setDeletingId(null);
     }
   };
 
   const getStatusText = (status) => {
-    if (status === "open") return "Abierto";
-    if (status === "closed") return "Cerrado";
-    if (status === "cancelled") return "Cancelado";
+    if (status === "open") return t.adminOpenMatches.open;
+    if (status === "closed") return t.adminOpenMatches.closed;
+    if (status === "cancelled") return t.adminOpenMatches.cancelled;
+
     return status || "-";
+  };
+
+  const getLevelLabel = (level) => {
+    return levelLabels[level] || level || "-";
   };
 
   const formatDate = (date) => {
@@ -184,7 +213,7 @@ export const AdminOpenMatches = () => {
       return date;
     }
 
-    return dateObject.toLocaleDateString("es-ES", {
+    return dateObject.toLocaleDateString(language === "es" ? "es-ES" : "en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -192,12 +221,12 @@ export const AdminOpenMatches = () => {
   };
 
   const getPlayerName = (playerData) => {
-    if (!playerData) return "Sin jugador";
+    if (!playerData) return t.adminOpenMatches.noPlayer;
 
     return (
       playerData.nickname ||
       `${playerData.name || ""} ${playerData.last_name || ""}`.trim() ||
-      "Jugador"
+      t.adminOpenMatches.player
     );
   };
 
@@ -205,7 +234,7 @@ export const AdminOpenMatches = () => {
     if (!openMatch.players || openMatch.players.length === 0) {
       return (
         <p className="admin-open-match-empty">
-          Todavía no hay jugadores apuntados.
+          {t.adminOpenMatches.noPlayersYet}
         </p>
       );
     }
@@ -232,15 +261,15 @@ export const AdminOpenMatches = () => {
     return (
       <div className="admin-open-match-teams">
         <div className="admin-open-match-team-card">
-          <h4>Equipo A</h4>
+          <h4>{t.adminOpenMatches.teamA}</h4>
           <p>{getPlayerName(teamA[0])}</p>
           <p>{getPlayerName(teamA[1])}</p>
         </div>
 
-        <div className="admin-open-match-vs">VS</div>
+        <div className="admin-open-match-vs">{t.adminOpenMatches.vs}</div>
 
         <div className="admin-open-match-team-card">
-          <h4>Equipo B</h4>
+          <h4>{t.adminOpenMatches.teamB}</h4>
           <p>{getPlayerName(teamB[0])}</p>
           <p>{getPlayerName(teamB[1])}</p>
         </div>
@@ -252,44 +281,40 @@ export const AdminOpenMatches = () => {
     <div className="admin-open-matches-page">
       <section className="admin-open-matches-hero">
         <div>
-          <span className="section-kicker">Admin</span>
-          <h1>Partidos abiertos</h1>
-          <p>
-            Crea partidos para que los jugadores se apunten. Cada pista dura 1
-            hora y 30 minutos. Cuando se llenen con 4 jugadores, se cerrarán
-            automáticamente y se crearán las parejas por ranking: 1 + 3 vs 2 + 4.
-          </p>
+          <span className="section-kicker">{t.adminOpenMatches.heroKicker}</span>
+          <h1>{t.adminOpenMatches.title}</h1>
+          <p>{t.adminOpenMatches.description}</p>
         </div>
       </section>
 
       <section className="admin-open-matches-card">
-        <h2>Abrir nuevo partido</h2>
+        <h2>{t.adminOpenMatches.createTitle}</h2>
 
         <form className="admin-open-matches-form" onSubmit={handleCreateMatch}>
           <div className="form-group">
-            <label>Nivel</label>
+            <label>{t.adminOpenMatches.level}</label>
             <select name="level" value={form.level} onChange={handleChange}>
               {levels.map((level) => (
                 <option key={level} value={level}>
-                  {level}
+                  {getLevelLabel(level)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label>Club</label>
+            <label>{t.adminOpenMatches.club}</label>
             <input
               type="text"
               name="club"
               value={form.club}
               onChange={handleChange}
-              placeholder="Ej: Coruña Sport Centre"
+              placeholder={t.adminOpenMatches.clubPlaceholder}
             />
           </div>
 
           <div className="form-group">
-            <label>Fecha</label>
+            <label>{t.adminOpenMatches.date}</label>
             <input
               type="date"
               name="match_date"
@@ -299,7 +324,7 @@ export const AdminOpenMatches = () => {
           </div>
 
           <div className="form-group">
-            <label>Hora de inicio</label>
+            <label>{t.adminOpenMatches.startTime}</label>
             <input
               type="time"
               name="match_time"
@@ -308,25 +333,30 @@ export const AdminOpenMatches = () => {
             />
 
             {form.match_time ? (
-              <small>Horario de pista: {getMatchTimeRange(form.match_time)}</small>
+              <small>
+                {t.adminOpenMatches.courtSchedule}:{" "}
+                {getMatchTimeRange(form.match_time)}
+              </small>
             ) : (
-              <small>La pista durará siempre 1 hora y 30 minutos.</small>
+              <small>{t.adminOpenMatches.courtDuration}</small>
             )}
           </div>
 
           <div className="form-group admin-open-matches-description">
-            <label>Descripción opcional</label>
+            <label>{t.adminOpenMatches.optionalDescription}</label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="Ej: Partido de ranking. Nivel medio-alto."
+              placeholder={t.adminOpenMatches.descriptionPlaceholder}
               rows="3"
             />
           </div>
 
           <button className="primary-button" type="submit" disabled={creating}>
-            {creating ? "Creando..." : "Crear partido"}
+            {creating
+              ? t.adminOpenMatches.creating
+              : t.adminOpenMatches.createMatch}
           </button>
         </form>
 
@@ -337,8 +367,10 @@ export const AdminOpenMatches = () => {
       <section className="admin-open-matches-list">
         <div className="admin-open-matches-list-header">
           <div>
-            <span className="section-kicker">Gestión</span>
-            <h2>Partidos creados</h2>
+            <span className="section-kicker">
+              {t.adminOpenMatches.management}
+            </span>
+            <h2>{t.adminOpenMatches.createdMatches}</h2>
           </div>
 
           <button
@@ -347,34 +379,36 @@ export const AdminOpenMatches = () => {
             onClick={loadOpenMatches}
             disabled={loading}
           >
-            {loading ? "Actualizando..." : "Actualizar"}
+            {loading ? t.adminOpenMatches.updating : t.adminOpenMatches.update}
           </button>
         </div>
 
         <div className="admin-open-matches-filters">
           <div className="form-group">
-            <label>Filtrar por estado</label>
+            <label>{t.adminOpenMatches.filterByStatus}</label>
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
               {statusOptions.map((status) => (
                 <option key={status} value={status}>
-                  {status === "Todos" ? "Todos" : getStatusText(status)}
+                  {status === "Todos"
+                    ? t.adminOpenMatches.all
+                    : getStatusText(status)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label>Filtrar por nivel</label>
+            <label>{t.adminOpenMatches.filterByLevel}</label>
             <select
               value={levelFilter}
               onChange={(event) => setLevelFilter(event.target.value)}
             >
               {filterLevels.map((level) => (
                 <option key={level} value={level}>
-                  {level}
+                  {getLevelLabel(level)}
                 </option>
               ))}
             </select>
@@ -382,10 +416,12 @@ export const AdminOpenMatches = () => {
         </div>
 
         {loading ? (
-          <p className="admin-open-match-empty">Cargando partidos...</p>
+          <p className="admin-open-match-empty">
+            {t.adminOpenMatches.loadingMatches}
+          </p>
         ) : filteredOpenMatches.length === 0 ? (
           <p className="admin-open-match-empty">
-            No hay partidos que coincidan con los filtros.
+            {t.adminOpenMatches.noMatchesFiltered}
           </p>
         ) : (
           <div className="admin-open-match-grid">
@@ -394,7 +430,7 @@ export const AdminOpenMatches = () => {
                 <div className="admin-open-match-card-header">
                   <div>
                     <h3>
-                      {openMatch.level} · {openMatch.club}
+                      {getLevelLabel(openMatch.level)} · {openMatch.club}
                     </h3>
 
                     <p>
@@ -415,12 +451,13 @@ export const AdminOpenMatches = () => {
                 )}
 
                 <div className="admin-open-match-count">
-                  {openMatch.players_count}/{openMatch.max_players} jugadores
+                  {openMatch.players_count}/{openMatch.max_players}{" "}
+                  {t.adminOpenMatches.players}
                 </div>
 
                 {openMatch.has_result && (
                   <div className="success-message">
-                    Este partido ya tiene resultado subido.
+                    {t.adminOpenMatches.resultUploaded}
                   </div>
                 )}
 
@@ -435,7 +472,9 @@ export const AdminOpenMatches = () => {
                     onClick={() => handleDeleteMatch(openMatch.id)}
                     disabled={deletingId === openMatch.id}
                   >
-                    {deletingId === openMatch.id ? "Eliminando..." : "Eliminar"}
+                    {deletingId === openMatch.id
+                      ? t.adminOpenMatches.deleting
+                      : t.adminOpenMatches.delete}
                   </button>
                 </div>
               </article>

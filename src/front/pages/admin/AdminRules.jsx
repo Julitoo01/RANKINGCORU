@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import { authFetch } from "../../utils/authFetch";
+import { translations } from "../../i18n/translations";
 
 export const AdminRules = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
+
+  const t = translations[language] || translations.es;
 
   const [formData, setFormData] = useState({
     title: "",
@@ -29,7 +36,7 @@ export const AdminRules = () => {
       });
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al cargar normas");
+      setError(error.message || t.adminRules.loadError);
     } finally {
       setLoading(false);
     }
@@ -37,6 +44,18 @@ export const AdminRules = () => {
 
   useEffect(() => {
     loadRules();
+  }, []);
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
   }, []);
 
   const handleChange = (event) => {
@@ -48,6 +67,15 @@ export const AdminRules = () => {
     });
   };
 
+  const getRulesPreview = () => {
+    if (!formData.content.trim()) return [];
+
+    return formData.content
+      .split(/\n\s*\n/)
+      .map((rule) => rule.trim())
+      .filter(Boolean);
+  };
+
   const saveRules = async (event) => {
     event.preventDefault();
 
@@ -55,12 +83,12 @@ export const AdminRules = () => {
     setError("");
 
     if (!formData.title.trim()) {
-      setError("El título de las normas es obligatorio.");
+      setError(t.adminRules.titleRequired);
       return;
     }
 
     if (!formData.content.trim()) {
-      setError("El contenido de las normas es obligatorio.");
+      setError(t.adminRules.contentRequired);
       return;
     }
 
@@ -80,32 +108,31 @@ export const AdminRules = () => {
 
       if (!data) return;
 
-      setMessage("Normas actualizadas correctamente.");
+      setMessage(t.adminRules.saveSuccess);
     } catch (error) {
       console.error(error);
-      setError(error.message || "Error al guardar normas");
+      setError(error.message || t.adminRules.saveError);
     } finally {
       setSaving(false);
     }
   };
 
+  const rulesPreview = getRulesPreview();
+
   return (
     <section className="admin-page">
       <div className="admin-hero">
         <div>
-          <span>Panel admin</span>
+          <span className="section-kicker">{t.adminRules.heroKicker}</span>
 
-          <h1>Normas</h1>
+          <h1>{t.adminRules.title}</h1>
 
-          <p>
-            Escribe las normas que verán los jugadores en la sección de
-            normativa.
-          </p>
+          <p>{t.adminRules.description}</p>
         </div>
 
         <div className="admin-hero-card">
+          <span>{t.adminRules.heroCardTitle}</span>
           <strong>📋</strong>
-          <span>Normativa</span>
         </div>
       </div>
 
@@ -114,66 +141,107 @@ export const AdminRules = () => {
 
       {loading ? (
         <div className="admin-state">
-          <p>Cargando normas...</p>
+          <p>{t.adminRules.loading}</p>
         </div>
       ) : (
-        <form className="admin-rules-form-card" onSubmit={saveRules}>
-          <div className="admin-rules-form-header">
-            <div>
-              <h2>Editar normativa</h2>
+        <div className="admin-rules-layout">
+          <form className="admin-rules-form-card" onSubmit={saveRules}>
+            <div className="admin-rules-form-header">
+              <div>
+                <span className="section-kicker">{t.adminRules.editKicker}</span>
 
-              <p>
-                Escribe cada norma empezando por un número: 1., 2., 3. Cada
-                punto aparecerá como una card independiente para los jugadores.
-              </p>
+                <h2>{t.adminRules.editTitle}</h2>
+
+                <p>{t.adminRules.editDescription}</p>
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label>Título</label>
+            <div className="form-group">
+              <label>{t.adminRules.titleLabel}</label>
 
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="Ej: Normas de Fuera de Pista"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Contenido</label>
-
-            <textarea
-              name="content"
-              value={formData.content}
-              onChange={handleChange}
-              placeholder={`Ejemplo:
-
-1. Los jugadores deberán apuntarse desde la sección Jugar.
-
-2. Cuando haya 4 jugadores, el partido se cerrará automáticamente.
-
-3. Uno de los jugadores deberá subir el resultado al terminar.`}
-              rows="18"
-            />
-          </div>
-
-          <div className="admin-rules-help-card">
-            <h3>Formato recomendado</h3>
-
-            <div>
-              <span>1. Primera norma</span>
-              <span>2. Segunda norma</span>
-              <span>3. Tercera norma</span>
-              <span>Cada punto será una card</span>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder={t.adminRules.titlePlaceholder}
+              />
             </div>
-          </div>
 
-          <button className="upload-result-submit-btn" disabled={saving}>
-            {saving ? "Guardando normas..." : "Guardar normas"}
-          </button>
-        </form>
+            <div className="form-group">
+              <label>{t.adminRules.contentLabel}</label>
+
+              <textarea
+                name="content"
+                value={formData.content}
+                onChange={handleChange}
+                placeholder={t.adminRules.contentPlaceholder}
+                rows="18"
+              />
+            </div>
+
+            <div className="admin-rules-footer">
+              <div>
+                <span>
+                  {formData.content.length} {t.adminRules.characters}
+                </span>
+                <span>
+                  {rulesPreview.length} {t.adminRules.blocksDetected}
+                </span>
+              </div>
+
+              <button
+                className="upload-result-submit-btn"
+                type="submit"
+                disabled={saving}
+              >
+                {saving ? t.adminRules.saving : t.adminRules.save}
+              </button>
+            </div>
+          </form>
+
+          <aside className="admin-rules-side-panel">
+            <div className="admin-rules-help-card">
+              <span className="section-kicker">{t.adminRules.formatKicker}</span>
+
+              <h3>{t.adminRules.formatTitle}</h3>
+
+              <div>
+                <span>{t.adminRules.formatLine1}</span>
+                <span>{t.adminRules.formatLine2}</span>
+                <span>{t.adminRules.formatLine3}</span>
+                <span>{t.adminRules.formatLine4}</span>
+              </div>
+            </div>
+
+            <div className="admin-rules-preview-card">
+              <span className="section-kicker">{t.adminRules.previewKicker}</span>
+
+              <h3>{formData.title || t.adminRules.previewTitleFallback}</h3>
+
+              {rulesPreview.length === 0 ? (
+                <p className="admin-rules-preview-empty">
+                  {t.adminRules.previewEmpty}
+                </p>
+              ) : (
+                <div className="admin-rules-preview-list">
+                  {rulesPreview.slice(0, 5).map((rule, index) => (
+                    <div key={`${rule}-${index}`}>
+                      <strong>{index + 1}</strong>
+                      <p>{rule}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {rulesPreview.length > 5 && (
+                <p className="admin-rules-preview-more">
+                  + {rulesPreview.length - 5} {t.adminRules.moreRules}
+                </p>
+              )}
+            </div>
+          </aside>
+        </div>
       )}
     </section>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
+import { translations } from "../i18n/translations";
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -11,8 +12,13 @@ export const Navbar = () => {
 
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [language, setLanguage] = useState(
+    localStorage.getItem("language") || "es"
+  );
 
   const moreMenuRef = useRef(null);
+
+  const t = translations[language] || translations.es;
 
   let user = null;
 
@@ -74,6 +80,18 @@ export const Navbar = () => {
       );
     };
   }, [isLogged]);
+
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(localStorage.getItem("language") || "es");
+    };
+
+    window.addEventListener("languageChanged", handleLanguageChanged);
+
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChanged);
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -166,8 +184,8 @@ export const Navbar = () => {
       <div className="navbar-links">
         <Link to="/ranking" className="navbar-item">
           <span className="navbar-mobile-icon">🏆</span>
-          <span className="navbar-mobile-label">Ranking</span>
-          <span className="navbar-desktop-label">Ranking</span>
+          <span className="navbar-mobile-label">{t.navbar.ranking}</span>
+          <span className="navbar-desktop-label">{t.navbar.ranking}</span>
         </Link>
 
         <Link
@@ -175,13 +193,13 @@ export const Navbar = () => {
           className="navbar-item navbar-item-with-notification"
           title={
             notificationsCount > 0
-              ? `${notificationsCount} avisos pendientes`
-              : "Jugar"
+              ? `${notificationsCount} ${t.navbar.pendingAlerts}`
+              : t.navbar.play
           }
           aria-label={
             notificationsCount > 0
-              ? `Jugar, ${notificationsCount} avisos pendientes`
-              : "Jugar"
+              ? `${t.navbar.play}, ${notificationsCount} ${t.navbar.pendingAlerts}`
+              : t.navbar.play
           }
         >
           <span className="navbar-mobile-icon navbar-play-icon-wrapper">
@@ -191,10 +209,10 @@ export const Navbar = () => {
             )}
           </span>
 
-          <span className="navbar-mobile-label">Jugar</span>
+          <span className="navbar-mobile-label">{t.navbar.play}</span>
 
           <span className="navbar-desktop-label navbar-desktop-label-with-dot">
-            Jugar
+            {t.navbar.play}
             {notificationsCount > 0 && (
               <span className="navbar-play-dot-desktop"></span>
             )}
@@ -203,8 +221,8 @@ export const Navbar = () => {
 
         <Link to="/profile" className="navbar-item">
           <span className="navbar-mobile-icon">👤</span>
-          <span className="navbar-mobile-label">Perfil</span>
-          <span className="navbar-desktop-label">Mi perfil</span>
+          <span className="navbar-mobile-label">{t.navbar.profile}</span>
+          <span className="navbar-desktop-label">{t.navbar.profile}</span>
         </Link>
 
         <div className="navbar-more-wrapper" ref={moreMenuRef}>
@@ -212,55 +230,56 @@ export const Navbar = () => {
             type="button"
             className="navbar-more-button"
             onClick={() => setIsMoreOpen(!isMoreOpen)}
-            aria-label="Abrir menú"
-            title="Más opciones"
+            aria-label={t.navbar.openMenu}
+            title={t.navbar.moreOptions}
           >
             <span className="navbar-mobile-icon">☰</span>
-            <span className="navbar-mobile-label">Más</span>
+            <span className="navbar-mobile-label">{t.navbar.more}</span>
           </button>
 
           {isMoreOpen && (
             <div className="navbar-more-menu">
               <Link to="/matches" onClick={closeMoreMenu}>
-                Historial de partidos
+                {t.navbar.matches}
               </Link>
 
               <Link to="/rules" onClick={closeMoreMenu}>
-                Normas
+                {t.navbar.rules}
               </Link>
 
               {isAdmin && (
                 <Link to="/admin" onClick={closeMoreMenu}>
-                  Panel admin
+                  {t.navbar.admin}
                 </Link>
               )}
 
               <button type="button" onClick={handleLogout}>
-                Cerrar sesión
+                {t.navbar.logout}
               </button>
             </div>
           )}
         </div>
 
         <Link to="/matches" className="navbar-desktop-only">
-          Historial
+          {t.navbar.matches}
         </Link>
 
         <Link to="/rules" className="navbar-desktop-only">
-          Normas
+          {t.navbar.rules}
         </Link>
 
         {isAdmin && (
           <Link to="/admin" className="navbar-desktop-only">
-            Admin
+            {t.navbar.admin}
           </Link>
         )}
 
         <button
+          type="button"
           onClick={handleLogout}
           className="navbar-logout-icon-btn navbar-desktop-only"
-          title="Cerrar sesión"
-          aria-label="Cerrar sesión"
+          title={t.navbar.logout}
+          aria-label={t.navbar.logout}
         >
           <svg
             className="navbar-logout-icon"
@@ -285,7 +304,7 @@ export const Navbar = () => {
             />
 
             <path
-              d="M12 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H12"
+              d="M12 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 21 19 21 19V21H12"
               stroke="currentColor"
               strokeWidth="2.4"
               strokeLinecap="round"
