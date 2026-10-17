@@ -6319,3 +6319,436 @@ button:disabled {
     font-size: 12px;
   }
 }
+/* Modal compacto para unirse a un partido; añadir al final del CSS global */
+.join-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: rgba(5, 21, 47, .62);
+  backdrop-filter: blur(5px);
+}
+.join-modal-card.join-modal-compact {
+  width: min(100%, 430px);
+  max-height: min(90dvh, 640px);
+  overflow-y: auto;
+  border: 1px solid #dce7f5;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(6, 27, 58, .2);
+  padding: 26px;
+  color: #0b234b;
+  text-align: left;
+}
+.join-modal-compact .join-compact-kicker {
+  display: block;
+  color: #2864eb;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.join-modal-compact h2 {
+  margin: 0 0 20px;
+  color: #0b234b;
+  font-size: clamp(21px, 5vw, 25px);
+  line-height: 1.2;
+  letter-spacing: -.035em;
+}
+.join-compact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 17px;
+  background: #f5f8fd;
+  border: 1px solid #e3eaf4;
+  border-radius: 16px;
+  font-size: 14px;
+  color: #566881;
+}
+.join-compact-info strong {
+  color: #0b234b;
+  font-size: 17px;
+  line-height: 1.3;
+}
+.join-compact-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 22px;
+}
+.join-modal-compact .join-compact-actions button {
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px;
+  border-radius: 14px;
+  text-align: center;
+  justify-content: center;
+}
+@media (max-width: 480px) {
+  .join-modal-card.join-modal-compact { padding: 22px 18px; border-radius: 20px; }
+}
+/* Fuera de Pista — compact upload result. Add at the end of your global CSS. */
+.result-simple-page { padding-bottom: 108px; }
+.result-simple-container { width: min(100%, 740px); margin: 0 auto; }
+.result-simple-header { margin: 0 0 18px; }
+.result-simple-header h1 { color: #0b2145; margin: 5px 0 7px; font-size: clamp(26px, 5vw, 36px); }
+.result-simple-header p { color: #617089; margin: 0; font-size: 14px; line-height: 1.5; }
+.result-simple-card { background: #fff; border: 1px solid #e1e9f6; border-radius: 22px; padding: 22px; box-shadow: 0 14px 40px rgba(11,33,69,.06); }
+.result-simple-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.result-simple-team { border: 1px solid #dce6f5; background: #f8faff; border-radius: 16px; padding: 14px; min-width: 0; }
+.result-simple-team.is-winner { border-color: #2764ec; background: #f4f8ff; }
+.result-simple-team-heading { display: flex; justify-content: space-between; align-items: center; color: #0b2145; font-size: 14px; margin-bottom: 11px; }
+.result-simple-selected { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #2764ec; color: #fff; font-weight: 800; }
+.result-simple-player { color: #0b2145; font-size: 15px; font-weight: 700; padding: 7px 0; overflow-wrap: anywhere; }
+.result-simple-player + .result-simple-player { border-top: 1px solid #e1e9f6; }
+.result-simple-player select { width: 100%; min-width: 0; }
+.result-simple-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+.result-simple-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.result-simple-field label { font-size: 13px; font-weight: 800; color: #0b2145; }
+.result-simple-field input, .result-simple-field select, .result-simple-player select { border: 1px solid #dce6f5; border-radius: 12px; min-height: 48px; padding: 10px 12px; background: #fff; color: #0b2145; font-size: 15px; box-sizing: border-box; }
+.result-simple-field input:focus, .result-simple-field select:focus, .result-simple-player select:focus { outline: 2px solid #2764ec; outline-offset: 1px; }
+.result-simple-manual-details { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-top: 18px; }
+.result-simple-submit { border: 0; border-radius: 999px; background: #2864eb; color: #fff; font-size: 15px; font-weight: 800; padding: 14px 24px; min-height: 48px; cursor: pointer; }
+.result-simple-card > .result-simple-submit { margin-top: 22px; width: 100%; }
+.result-simple-submit:disabled { opacity: .55; cursor: wait; }
+.result-simple-loading { background: #fff; border-radius: 16px; padding: 24px; color: #617089; }
+.result-simple-confirm { width: min(92vw, 440px); max-height: 88dvh; overflow-y: auto; background: #fff; padding: 24px; border-radius: 22px; color: #0b2145; box-shadow: 0 24px 64px rgba(11,33,69,.25); }
+.result-simple-confirm h2 { font-size: 23px; margin: 8px 0 18px; }
+.result-simple-confirm-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.result-simple-confirm-teams > div { display: flex; flex-direction: column; gap: 7px; background: #f6f9fe; border: 1px solid #e1e9f6; border-radius: 13px; padding: 12px; min-width: 0; overflow-wrap: anywhere; }
+.result-simple-confirm-teams span { font-size: 14px; }
+.result-simple-confirm-score { display: flex; flex-direction: column; gap: 7px; margin: 17px 0; }
+.result-simple-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.result-simple-cancel { background: #eef2f8; border: none; border-radius: 999px; font-weight: 800; color: #0b2145; cursor: pointer; }
+@media (max-width: 600px) {
+  .result-simple-page { padding-bottom: 120px; }
+  .result-simple-container { padding: 0 12px; box-sizing: border-box; }
+  .result-simple-card { padding: 14px; border-radius: 18px; }
+  .result-simple-team { padding: 11px; }
+  .result-simple-teams { gap: 8px; }
+  .result-simple-fields { grid-template-columns: 1fr; gap: 14px; }
+  .result-simple-manual-details { grid-template-columns: 1fr; }
+  .result-simple-confirm { padding: 18px; }
+}
+/* Fuera de Pista — modal sencillo para apuntarse a un partido. */
+/* Estilos específicos: no modifican el modal para abandonar un partido. */
+.join-modal-card.join-modal-simple {
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(85dvh, 700px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 26px 22px;
+  border-radius: 22px;
+  background: #ffffff;
+  color: #0b2145;
+  box-shadow: 0 24px 60px rgba(11, 33, 69, 0.2);
+}
+.join-modal-simple .section-kicker {
+  display: block;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.join-modal-simple h2 {
+  margin: 8px 0 18px;
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 800;
+  color: #0b2145;
+}
+.join-modal-simple .join-modal-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 20px;
+}
+.join-modal-simple .join-modal-details > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #e2eaf7;
+  border-radius: 13px;
+  background: #f5f8ff;
+  overflow-wrap: anywhere;
+}
+.join-modal-simple .join-modal-details strong {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+.join-modal-simple .join-modal-details span {
+  color: #0b2145;
+  font-size: 14px;
+  font-weight: 750;
+}
+.join-modal-simple .join-modal-details > .join-modal-players-detail {
+  grid-column: 1 / -1;
+}
+.join-modal-simple .join-modal-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.join-modal-simple .join-modal-actions button {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  margin: 0;
+  border-radius: 12px;
+  font-weight: 800;
+}
+@media (max-width: 480px) {
+  .join-modal-card.join-modal-simple {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+  .join-modal-simple h2 { font-size: 20px; }
+  .join-modal-simple .join-modal-details { gap: 8px; }
+  .join-modal-simple .join-modal-details > div { padding: 10px; }
+}
+
+/* FUERA DE PISTA — MODAL DE INSCRIPCIÓN */
+
+/* Contenedor principal */
+.join-modal-card.join-modal-compact {
+  width: min(420px, calc(100vw - 32px));
+  max-height: 85dvh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 26px 22px;
+  border-radius: 22px;
+  background: #ffffff;
+  color: #0b2145;
+}
+
+/* Título y descripción */
+.join-modal-compact .join-compact-kicker,
+.join-modal-compact .section-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: #245fe8;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.join-modal-compact h2 {
+  display: block;
+  margin: 0 0 18px;
+  color: #0b2145;
+  font-size: 23px;
+  line-height: 1.25;
+  font-weight: 850;
+}
+
+/* Información del partido */
+.join-modal-compact .join-compact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.join-modal-compact .join-compact-info > strong {
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid #dfe8f7;
+  border-radius: 12px;
+  background: #f5f8ff;
+  color: #0b2145;
+  font-size: 16px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.join-modal-compact .join-compact-info > span {
+  display: block;
+  color: #52647f;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Botones */
+.join-modal-compact .join-compact-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.join-modal-compact .join-compact-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 46px;
+  padding: 12px;
+  margin: 0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  opacity: 1;
+  visibility: visible;
+  text-indent: 0;
+}
+
+.join-modal-compact .join-compact-actions .secondary-button {
+  background: #edf2f9;
+  color: #0b2145;
+  border: 1px solid #dfe8f7;
+}
+
+.join-modal-compact .join-compact-actions .primary-button {
+  background: #2864eb;
+  color: #ffffff;
+  border: 1px solid #2864eb;
+}
+
+@media (max-width: 480px) {
+  .join-modal-card.join-modal-compact {
+    width: calc(100vw - 28px);
+    padding: 22px 18px;
+    border-radius: 18px;
+  }
+
+  .join-modal-compact h2 {
+    font-size: 21px;
+  }
+}
+
+/* MODAL DE INSCRIPCIÓN - FUERA DE PISTA */
+
+.join-modal-card:not(.leave-modal-card) {
+  width: min(420px, calc(100vw - 32px));
+  max-height: 85dvh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 24px;
+  border-radius: 22px;
+  background: #ffffff;
+  color: #0b2145;
+}
+
+/* Encabezado */
+.join-modal-card:not(.leave-modal-card) .section-kicker {
+  display: block;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.join-modal-card:not(.leave-modal-card) h2 {
+  display: block;
+  color: #0b2145;
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.3;
+  margin: 0 0 18px;
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Datos del partido */
+.join-modal-card:not(.leave-modal-card) .join-modal-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.join-modal-card:not(.leave-modal-card) .join-modal-details > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid #dce7f8;
+  background: #f5f8ff;
+  color: #0b2145;
+}
+
+.join-modal-card:not(.leave-modal-card) .join-modal-details strong {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.join-modal-card:not(.leave-modal-card) .join-modal-details span {
+  display: block;
+  color: #0b2145;
+  font-size: 15px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+/* Botones */
+.join-modal-card:not(.leave-modal-card) .join-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.join-modal-card:not(.leave-modal-card) .join-modal-actions button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px;
+  margin: 0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  opacity: 1;
+  visibility: visible;
+  text-indent: 0;
+}
+
+.join-modal-card:not(.leave-modal-card) .join-modal-actions .secondary-button {
+  background: #e8eef7;
+  color: #0b2145;
+  border: 1px solid #dce7f8;
+}
+
+.join-modal-card:not(.leave-modal-card) .join-modal-actions .primary-button {
+  background: #2864eb;
+  color: #ffffff;
+  border: 1px solid #2864eb;
+}
+
+@media (max-width: 480px) {
+  .join-modal-card:not(.leave-modal-card) {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+
+  .join-modal-card:not(.leave-modal-card) h2 {
+    font-size: 20px;
+  }
+
+  .join-modal-card:not(.leave-modal-card) .join-modal-details > div {
+    padding: 10px;
+  }
+}

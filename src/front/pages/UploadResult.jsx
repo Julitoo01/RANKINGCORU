@@ -286,12 +286,19 @@ export const UploadResult = () => {
   };
 
   const getPlayerName = (playerId) => {
-    const player = players.find((item) => String(item.id) === String(playerId));
+    const playerFromRanking = players.find(
+      (item) => String(item.id) === String(playerId)
+    );
+    const teamPlayers = [...(openMatch?.team_a || []), ...(openMatch?.team_b || [])];
+    const player =
+      playerFromRanking ||
+      teamPlayers.find((item) => String(item.id) === String(playerId));
 
     if (!player) return t.uploadResult.player;
-
     return (
-      player.nickname || `${player.name || ""} ${player.last_name || ""}`.trim()
+      player.nickname ||
+      `${player.name || ""} ${player.last_name || ""}`.trim() ||
+      t.uploadResult.player
     );
   };
 
@@ -310,191 +317,73 @@ export const UploadResult = () => {
 
   const isLoading = loadingPlayers || loadingOpenMatch;
 
-  return (
-    <section className="upload-result-page">
-      <div className="upload-result-hero">
-        <div>
-          <span>{t.uploadResult.kicker}</span>
-          <h1>{t.uploadResult.title}</h1>
-          <p>{t.uploadResult.description}</p>
-        </div>
+  const teamFields = {
+    A: ["team_a_player_1_id", "team_a_player_2_id"],
+    B: ["team_b_player_1_id", "team_b_player_2_id"],
+  };
 
-        <div className="upload-result-hero-card">
-          <strong>{t.uploadResult.heroCardTitle}</strong>
-          <span>{t.uploadResult.heroCardText}</span>
-        </div>
+  const renderTeam = (teamKey) => (
+    <div className={`result-simple-team ${formData.winner_team === teamKey ? "is-winner" : ""}`}>
+      <div className="result-simple-team-heading">
+        <strong>{teamKey === "A" ? t.uploadResult.teamA : t.uploadResult.teamB}</strong>
+        {formData.winner_team === teamKey && (
+          <span className="result-simple-selected" aria-hidden="true">✓</span>
+        )}
       </div>
-
-      {isAutoFilled && openMatch && (
-        <div className="success-message">
-          {t.uploadResult.autoLoaded}: {getLevelLabel(openMatch.level)} ·{" "}
-          {openMatch.club} · {openMatch.match_date} ·{" "}
-          {getMatchTimeRange(openMatch.match_time)}
-        </div>
-      )}
-
-      {message && <div className="success-message">{message}</div>}
-      {error && <div className="error-message">{error}</div>}
-
-      {isLoading ? (
-        <div className="upload-result-state">
-          <p>{t.uploadResult.loadingData}</p>
-        </div>
-      ) : (
-        <form className="upload-result-form-card" onSubmit={openConfirmModal}>
-          {isAutoFilled && openMatch && (
-            <div className="upload-result-match-summary">
-              <span>{t.uploadResult.selectedMatch}</span>
-
-              <h2>
-                {getLevelLabel(openMatch.level)} · {openMatch.club}
-              </h2>
-
-              <p>
-                {openMatch.match_date} ·{" "}
-                {getMatchTimeRange(openMatch.match_time)}
-              </p>
-            </div>
+      {teamFields[teamKey].map((fieldName) => (
+        <div className="result-simple-player" key={fieldName}>
+          {isAutoFilled ? (
+            <span>{getPlayerName(formData[fieldName])}</span>
+          ) : (
+            <select
+              aria-label={`${teamKey === "A" ? t.uploadResult.teamA : t.uploadResult.teamB} ${fieldName.endsWith("1_id") ? t.uploadResult.player1 : t.uploadResult.player2}`}
+              name={fieldName}
+              value={formData[fieldName]}
+              onChange={handleChange}
+              required
+            >
+              <option value="">{t.uploadResult.selectPlayer}</option>
+              {renderPlayerOptions()}
+            </select>
           )}
+        </div>
+      ))}
+    </div>
+  );
 
-          <div className="upload-teams-preview">
-            <div className="upload-team-preview-card">
-              <span>{t.uploadResult.teamA}</span>
+  return (
+    <section className="upload-result-page result-simple-page">
+      <div className="result-simple-container">
+        <div className="result-simple-header">
+          <span className="section-kicker">{t.uploadResult.kicker}</span>
+          <h1>{t.uploadResult.title}</h1>
+          {isAutoFilled && openMatch && (
+            <p>
+              {getLevelLabel(openMatch.level)} · {openMatch.club} ·{" "}
+              {openMatch.match_date} · {getMatchTimeRange(openMatch.match_time)}
+            </p>
+          )}
+        </div>
 
-              <strong>{getPlayerName(formData.team_a_player_1_id)}</strong>
-              <strong>{getPlayerName(formData.team_a_player_2_id)}</strong>
+        {message && <div className="success-message">{message}</div>}
+        {error && <div className="error-message">{error}</div>}
+
+        {isLoading ? (
+          <div className="result-simple-loading">{t.uploadResult.loadingData}</div>
+        ) : openMatchId && !isAutoFilled ? (
+          <div className="result-simple-loading">{t.uploadResult.openMatchLoadError}</div>
+        ) : (
+          <form className="result-simple-card" onSubmit={openConfirmModal}>
+            <div className="result-simple-teams">
+              {renderTeam("A")}
+              {renderTeam("B")}
             </div>
 
-            <div className="upload-vs-badge">{t.uploadResult.vs}</div>
-
-            <div className="upload-team-preview-card">
-              <span>{t.uploadResult.teamB}</span>
-
-              <strong>{getPlayerName(formData.team_b_player_1_id)}</strong>
-              <strong>{getPlayerName(formData.team_b_player_2_id)}</strong>
-            </div>
-          </div>
-
-          <div className="upload-form-section">
-            <div className="upload-form-section-title">
-              <span>{t.uploadResult.teamA}</span>
-              <h2>{t.uploadResult.teamAPlayers}</h2>
-            </div>
-
-            {isAutoFilled ? (
-              <div className="upload-form-grid">
-                <div className="form-group">
-                  <label>{t.uploadResult.player1}</label>
-                  <input
-                    type="text"
-                    value={getPlayerName(formData.team_a_player_1_id)}
-                    disabled
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>{t.uploadResult.player2}</label>
-                  <input
-                    type="text"
-                    value={getPlayerName(formData.team_a_player_2_id)}
-                    disabled
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="upload-form-grid">
-                <div className="form-group">
-                  <label>{t.uploadResult.player1}</label>
-                  <select
-                    name="team_a_player_1_id"
-                    value={formData.team_a_player_1_id}
-                    onChange={handleChange}
-                  >
-                    <option value="">{t.uploadResult.selectPlayer}</option>
-                    {renderPlayerOptions()}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>{t.uploadResult.player2}</label>
-                  <select
-                    name="team_a_player_2_id"
-                    value={formData.team_a_player_2_id}
-                    onChange={handleChange}
-                  >
-                    <option value="">{t.uploadResult.selectPlayer}</option>
-                    {renderPlayerOptions()}
-                  </select>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="upload-form-section">
-            <div className="upload-form-section-title">
-              <span>{t.uploadResult.teamB}</span>
-              <h2>{t.uploadResult.teamBPlayers}</h2>
-            </div>
-
-            {isAutoFilled ? (
-              <div className="upload-form-grid">
-                <div className="form-group">
-                  <label>{t.uploadResult.player1}</label>
-                  <input
-                    type="text"
-                    value={getPlayerName(formData.team_b_player_1_id)}
-                    disabled
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>{t.uploadResult.player2}</label>
-                  <input
-                    type="text"
-                    value={getPlayerName(formData.team_b_player_2_id)}
-                    disabled
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="upload-form-grid">
-                <div className="form-group">
-                  <label>{t.uploadResult.player1}</label>
-                  <select
-                    name="team_b_player_1_id"
-                    value={formData.team_b_player_1_id}
-                    onChange={handleChange}
-                  >
-                    <option value="">{t.uploadResult.selectPlayer}</option>
-                    {renderPlayerOptions()}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>{t.uploadResult.player2}</label>
-                  <select
-                    name="team_b_player_2_id"
-                    value={formData.team_b_player_2_id}
-                    onChange={handleChange}
-                  >
-                    <option value="">{t.uploadResult.selectPlayer}</option>
-                    {renderPlayerOptions()}
-                  </select>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="upload-form-section">
-            <div className="upload-form-section-title">
-              <span>{t.uploadResult.result}</span>
-              <h2>{t.uploadResult.matchData}</h2>
-            </div>
-
-            <div className="upload-form-grid">
-              <div className="form-group">
-                <label>{t.uploadResult.winnerTeam}</label>
+            <div className="result-simple-fields">
+              <div className="result-simple-field">
+                <label htmlFor="winning-team">{t.uploadResult.winnerTeam}</label>
                 <select
+                  id="winning-team"
                   name="winner_team"
                   value={formData.winner_team}
                   onChange={handleChange}
@@ -503,141 +392,76 @@ export const UploadResult = () => {
                   <option value="B">{t.uploadResult.teamB}</option>
                 </select>
               </div>
-
-              <div className="form-group">
-                <label>{t.uploadResult.result}</label>
+              <div className="result-simple-field">
+                <label htmlFor="match-score">{t.uploadResult.result}</label>
                 <input
-                  type="text"
+                  id="match-score"
                   name="score"
+                  type="text"
                   value={formData.score}
                   onChange={handleChange}
                   placeholder={t.uploadResult.scorePlaceholder}
-                />
-                <small>{t.uploadResult.scoreHelp}</small>
-              </div>
-
-              <div className="form-group">
-                <label>{t.uploadResult.level}</label>
-                {isAutoFilled ? (
-                  <input
-                    type="text"
-                    value={getLevelLabel(formData.level)}
-                    disabled
-                  />
-                ) : (
-                  <select
-                    name="level"
-                    value={formData.level}
-                    onChange={handleChange}
-                  >
-                    {levels.map((level) => (
-                      <option key={level.value} value={level.value}>
-                        {level.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>{t.uploadResult.club}</label>
-                <input
-                  type="text"
-                  name="club"
-                  value={formData.club}
-                  onChange={handleChange}
-                  placeholder={t.uploadResult.clubPlaceholder}
-                  disabled={isAutoFilled}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>{t.uploadResult.matchDate}</label>
-                <input
-                  type="date"
-                  name="played_at"
-                  value={formData.played_at}
-                  onChange={handleChange}
-                  disabled={isAutoFilled}
+                  autoComplete="off"
+                  required
                 />
               </div>
             </div>
-          </div>
 
-          <button className="upload-result-submit-btn" disabled={sending}>
-            {sending ? t.uploadResult.preparing : t.uploadResult.reviewSubmit}
-          </button>
-        </form>
-      )}
+            {!isAutoFilled && (
+              <div className="result-simple-manual-details">
+                <div className="result-simple-field">
+                  <label htmlFor="match-level">{t.uploadResult.level}</label>
+                  <select id="match-level" name="level" value={formData.level} onChange={handleChange}>
+                    {levels.map((level) => (
+                      <option key={level.value} value={level.value}>{level.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="result-simple-field">
+                  <label htmlFor="match-club">{t.uploadResult.club}</label>
+                  <input id="match-club" name="club" value={formData.club} onChange={handleChange} placeholder={t.uploadResult.clubPlaceholder} />
+                </div>
+                <div className="result-simple-field">
+                  <label htmlFor="match-date">{t.uploadResult.matchDate}</label>
+                  <input id="match-date" type="date" name="played_at" value={formData.played_at} onChange={handleChange} />
+                </div>
+              </div>
+            )}
+
+            <button type="submit" className="result-simple-submit" disabled={sending}>
+              {sending ? t.uploadResult.preparing : t.uploadResult.reviewSubmit}
+            </button>
+          </form>
+        )}
+      </div>
 
       {showConfirmModal && (
         <div className="result-modal-overlay">
-          <div className="result-modal-card">
-            <div className="result-modal-icon">🏆</div>
-
-            <span>{t.uploadResult.confirmKicker}</span>
-
-            <h2>{t.uploadResult.confirmTitle}</h2>
-
-            <div className="result-modal-teams">
-              <div className="result-modal-team-card">
-                <span>{t.uploadResult.teamA}</span>
-                <strong>{getPlayerName(formData.team_a_player_1_id)}</strong>
-                <strong>{getPlayerName(formData.team_a_player_2_id)}</strong>
+          <div className="result-simple-confirm" role="dialog" aria-modal="true" aria-labelledby="result-confirm-title">
+            <span className="section-kicker">{t.uploadResult.confirmKicker}</span>
+            <h2 id="result-confirm-title">{t.uploadResult.confirmTitle}</h2>
+            <div className="result-simple-confirm-teams">
+              <div>
+                <strong>{t.uploadResult.teamA}</strong>
+                <span>{getPlayerName(formData.team_a_player_1_id)}</span>
+                <span>{getPlayerName(formData.team_a_player_2_id)}</span>
               </div>
-
-              <div className="result-modal-vs">{t.uploadResult.vs}</div>
-
-              <div className="result-modal-team-card">
-                <span>{t.uploadResult.teamB}</span>
-                <strong>{getPlayerName(formData.team_b_player_1_id)}</strong>
-                <strong>{getPlayerName(formData.team_b_player_2_id)}</strong>
+              <div>
+                <strong>{t.uploadResult.teamB}</strong>
+                <span>{getPlayerName(formData.team_b_player_1_id)}</span>
+                <span>{getPlayerName(formData.team_b_player_2_id)}</span>
               </div>
             </div>
-
-            <div className="result-modal-summary">
-              <div>
-                <strong>{t.uploadResult.winner}</strong>
-                <span>{getWinnerLabel()}</span>
-              </div>
-
-              <div>
-                <strong>{t.uploadResult.result}</strong>
-                <span>{formData.score}</span>
-              </div>
-
-              <div>
-                <strong>{t.uploadResult.level}</strong>
-                <span>{getLevelLabel(formData.level)}</span>
-              </div>
-
-              <div>
-                <strong>{t.uploadResult.club}</strong>
-                <span>{formData.club || t.uploadResult.noClub}</span>
-              </div>
+            <div className="result-simple-confirm-score">
+              <span>{t.uploadResult.winner}: <strong>{getWinnerLabel()}</strong></span>
+              <span>{t.uploadResult.result}: <strong>{formData.score}</strong></span>
             </div>
-
-            <p>{t.uploadResult.confirmText}</p>
-
-            <div className="result-modal-actions">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => setShowConfirmModal(false)}
-                disabled={sending}
-              >
+            <div className="result-simple-confirm-actions">
+              <button type="button" className="result-simple-cancel" onClick={() => setShowConfirmModal(false)} disabled={sending}>
                 {t.uploadResult.cancel}
               </button>
-
-              <button
-                type="button"
-                className="primary-button"
-                onClick={submitResult}
-                disabled={sending}
-              >
-                {sending
-                  ? t.uploadResult.sending
-                  : t.uploadResult.confirmSubmit}
+              <button type="button" className="result-simple-submit" onClick={submitResult} disabled={sending}>
+                {sending ? t.uploadResult.sending : t.uploadResult.confirmSubmit}
               </button>
             </div>
           </div>

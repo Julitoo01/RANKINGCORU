@@ -1,10 +1,12 @@
+
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authFetch } from "../utils/authFetch";
 import { translations } from "../i18n/translations";
 
 export const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const storedUser = localStorage.getItem("user");
@@ -17,6 +19,7 @@ export const Navbar = () => {
   );
 
   const moreMenuRef = useRef(null);
+  const notificationRequestRef = useRef(0);
 
   const t = translations[language] || translations.es;
 
@@ -37,41 +40,93 @@ export const Navbar = () => {
   const isLogged = Boolean(storedToken) && Boolean(user);
   const isAdmin = user?.is_admin === true;
 
+  // ----------------------------------------------
+  // NOTIFICACIONES: SOLO PARTIDOS NUEVOS Y ABIERTOS
+  // ----------------------------------------------
+
   const loadNotificationsCount = async () => {
+    const requestId = ++notificationRequestRef.current;
+
     try {
       if (!isLogged) {
         setNotificationsCount(0);
         return;
       }
 
-      const data = await authFetch(`${backendUrl}/api/notifications`);
+      const [notificationsData, matchesData] = await Promise.all([
+        authFetch(`${backendUrl}/api/notifications`),
+        authFetch(`${backendUrl}/api/open-matches`),
+      ]);
 
-      if (!data) {
+      if (requestId !== notificationRequestRef.current) return;
+
+      if (
+        !Array.isArray(notificationsData) ||
+        !Array.isArray(matchesData)
+      ) {
         setNotificationsCount(0);
         return;
       }
 
-      setNotificationsCount(data.length);
+      // Solo partidos que siguen abiertos y no tienen resultado.
+      const activeOpenMatchIds = new Set(
+        matchesData
+          .filter(
+            (match) =>
+              match.status === "open" &&
+              !match.has_result &&
+              !match.result_match_id
+          )
+          .map((match) => String(match.id))
+      );
+
+      // Solo avisos sin leer de partidos todavía activos.
+      const newMatchNotifications = notificationsData.filter(
+        (notification) =>
+          notification.notification_type === "open_match_created" &&
+          notification.is_read !== true &&
+          activeOpenMatchIds.has(String(notification.open_match_id))
+      );
+
+      const uniqueMatchIds = new Set(
+        newMatchNotifications.map((notification) =>
+          String(notification.open_match_id)
+        )
+      );
+
+      setNotificationsCount(uniqueMatchIds.size);
     } catch (error) {
+      if (requestId !== notificationRequestRef.current) return;
+
       console.error("Error cargando notificaciones:", error);
       setNotificationsCount(0);
     }
   };
 
+  // Actualizar al iniciar sesión y evitar peticiones obsoletas.
   useEffect(() => {
     if (isLogged) {
       loadNotificationsCount();
     } else {
+      notificationRequestRef.current += 1;
       setNotificationsCount(0);
     }
-  }, [isLogged]);
 
+    return () => {
+      notificationRequestRef.current += 1;
+    };
+  }, [isLogged, backendUrl]);
+
+  // Actualizar desde otras páginas.
   useEffect(() => {
     const handleNotificationsUpdated = () => {
       loadNotificationsCount();
     };
 
-    window.addEventListener("notificationsUpdated", handleNotificationsUpdated);
+    window.addEventListener(
+      "notificationsUpdated",
+      handleNotificationsUpdated
+    );
 
     return () => {
       window.removeEventListener(
@@ -79,23 +134,78 @@ export const Navbar = () => {
         handleNotificationsUpdated
       );
     };
-  }, [isLogged]);
+  }, [isLogged, backendUrl]);
+
+  // Actualizar al navegar entre páginas.
+  useEffect(() => {
+    if (isLogged) {
+      loadNotificationsCount();
+    }
+  }, [location.pathname, isLogged, backendUrl]);
+
+  // Actualizar al regresar a la pestaña.
+  useEffect(() => {
+    const refreshNotifications = () => {
+      if (isLogged && document.visibilityState === "visible") {
+        loadNotificationsCount();
+      }
+    };
+
+    const handleFocus = () => {
+      if (isLogged) {
+        loadNotificationsCount();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      refreshNotifications
+    );
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        refreshNotifications
+      );
+
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [isLogged, backendUrl]);
+
+  // ----------------------------------------------
+  // CAMBIO DE IDIOMA GLOBAL
+  // ----------------------------------------------
 
   useEffect(() => {
     const handleLanguageChanged = () => {
       setLanguage(localStorage.getItem("language") || "es");
     };
 
-    window.addEventListener("languageChanged", handleLanguageChanged);
+    window.addEventListener(
+      "languageChanged",
+      handleLanguageChanged
+    );
 
     return () => {
-      window.removeEventListener("languageChanged", handleLanguageChanged);
+      window.removeEventListener(
+        "languageChanged",
+        handleLanguageChanged
+      );
     };
   }, []);
 
+  // ----------------------------------------------
+  // CERRAR MENÚ AL PULSAR FUERA
+  // ----------------------------------------------
+
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target)) {
+      if (
+        moreMenuRef.current &&
+        !moreMenuRef.current.contains(event.target)
+      ) {
         setIsMoreOpen(false);
       }
     };
@@ -109,6 +219,10 @@ export const Navbar = () => {
     };
   }, []);
 
+  // ----------------------------------------------
+  // POSICIÓN DEL NAVBAR EN MÓVIL
+  // ----------------------------------------------
+
   useEffect(() => {
     const updateMobileNavbarPosition = () => {
       const navbar = document.querySelector(".navbar");
@@ -118,12 +232,35 @@ export const Navbar = () => {
       const viewport = window.visualViewport;
       const scale = viewport.scale || 1;
 
-      navbar.style.setProperty("--vv-left", `${viewport.offsetLeft}px`);
-      navbar.style.setProperty("--vv-top", `${viewport.offsetTop}px`);
-      navbar.style.setProperty("--vv-width", `${viewport.width}px`);
-      navbar.style.setProperty("--vv-height", `${viewport.height}px`);
-      navbar.style.setProperty("--vv-scale", `${scale}`);
-      navbar.style.setProperty("--vv-inverse-scale", `${1 / scale}`);
+      navbar.style.setProperty(
+        "--vv-left",
+        `${viewport.offsetLeft}px`
+      );
+
+      navbar.style.setProperty(
+        "--vv-top",
+        `${viewport.offsetTop}px`
+      );
+
+      navbar.style.setProperty(
+        "--vv-width",
+        `${viewport.width}px`
+      );
+
+      navbar.style.setProperty(
+        "--vv-height",
+        `${viewport.height}px`
+      );
+
+      navbar.style.setProperty(
+        "--vv-scale",
+        `${scale}`
+      );
+
+      navbar.style.setProperty(
+        "--vv-inverse-scale",
+        `${1 / scale}`
+      );
     };
 
     updateMobileNavbarPosition();
@@ -133,14 +270,22 @@ export const Navbar = () => {
         "resize",
         updateMobileNavbarPosition
       );
+
       window.visualViewport.addEventListener(
         "scroll",
         updateMobileNavbarPosition
       );
     }
 
-    window.addEventListener("resize", updateMobileNavbarPosition);
-    window.addEventListener("scroll", updateMobileNavbarPosition);
+    window.addEventListener(
+      "resize",
+      updateMobileNavbarPosition
+    );
+
+    window.addEventListener(
+      "scroll",
+      updateMobileNavbarPosition
+    );
 
     return () => {
       if (window.visualViewport) {
@@ -148,26 +293,43 @@ export const Navbar = () => {
           "resize",
           updateMobileNavbarPosition
         );
+
         window.visualViewport.removeEventListener(
           "scroll",
           updateMobileNavbarPosition
         );
       }
 
-      window.removeEventListener("resize", updateMobileNavbarPosition);
-      window.removeEventListener("scroll", updateMobileNavbarPosition);
+      window.removeEventListener(
+        "resize",
+        updateMobileNavbarPosition
+      );
+
+      window.removeEventListener(
+        "scroll",
+        updateMobileNavbarPosition
+      );
     };
   }, []);
+
+  // ----------------------------------------------
+  // MENÚ Y CERRAR SESIÓN
+  // ----------------------------------------------
 
   const closeMoreMenu = () => {
     setIsMoreOpen(false);
   };
 
   const handleLogout = () => {
+    notificationRequestRef.current += 1;
+
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("profile");
+
+    setNotificationsCount(0);
     setIsMoreOpen(false);
+
     navigate("/");
   };
 
@@ -182,11 +344,21 @@ export const Navbar = () => {
       </Link>
 
       <div className="navbar-links">
+        {/* RANKING */}
+
         <Link to="/ranking" className="navbar-item">
           <span className="navbar-mobile-icon">🏆</span>
-          <span className="navbar-mobile-label">{t.navbar.ranking}</span>
-          <span className="navbar-desktop-label">{t.navbar.ranking}</span>
+
+          <span className="navbar-mobile-label">
+            {t.navbar.ranking}
+          </span>
+
+          <span className="navbar-desktop-label">
+            {t.navbar.ranking}
+          </span>
         </Link>
+
+        {/* JUGAR + PUNTO ROJO */}
 
         <Link
           to="/open-matches"
@@ -204,26 +376,40 @@ export const Navbar = () => {
         >
           <span className="navbar-mobile-icon navbar-play-icon-wrapper">
             🎾
+
             {notificationsCount > 0 && (
               <span className="navbar-play-dot"></span>
             )}
           </span>
 
-          <span className="navbar-mobile-label">{t.navbar.play}</span>
+          <span className="navbar-mobile-label">
+            {t.navbar.play}
+          </span>
 
           <span className="navbar-desktop-label navbar-desktop-label-with-dot">
             {t.navbar.play}
+
             {notificationsCount > 0 && (
               <span className="navbar-play-dot-desktop"></span>
             )}
           </span>
         </Link>
 
+        {/* PERFIL */}
+
         <Link to="/profile" className="navbar-item">
           <span className="navbar-mobile-icon">👤</span>
-          <span className="navbar-mobile-label">{t.navbar.profile}</span>
-          <span className="navbar-desktop-label">{t.navbar.profile}</span>
+
+          <span className="navbar-mobile-label">
+            {t.navbar.profile}
+          </span>
+
+          <span className="navbar-desktop-label">
+            {t.navbar.profile}
+          </span>
         </Link>
+
+        {/* MENÚ MÁS */}
 
         <div className="navbar-more-wrapper" ref={moreMenuRef}>
           <button
@@ -234,7 +420,10 @@ export const Navbar = () => {
             title={t.navbar.moreOptions}
           >
             <span className="navbar-mobile-icon">☰</span>
-            <span className="navbar-mobile-label">{t.navbar.more}</span>
+
+            <span className="navbar-mobile-label">
+              {t.navbar.more}
+            </span>
           </button>
 
           {isMoreOpen && (
@@ -260,19 +449,32 @@ export const Navbar = () => {
           )}
         </div>
 
-        <Link to="/matches" className="navbar-desktop-only">
+        {/* ENLACES ESCRITORIO */}
+
+        <Link
+          to="/matches"
+          className="navbar-desktop-only"
+        >
           {t.navbar.matches}
         </Link>
 
-        <Link to="/rules" className="navbar-desktop-only">
+        <Link
+          to="/rules"
+          className="navbar-desktop-only"
+        >
           {t.navbar.rules}
         </Link>
 
         {isAdmin && (
-          <Link to="/admin" className="navbar-desktop-only">
+          <Link
+            to="/admin"
+            className="navbar-desktop-only"
+          >
             {t.navbar.admin}
           </Link>
         )}
+
+        {/* CERRAR SESIÓN ESCRITORIO */}
 
         <button
           type="button"

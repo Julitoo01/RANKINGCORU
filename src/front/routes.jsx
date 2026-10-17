@@ -14,11 +14,12 @@ import { Matches } from "./pages/Matches";
 import { UploadResult } from "./pages/UploadResult";
 import { Rules } from "./pages/Rules";
 import { Profile } from "./pages/Profile";
-import { Notifications } from "./pages/Notifications";
+
 import { Admin } from "./pages/admin/Admin";
 import { AdminPlayers } from "./pages/admin/AdminPlayers";
 import { AdminMatches } from "./pages/admin/AdminMatches";
 import { AdminRules } from "./pages/admin/AdminRules";
+
 import { AdminOpenMatches } from "./pages/AdminOpenMatches";
 import { OpenMatches } from "./pages/OpenMatches";
 
@@ -31,6 +32,7 @@ const getStoredUser = () => {
     }
   } catch (error) {
     console.error("Error leyendo user de localStorage:", error);
+
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("profile");
@@ -67,17 +69,35 @@ const AdminRoute = ({ children }) => {
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>}>
+    <Route
+      path="/"
+      element={<Layout />}
+      errorElement={<h1>Not found!</h1>}
+    >
+      {/* PÁGINAS PÚBLICAS */}
+
       <Route index element={<Home />} />
 
       <Route path="register" element={<Register />} />
+
       <Route path="login" element={<Login />} />
+
+      {/* PÁGINAS DE JUGADORES */}
 
       <Route
         path="ranking"
         element={
           <ProtectedRoute>
             <Ranking />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="open-matches"
+        element={
+          <ProtectedRoute>
+            <OpenMatches />
           </ProtectedRoute>
         }
       />
@@ -108,14 +128,7 @@ export const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
-<Route
-  path="notifications"
-  element={
-    <ProtectedRoute>
-      <Notifications />
-    </ProtectedRoute>
-  }
-/>
+
       <Route
         path="profile"
         element={
@@ -124,6 +137,19 @@ export const router = createBrowserRouter(
           </ProtectedRoute>
         }
       />
+
+      {/* NOTIFICACIONES INTEGRADAS EN JUGAR */}
+
+      <Route
+        path="notifications"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/open-matches" replace />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* PANEL ADMINISTRADOR */}
 
       <Route
         path="admin"
@@ -153,6 +179,15 @@ export const router = createBrowserRouter(
       />
 
       <Route
+        path="admin/open-matches"
+        element={
+          <AdminRoute>
+            <AdminOpenMatches />
+          </AdminRoute>
+        }
+      />
+
+      <Route
         path="admin/rules"
         element={
           <AdminRoute>
@@ -160,23 +195,8 @@ export const router = createBrowserRouter(
           </AdminRoute>
         }
       />
-      <Route
-  path="/open-matches"
-  element={
-    <ProtectedRoute>
-      <OpenMatches />
-    </ProtectedRoute>
-  }
-/>
 
-<Route
-  path="/admin/open-matches"
-  element={
-    <ProtectedRoute>
-      <AdminOpenMatches />
-    </ProtectedRoute>
-  }
-/>
+      {/* RUTA NO ENCONTRADA */}
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Route>

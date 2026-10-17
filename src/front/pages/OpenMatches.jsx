@@ -13,6 +13,35 @@ export const OpenMatches = () => {
 
   const t = translations[language] || translations.es;
 
+  // Fallbacks para que las etiquetas del modal nunca queden vacías
+  // aunque falte alguna clave en translations.js.
+  const joinCopy = language === "en"
+    ? {
+        kicker: "CONFIRM REGISTRATION",
+        title: "Join this match?",
+        level: "Level",
+        club: "Club",
+        date: "Date",
+        time: "Time",
+        players: "Players",
+        cancel: "Cancel",
+        join: "Join match",
+        joining: "Joining...",
+      }
+    : {
+        kicker: "CONFIRMAR INSCRIPCIÓN",
+        title: "¿Quieres apuntarte a este partido?",
+        level: "Nivel",
+        club: "Club",
+        date: "Fecha",
+        time: "Horario",
+        players: "Jugadores",
+        cancel: "Cancelar",
+        join: "Apuntarme",
+        joining: "Apuntando...",
+      };
+
+
   const [user, setUser] = useState(null);
   const [playerProfile, setPlayerProfile] = useState(null);
 
@@ -242,11 +271,19 @@ export const OpenMatches = () => {
     );
   };
 
-  const isNewOpenMatch = (openMatchId) => {
+  const isNewOpenMatch = (openMatch) => {
+    if (
+      openMatch.status !== "open" ||
+      openMatch.has_result ||
+      openMatch.result_match_id
+    ) {
+      return false;
+    }
+
     return notifications.some(
       (notification) =>
         notification.notification_type === "open_match_created" &&
-        Number(notification.open_match_id) === Number(openMatchId)
+        Number(notification.open_match_id) === Number(openMatch.id)
     );
   };
 
@@ -376,7 +413,7 @@ export const OpenMatches = () => {
                   openMatch.players_count >= openMatch.max_players;
                 const isActionLoading = actionLoadingId === openMatch.id;
                 const uploadAllowed = canUploadResult(openMatch);
-                const isNewMatch = isNewOpenMatch(openMatch.id);
+                const isNewMatch = isNewOpenMatch(openMatch);
 
                 return (
                   <article
@@ -525,37 +562,58 @@ export const OpenMatches = () => {
       )}
 
       {selectedMatchToJoin && (
-        <div className="join-modal-overlay">
-          <div className="join-modal-card">
-            <div className="join-modal-icon">🎾</div>
+        <div
+          className="join-modal-overlay"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              actionLoadingId !== selectedMatchToJoin.id
+            ) {
+              setSelectedMatchToJoin(null);
+            }
+          }}
+        >
+          <div
+            className="join-modal-card join-modal-simple"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="join-match-heading"
+          >
+            <span className="section-kicker">
+              {t.openMatches?.joinModalKicker || joinCopy.kicker}
+            </span>
 
-            <span>{t.openMatches.joinModalKicker}</span>
-
-            <h2>{t.openMatches.joinModalTitle}</h2>
+            <h2 id="join-match-heading">
+              {t.openMatches?.joinModalTitle || joinCopy.title}
+            </h2>
 
             <div className="join-modal-details">
               <div>
-                <strong>{t.openMatches.level}</strong>
+                <strong>{t.openMatches?.level || joinCopy.level}</strong>
                 <span>{selectedMatchToJoin.level}</span>
               </div>
-
               <div>
-                <strong>{t.openMatches.club}</strong>
+                <strong>{t.openMatches?.club || joinCopy.club}</strong>
                 <span>{selectedMatchToJoin.club}</span>
               </div>
-
               <div>
-                <strong>{t.openMatches.date}</strong>
+                <strong>{t.openMatches?.date || joinCopy.date}</strong>
                 <span>{formatDate(selectedMatchToJoin.match_date)}</span>
               </div>
-
               <div>
-                <strong>{t.openMatches.time}</strong>
+                <strong>{t.openMatches?.time || joinCopy.time}</strong>
                 <span>{getMatchTimeRange(selectedMatchToJoin.match_time)}</span>
               </div>
+              <div className="join-modal-players-detail">
+                <strong>{t.openMatches?.players || joinCopy.players}</strong>
+                <span>
+                  {selectedMatchToJoin.players_count ??
+                    selectedMatchToJoin.players?.length ??
+                    0}
+                  /{selectedMatchToJoin.max_players ?? 4}
+                </span>
+              </div>
             </div>
-
-            <p>{t.openMatches.joinModalText}</p>
 
             <div className="join-modal-actions">
               <button
@@ -564,9 +622,8 @@ export const OpenMatches = () => {
                 onClick={() => setSelectedMatchToJoin(null)}
                 disabled={actionLoadingId === selectedMatchToJoin.id}
               >
-                {t.openMatches.cancel}
+                {t.openMatches?.cancel || joinCopy.cancel}
               </button>
-
               <button
                 type="button"
                 className="primary-button"
@@ -574,8 +631,8 @@ export const OpenMatches = () => {
                 disabled={actionLoadingId === selectedMatchToJoin.id}
               >
                 {actionLoadingId === selectedMatchToJoin.id
-                  ? t.openMatches.joining
-                  : t.openMatches.confirmJoin}
+                  ? t.openMatches?.joining || joinCopy.joining
+                  : t.openMatches?.confirmJoin || joinCopy.join}
               </button>
             </div>
           </div>
