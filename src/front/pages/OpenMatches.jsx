@@ -42,6 +42,23 @@ export const OpenMatches = () => {
       };
 
 
+  // Textos de respaldo para el modal de abandonar partido.
+  const leaveCopy = language === "en"
+    ? {
+        kicker: "LEAVE MATCH",
+        title: "Are you sure you want to leave this match?",
+        description: "You will lose your place in this match.",
+        leaving: "Leaving...",
+        confirm: "Yes, leave match",
+      }
+    : {
+        kicker: "ABANDONAR PARTIDO",
+        title: "¿Seguro que quieres salir del partido?",
+        description: "Perderás tu plaza en este partido.",
+        leaving: "Saliendo...",
+        confirm: "Sí, abandonar partido",
+      };
+
   const [user, setUser] = useState(null);
   const [playerProfile, setPlayerProfile] = useState(null);
 
@@ -56,6 +73,21 @@ export const OpenMatches = () => {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // Actualiza la disponibilidad sin que el jugador recargue la página.
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    const updateTime = () => setCurrentTime(Date.now());
+    const intervalId = window.setInterval(updateTime, 15000);
+    window.addEventListener("focus", updateTime);
+    document.addEventListener("visibilitychange", updateTime);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", updateTime);
+      document.removeEventListener("visibilitychange", updateTime);
+    };
+  }, []);
 
   const loadProfile = async () => {
     try {
@@ -260,15 +292,48 @@ export const OpenMatches = () => {
     );
   };
 
-  const canUploadResult = (openMatch) => {
-    const joined = isPlayerJoined(openMatch);
+  // Fechas/horas del partido guardadas como hora local de Yeda (UTC+03:00).
+  // Arabia Saudí no aplica cambios de horario de verano.
+  const getMatchEndTime = (openMatch) => {
+    if (!openMatch.match_date || !openMatch.match_time) return null;
 
+    const datePart = String(openMatch.match_date).slice(0, 10);
+    const timePart = String(openMatch.match_time).slice(0, 8);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart) ||
+        !/^\d{2}:\d{2}(?::\d{2})?$/.test(timePart)) {
+      return null;
+    }
+
+    const startMs = Date.parse(`${datePart}T${timePart}+03:00`);
+    return Number.isFinite(startMs) ? startMs + 90 * 60 * 1000 : null;
+  };
+
+  const isReservationFinished = (openMatch) => {
+    const endMs = getMatchEndTime(openMatch);
+    return endMs !== null && currentTime >= endMs;
+  };
+
+  const canUploadResult = (openMatch) => {
     return (
       openMatch.status === "closed" &&
-      joined &&
+      isPlayerJoined(openMatch) &&
       !openMatch.has_result &&
-      !openMatch.result_match_id
+      !openMatch.result_match_id &&
+      isReservationFinished(openMatch)
     );
+  };
+
+  const formatMatchEnd = (openMatch) => {
+    const endMs = getMatchEndTime(openMatch);
+    if (endMs === null) return null;
+    return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "es-ES", {
+      timeZone: "Asia/Riyadh",
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date(endMs));
   };
 
   const isNewOpenMatch = (openMatch) => {
@@ -526,6 +591,19 @@ export const OpenMatches = () => {
                         </button>
                       )}
 
+                      {isClosed && joined && !openMatch.has_result &&
+                        !openMatch.result_match_id && !uploadAllowed && (
+                          <span className="open-match-closed-text">
+                            {getMatchEndTime(openMatch) === null
+                              ? (language === "en"
+                                  ? "Match time is unavailable"
+                                  : "No se puede comprobar la hora del partido")
+                              : (language === "en"
+                                  ? `Upload result available after ${formatMatchEnd(openMatch)} (Jeddah time)`
+                                  : `Podrás subir el resultado a partir del ${formatMatchEnd(openMatch)} (hora de Yeda)`)}
+                          </span>
+                        )}
+
                       {uploadAllowed && (
                         <Link
                           to={`/upload-result?open_match_id=${openMatch.id}`}
@@ -644,33 +722,33 @@ export const OpenMatches = () => {
           <div className="join-modal-card leave-modal-card">
             <div className="join-modal-icon leave-modal-icon">⚠️</div>
 
-            <span>{t.openMatches.leaveModalKicker}</span>
+            <span>{t.openMatches?.leaveModalKicker || leaveCopy.kicker}</span>
 
-            <h2>{t.openMatches.leaveModalTitle}</h2>
+            <h2>{t.openMatches?.leaveModalTitle || leaveCopy.title}</h2>
 
             <div className="join-modal-details">
               <div>
-                <strong>{t.openMatches.level}</strong>
+                <strong>{t.openMatches?.level || joinCopy.level}</strong>
                 <span>{selectedMatchToLeave.level}</span>
               </div>
 
               <div>
-                <strong>{t.openMatches.club}</strong>
+                <strong>{t.openMatches?.club || joinCopy.club}</strong>
                 <span>{selectedMatchToLeave.club}</span>
               </div>
 
               <div>
-                <strong>{t.openMatches.date}</strong>
+                <strong>{t.openMatches?.date || joinCopy.date}</strong>
                 <span>{formatDate(selectedMatchToLeave.match_date)}</span>
               </div>
 
               <div>
-                <strong>{t.openMatches.time}</strong>
+                <strong>{t.openMatches?.time || joinCopy.time}</strong>
                 <span>{getMatchTimeRange(selectedMatchToLeave.match_time)}</span>
               </div>
             </div>
 
-            <p>{t.openMatches.leaveModalText}</p>
+            <p>{t.openMatches?.leaveModalText || leaveCopy.description}</p>
 
             <div className="join-modal-actions">
               <button
@@ -679,7 +757,7 @@ export const OpenMatches = () => {
                 onClick={() => setSelectedMatchToLeave(null)}
                 disabled={actionLoadingId === selectedMatchToLeave.id}
               >
-                {t.openMatches.cancel}
+                {t.openMatches?.cancel || joinCopy.cancel}
               </button>
 
               <button
@@ -689,8 +767,8 @@ export const OpenMatches = () => {
                 disabled={actionLoadingId === selectedMatchToLeave.id}
               >
                 {actionLoadingId === selectedMatchToLeave.id
-                  ? t.openMatches.leaving
-                  : t.openMatches.confirmLeave}
+                  ? (t.openMatches?.leaving || leaveCopy.leaving)
+                  : (t.openMatches?.confirmLeave || leaveCopy.confirm)}
               </button>
             </div>
           </div>

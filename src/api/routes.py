@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required as _jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from sqlalchemy import or_
 
 from api.models import (
@@ -18,6 +19,27 @@ from api.models import (
 )
 
 api = Blueprint("api", __name__)
+
+# Horario local del club en Yeda (Arabia Saudí).
+# Todas las fechas de OpenMatch se guardan como fecha y hora locales.
+MATCH_TIMEZONE = ZoneInfo("Asia/Riyadh")
+MATCH_DURATION_MINUTES = 90
+
+
+def get_scheduled_match_start(match_date, match_time):
+    """Devuelve el inicio del partido con zona horaria de Yeda."""
+    return datetime.combine(match_date, match_time).replace(tzinfo=MATCH_TIMEZONE)
+
+
+def get_scheduled_match_end(match_date, match_time):
+    """Devuelve el fin de la reserva (90 minutos después del inicio)."""
+    return get_scheduled_match_start(match_date, match_time) + timedelta(
+        minutes=MATCH_DURATION_MINUTES
+    )
+
+
+def get_local_match_now():
+    return datetime.now(MATCH_TIMEZONE)
 
 
 def jwt_required(fn):
@@ -74,7 +96,7 @@ def create_notification(user_id, title, message, notification_type, open_match_i
 
 
 def expire_old_open_matches():
-    now = datetime.utcnow()
+    now = get_local_match_now()
 
     open_matches = OpenMatch.query.filter(
         OpenMatch.status == "open",
@@ -87,9 +109,8 @@ def expire_old_open_matches():
         if not open_match.match_date or not open_match.match_time:
             continue
 
-        match_datetime = datetime.combine(
-            open_match.match_date,
-            open_match.match_time,
+        match_datetime = get_scheduled_match_start(
+            open_match.match_date, open_match.match_time
         )
 
         if match_datetime < now:
@@ -653,6 +674,25 @@ def create_match():
         if open_match.result_match_id:
             return jsonify({"msg": "Este partido abierto ya tiene un resultado subido"}), 400
 
+        # El cierre por cuatro inscritos no significa que el encuentro haya terminado.
+        # El servidor impide registrar resultados hasta agotar la reserva.
+        if not open_match.match_date or not open_match.match_time:
+            return jsonify({"msg": "El partido no tiene fecha u hora configurada"}), 400
+
+        match_end = get_scheduled_match_end(
+            open_match.match_date, open_match.match_time
+        )
+        if get_local_match_now() < match_end:
+            return jsonify({
+                "msg": (
+                    "Todavía no puedes subir el resultado. "
+                    "La reserva termina el "
+                    f"{match_end.strftime('%d/%m/%Y a las %H:%M')} "
+                    "(hora de Arabia Saudí)."
+                ),
+                "available_at": match_end.isoformat(),
+            }), 400
+
     required_fields = [
         "level",
         "team_a_player_1_id",
@@ -750,11 +790,11 @@ def create_match():
         winner_team=winner_team,
         club=data.get("club", "").strip(),
         played_at=played_at,
-        status="confirmed",
+        status="pending",
         submitted_by_id=current_user.id,
         submitted_by_profile_id=current_profile.id,
-        confirmed_by_profile_id=current_profile.id,
-        confirmed_at=datetime.utcnow(),
+        confirmed_by_profile_id=None,
+        confirmed_at=None,
     )
 
     db.session.add(match)
@@ -763,30 +803,27 @@ def create_match():
     if open_match:
         open_match.result_match_id = match.id
 
-    team_a_ids = [team_a_player_1_id, team_a_player_2_id]
-    team_b_ids = [team_b_player_1_id, team_b_player_2_id]
-
-    if winner_team == "A":
-        winner_ids = team_a_ids
-        loser_ids = team_b_ids
-    else:
-        winner_ids = team_b_ids
-        loser_ids = team_a_ids
-
-    for player_id in player_ids:
-        player = players_by_id[player_id]
-        player.matches_played = (player.matches_played or 0) + 1
-
-        if player_id in winner_ids:
-            player.wins = (player.wins or 0) + 1
-        elif player_id in loser_ids:
-            player.losses = (player.losses or 0) + 1
+    # Solo uno de los dos jugadores de la pareja rival debe validar.
+    rival_profile_ids = get_match_validation_team_ids(match)
+    for profile_id in rival_profile_ids:
+        rival = players_by_id.get(profile_id)
+        if rival and rival.user_id:
+            create_notification(
+                user_id=rival.user_id,
+                title="Resultado pendiente de validación",
+                message=(
+                    f"Se ha subido un resultado en {match.club or 'tu partido'}. "
+                    "Revisa el marcador y acéptalo o recházalo."
+                ),
+                notification_type="match_validation_pending",
+                open_match_id=open_match.id if open_match else None,
+            )
 
     db.session.commit()
 
     return jsonify(
         {
-            "msg": "Resultado subido correctamente. El ranking se ha actualizado automáticamente.",
+            "msg": "Resultado enviado. Está pendiente de que uno de los rivales lo valide.",
             "match": match.serialize(),
             "open_match": open_match.serialize() if open_match else None,
         }
@@ -844,6 +881,30 @@ def mark_notification_as_read(notification_id):
     ), 200
 
 
+@api.route("/matches/pending-validation", methods=["GET"])
+@jwt_required
+def get_matches_pending_validation():
+    """Resultados pendientes que el usuario puede validar, y los que ha enviado."""
+    profile = get_current_profile()
+    if not profile:
+        return jsonify({"msg": "Perfil no encontrado"}), 404
+
+    pending_matches = Match.query.filter_by(status="pending").order_by(
+        Match.created_at.desc()
+    ).all()
+
+    to_validate = []
+    submitted = []
+
+    for match in pending_matches:
+        if profile.id in get_match_validation_team_ids(match):
+            to_validate.append(match.serialize())
+        elif match.submitted_by_profile_id == profile.id:
+            submitted.append(match.serialize())
+
+    return jsonify({"to_validate": to_validate, "submitted": submitted}), 200
+
+
 @api.route("/matches/<int:match_id>/confirm", methods=["POST"])
 @jwt_required
 def confirm_match(match_id):
@@ -874,6 +935,15 @@ def confirm_match(match_id):
     db.session.commit()
 
     recalculate_ranking_internal(match.season_id)
+
+    if match.submitted_by and match.submitted_by.id != get_current_user().id:
+        create_notification(
+            user_id=match.submitted_by.id,
+            title="Resultado confirmado",
+            message="Un rival ha validado el resultado. El ranking ya está actualizado.",
+            notification_type="match_validated",
+        )
+        db.session.commit()
 
     return jsonify(
         {
@@ -909,6 +979,14 @@ def reject_match(match_id):
     match.status = "rejected"
     match.rejected_by_profile_id = current_profile.id
     match.rejected_at = datetime.utcnow()
+
+    if match.submitted_by:
+        create_notification(
+            user_id=match.submitted_by.id,
+            title="Resultado rechazado",
+            message="Un rival ha rechazado el marcador. El administrador debe revisar la disputa.",
+            notification_type="match_validation_rejected",
+        )
 
     db.session.commit()
 
@@ -981,9 +1059,9 @@ def admin_create_open_match():
     except ValueError:
         return jsonify({"msg": "Hora no válida"}), 400
 
-    match_datetime = datetime.combine(match_date, match_time)
+    match_datetime = get_scheduled_match_start(match_date, match_time)
 
-    if match_datetime < datetime.utcnow():
+    if match_datetime < get_local_match_now():
         return jsonify(
             {"msg": "No puedes crear un partido con una fecha u hora pasada"}
         ), 400
@@ -1063,12 +1141,11 @@ def join_open_match(open_match_id):
         return jsonify({"msg": "Este partido ya tiene resultado subido"}), 400
 
     if open_match.match_date and open_match.match_time:
-        match_datetime = datetime.combine(
-            open_match.match_date,
-            open_match.match_time,
+        match_datetime = get_scheduled_match_start(
+            open_match.match_date, open_match.match_time
         )
 
-        if match_datetime < datetime.utcnow():
+        if match_datetime < get_local_match_now():
             open_match.status = "cancelled"
             db.session.commit()
 
@@ -1169,12 +1246,11 @@ def leave_open_match(open_match_id):
         return jsonify({"msg": "No puedes salir de un partido ya cerrado"}), 400
 
     if open_match.match_date and open_match.match_time:
-        match_datetime = datetime.combine(
-            open_match.match_date,
-            open_match.match_time,
+        match_datetime = get_scheduled_match_start(
+            open_match.match_date, open_match.match_time
         )
 
-        time_until_match = match_datetime - datetime.utcnow()
+        time_until_match = match_datetime - get_local_match_now()
 
         if time_until_match <= timedelta(hours=24):
             return jsonify(
